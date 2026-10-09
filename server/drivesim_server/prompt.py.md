@@ -17,8 +17,14 @@ imported parts into a checked `robot.toml` together with the user.
 - **Contents:** the whole `robot.toml` schema, the robot frame, and the
   EdgeTX Classic channel layout (ch1 turn, ch2 throttle, ch3 weapon, ch5
   arm).
-- **Plausibility hint:** tip speeds of 50–120 m/s are normal for a 12 lb
-  spinner.
+- **Plausibility hints:** tip speeds of 50–120 m/s are normal for a 12 lb
+  spinner, and a two-wheeled robot resting tilted on an edge or skid is
+  expected.
+- **Defaults:** the robot is named after the uploaded file, and `arm = 5`
+  stays unless the radio has no arm switch.
+- **Tuned on the first live conversation (2026-10-09),** which named the
+  robot "robot", blamed a normal tilt on wheel clearance, and left out
+  the arm switch.
 
 ## Assertions
 - [ ] No timestamps or per-request text in `SYSTEM`; it must stay

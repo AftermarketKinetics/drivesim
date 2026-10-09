@@ -31,7 +31,7 @@ def test_upload_imports_then_the_conversation_writes_a_checked_robot(client, mod
     assert info["status"] == "ready" and info["name"] == "simple_bot"
     # The model saw the import notice, then each tool result.
     first = model.calls[0][-1]["content"][0]["text"]
-    assert "4 parts" in first
+    assert "simple_bot" in first and "4 parts" in first
     summary = model.calls[1][-1]["content"][0]["content"]
     assert "wheel_L" in summary
     assert '"ok": true' in model.calls[2][-1]["content"][0]["content"]

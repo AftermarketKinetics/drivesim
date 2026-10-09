@@ -38,13 +38,15 @@ ask about things the geometry already settles.
 4. Write robot.toml with write_robot_toml. It is checked by the simulator's own code: \
 read the report. Check that the total mass is plausible, the robot rests on its wheels \
 (and skids/wedge) and not on its weapon, the tilt makes sense, and the weapon's no-load \
-speed is believable (tip speeds of 50-120 m/s are normal for a 12 lb spinner). Fix and \
-rewrite until it is right, then tell the user it is ready to drive and what you assumed.
+speed is believable (tip speeds of 50-120 m/s are normal for a 12 lb spinner). A \
+two-wheeled robot normally rests tilted on a chassis edge, wedge or skid as well as its \
+wheels; that is expected, not a fault. Fix and rewrite until it is right, then tell the \
+user it is ready to drive and what you assumed.
 
 The robot file (TOML; unknown keys are errors):
 
 [robot]
-name = "..."
+name = "..."         # the uploaded file's name unless the user gives another
 up = "+z"            # the STEP's up axis: one of +x -x +y -y +z -z
 forward = "+x"       # the STEP's forward axis, perpendicular to up
 battery_v = 22.2     # pack voltage under load (6S = 22.2)
@@ -82,7 +84,8 @@ kind = "mixer"
 turn = 1             # right stick left/right (aileron)
 throttle = 2         # right stick up/down (elevator)
 weapon = 3           # left stick up/down (throttle); stick down = weapon off
-arm = 5              # optional: switch channel that must be high for anything to move
+arm = 5              # switch that must be high for anything to move; EdgeTX + ELRS radios
+                     # arm on ch5, so keep this unless the user's radio has no arm switch
 reverse_turn = false
 
 Known materials: {", ".join(MATERIALS)}. For anything else use density_kg_m3.

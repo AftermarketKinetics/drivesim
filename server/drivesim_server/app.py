@@ -73,7 +73,8 @@ async def import_and_start(s: dict[str, Any], robot_id: str) -> None:
     count = len(json.loads(parts.read_text())["parts"])
     store.set_status(robot_id, "ready")
     await bus.emit(robot_id, {"type": "status", "status": "ready", "parts": count})
-    await agent.notify(robot_id, f"The STEP import finished: {count} parts. Begin.")
+    name = store.robot(robot_id)["name"]
+    await agent.notify(robot_id, f"The STEP import of {name!r} finished: {count} parts. Begin.")
 
 
 @asynccontextmanager

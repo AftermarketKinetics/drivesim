@@ -35,3 +35,9 @@ decision to make the sim a general tool in its own repo) are logged in
 **Did:**
 - Committed drivesim ad9d5ec and momentum eee7123 (momentum's 2D sim removed). Added physics `rest` + crates/cli drivesim-check.
 - server/ (FastAPI, uv: anthropic 1.13) copied/adapted from the analyzer: store, auth (+dev user), events, llm, loop, 4 tools, prompt, importer (broker|local), pages; broker/ (one fixed gVisor docker run). 38 server + 5 broker tests pass; 63/63 sidecars.
+
+## 10:00 Live role conversation
+**Asked:** Live test? Yes, run it / You run it / Later → "Yes, run it". Commit? Commit now / After the live test / Not yet → "Commit now". Next? Yes, web app next / Deploy images first / Stop here for now → "Yes, web app next".
+**Did:**
+- Committed d14fef7. Ran one real conversation (sonnet-5-5 via the ant profile) on the fixture through server-dev: correct roles from geometry, one batched question set, checked robot.toml in two turns.
+- Tuned from it: notice carries the upload name, tilt on an edge is normal, arm = 5 by default. 38 tests pass.
