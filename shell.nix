@@ -30,12 +30,22 @@ pkgs.mkShell {
     pkgs.wasm-bindgen-cli       # 0.2.127
     pkgs.binaryen               # 132 (wasm-opt)
 
+    # Server (server/): its Python *packages* (FastAPI, anthropic 1.x, ...)
+    # are uv's, in server/pyproject.toml + uv.lock; nix provides uv and the
+    # interpreter (UV_PYTHON below). The docker CLI is for testing the
+    # import broker locally.
+    pkgs.uv
+    pkgs.docker-client
+
     # STEP importer: exact B-rep tree, mass properties and tessellation.
     (pkgs.python3.withPackages (ps: [
       ps.pythonocc-core         # 7.9.0 (OCCT 7.9)
       ps.numpy
     ]))
   ];
+
+  # The server's venv must not pick up the importer's OCC Python above.
+  UV_PYTHON = "${pkgs.python3}/bin/python3";
 
   shellHook = ''
     echo "drivesim shell — docs/drivesim.md is the design"

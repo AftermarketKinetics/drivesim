@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drivesim robots</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Your robots</h1>
+<p class="muted">Upload a robot as a STEP assembly. It is imported, then Claude asks you a few
+questions (which parts are wheels and weapon, materials, motors) and writes its robot file.</p>
+<div class="card">
+  <input type="file" id="file" accept=".step,.stp,.STEP,.STP">
+  <button id="go" disabled>Upload</button>
+  <span id="upmsg" class="muted"></span>
+</div>
+<div id="list"></div>
+<script>
+const $ = id => document.getElementById(id);
+async function load() {
+  const r = await fetch("/api/robots");
+  const robots = r.ok ? await r.json() : [];
+  $("list").innerHTML = robots.length ? robots.map(b => {
+    const state = b.status === "failed" ? `<span class="bad">import failed</span>`
+      : b.status === "importing" ? "importing…"
+      : b.checked ? `<span class="good">ready to drive</span>` : "needs setting up";
+    return `<div class="card"><a href="robot.html?id=${b.id}">${b.name || "robot"}</a>
+      <span class="muted"> · ${new Date(b.created * 1000).toLocaleString()} · </span>${state}</div>`;
+  }).join("") : `<p class="muted">No robots yet.</p>`;
+}
+$("file").onchange = () => { $("go").disabled = !$("file").files.length; };
+$("go").onclick = async () => {
+  const fd = new FormData();
+  fd.append("file", $("file").files[0]);
+  $("go").disabled = true;
+  $("upmsg").textContent = "uploading…";
+  const r = await fetch("/api/robots", { method: "POST", body: fd });
+  if (!r.ok) { $("upmsg").textContent = (await r.json()).detail || "upload failed"; $("go").disabled = false; return; }
+  location.href = "robot.html?id=" + (await r.json()).id;
+};
+load();
+</script>
+</body>
+</html>

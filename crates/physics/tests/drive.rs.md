@@ -15,6 +15,7 @@ Tests:
 - `weapon_spins_up_to_no_load_and_the_robot_stays_upright`: within 5%
   after 3 s.
 - `driving_into_the_box_pushes_it`.
+- `the_fixture_rests_on_its_wheels_and_a_chassis_edge`: `rest::settle`.
 
 ## Implementation
 

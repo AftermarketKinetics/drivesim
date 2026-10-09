@@ -1,8 +1,9 @@
 # drivesim: a driving simulator for NHRL robots
 
-Status: **design, 2026-10-09.** Built: the STEP importer (§4), the
-robot loader (§5), the input mapping (§7) and the physics with its
-validation tests (§6, §9). Planned: the server, the web app, deployment. Decisions in §2 are the user's; anything else marked
+Status: **2026-10-09.** Built and tested locally: the STEP importer (§4),
+the robot loader (§5), the input mapping (§7), the physics with its
+validation tests (§6, §9), and the server with its import broker and role
+conversation (§4). Planned: the web app (§11 step 5) and deployment. Decisions in §2 are the user's; anything else marked
 *proposal* is open to review.
 
 ## 1. Goal
@@ -38,6 +39,11 @@ hazards; a native desktop build.
 - **Robots come in as STEP uploads, imported on the server.** The
   importer runs in a **gVisor sandbox started by drivesim's own broker**,
   because a STEP upload is untrusted input to a large C++ parser.
+- **The server copies and adapts the Combat Robot Analyzer's** auth, store,
+  event bus, agent loop and broker pattern, rather than sharing a library
+  or starting fresh. The role conversation runs on `claude-sonnet-5-5`,
+  with the analyzer's API key on accelerate. Robots are visible to their
+  owner only in v1.
 - **Roles come from a Claude conversation.** A STEP does not say which
   part is a wheel or the weapon, or what anything is made of; Claude asks
   the user and writes the robot file. The user first asked for this as a
@@ -107,15 +113,18 @@ read-only and an output directory writable, with CPU, memory and time
 limits. The analyzer's `cra-broker` is the pattern; drivesim runs its
 own.
 
-**The role conversation.** Claude gets `parts.json` (not the meshes) and
-a tool to write `robot.toml`. It proposes roles from the geometry (a wheel
-is a rotor whose radius reaches the floor, normally in a left/right
-pair; the weapon is the rotor with the largest inertia about its own
-axis; the rest is chassis), and materials from part names; it asks the
-user about anything it is unsure of, in the page, with the evidence; it
-then runs the same loader the sim uses and shows total mass, CoM, inertia
-and the resting contact points, so a wrong role shows up as a wrong
-number before anyone drives.
+**The role conversation** (`server/drivesim_server/`, built 2026-10-09).
+Claude's tools are `parts_summary`, `list_motors`, `show_robot_toml` and
+`write_robot_toml`; it reads the parts as text, not the meshes. It proposes
+roles from the geometry (a wheel is a rotor whose radius reaches the floor,
+normally in a left/right pair; the weapon is the rotor with the most mass
+far from its axis; the rest is chassis) and materials from part names, and
+asks the user about anything it is unsure of, in the page, with the
+evidence. Every write runs `drivesim-check` (`crates/cli`), the sim's own
+loader and physics, which reports mass, CoM, inertia, each rotor's no-load
+speed and how the robot rests (tilt, which bodies touch the floor, after a
+small nudge so a robot balanced on its axle falls as a real one would). A
+wrong role shows up as a wrong number before anyone drives.
 
 ## 5. Robot file
 
@@ -233,14 +242,16 @@ Cargo.toml              workspace: robot, physics, input (host-tested)
 crates/robot/           robot.toml schema, motor library, bundle loader
 crates/physics/         rapier3d world, bodies, sensors, controllers
 crates/input/           radio axes -> channels
+crates/cli/             drivesim-check: a bundle -> JSON report
 web/                    Bevy app, its own workspace, wasm32 only
 server/                 FastAPI: uploads, jobs, role chat, bundles, static app
 broker/                 starts gVisor import sandboxes; holds the Docker socket
 tools/import/           STEP importer (Python, pythonocc)
 deploy/                 nix-built images, push to accelerate
 data/motors.toml
-shell.nix               pinned nixpkgs: Rust (+ wasm32 std), wasm-bindgen,
-                        binaryen, Python with pythonocc and FastAPI
+shell.nix               pinned nixpkgs: Rust (+ wasm32 std), lld, wasm-bindgen,
+                        binaryen, Python with pythonocc, uv, docker CLI
+                        (server/ Python packages are uv's: pyproject + uv.lock)
 ```
 
 - **Library crates take bytes, never paths**, and use no native-only
@@ -308,6 +319,8 @@ Host tests, run before any driving is trusted:
    body, timed.
 3. `crates/robot`, then `crates/physics` with the §9 tests.
 4. `server/` and `broker/`: upload, sandboxed import, role conversation,
-   per-user storage.
+   per-user storage. **Done 2026-10-09** (local: 38 server tests with a
+   scripted model, 5 broker tests without Docker; the gVisor path and a
+   live Claude conversation are untested).
 5. `web/`: load a bundle, drive, hit the box.
 6. Deploy on accelerate (asks the user first: it changes the live site).

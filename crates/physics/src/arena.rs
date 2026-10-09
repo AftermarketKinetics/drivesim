@@ -16,9 +16,10 @@ pub const BOX_MASS_KG: f32 = 5.44;
 pub const BOX_HALF_M: [f32; 3] = [0.15, 0.15, 0.075];
 pub const BOX_MU: f32 = 0.4;
 
-pub fn add_arena(w: &mut PhysicsWorld) {
+/// Returns the floor's collider, for contact queries.
+pub fn add_arena(w: &mut PhysicsWorld) -> ColliderHandle {
     let half = ARENA_SIDE_M / 2.0;
-    w.colliders.insert(
+    let floor = w.colliders.insert(
         ColliderBuilder::cuboid(half + 0.5, half + 0.5, 0.05)
             .translation(Vector::new(0.0, 0.0, -0.05))
             .friction(FLOOR_MU)
@@ -37,6 +38,7 @@ pub fn add_arena(w: &mut PhysicsWorld) {
                 .friction(0.3),
         );
     }
+    floor
 }
 
 /// The free box, resting on the floor at (`x`, `y`).

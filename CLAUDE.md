@@ -21,9 +21,14 @@ Everything runs inside the nix shell (`shell.nix`, pinned to the same
 nixpkgs as momentum):
 
 ```sh
-nix-shell --run 'make test'      # importer tests (+ cargo tests once crates exist)
+nix-shell --run 'make test'        # importer, crates (test/clippy/fmt), server, broker
+nix-shell --run 'make web-dev'     # repo on localhost:8417 (pad test, web builds)
+nix-shell --run 'make server-dev'  # server on localhost:8420, dev user, local import
 nix-shell --run 'python tools/import/step_import.py robot.step out/robot'
 ```
+
+`server/` is a uv project (`pyproject.toml` + `uv.lock`); `uv` comes from
+the shell.
 
 `out/` is gitignored scratch.
 

@@ -10,7 +10,8 @@ box.
 - `ARENA_SIDE_M` 4.88 (PROVISIONAL: 16 ft, until the NHRL cage size is
   known), `WALL_H_M` 0.6, `FLOOR_MU` 1.0.
 - `BOX_MASS_KG` 5.44, `BOX_HALF_M` [0.15, 0.15, 0.075], `BOX_MU` 0.4.
-- `add_arena(world)`; `add_target(world, x, y) -> RigidBodyHandle`.
+- `add_arena(world) -> ColliderHandle` (the floor's, for contact
+  queries); `add_target(world, x, y) -> RigidBodyHandle`.
 
 ## Implementation
 

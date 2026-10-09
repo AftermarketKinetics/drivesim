@@ -84,3 +84,17 @@ fn driving_into_the_box_pushes_it() {
     let moved = s.world.bodies[s.target].translation().x - box0;
     assert!(moved > 0.05, "box moved {moved} m");
 }
+
+#[test]
+fn the_fixture_rests_on_its_wheels_and_a_chassis_edge() {
+    let r = drivesim_physics::rest::settle(&common::fixture_model(), &common::fixture_mesh, 2.0)
+        .unwrap();
+    // CoM above the axle: it tips until a chassis edge (10 mm up, 100 mm
+    // out) meets the floor, about atan(10/100) = 5.7°.
+    assert!((r.tilt_deg - 5.7).abs() < 1.5, "tilt {}", r.tilt_deg);
+    assert!(r.touching.contains(&"wheel_left".to_string()));
+    assert!(r.touching.contains(&"wheel_right".to_string()));
+    assert!(r.touching.contains(&"chassis".to_string()));
+    assert!(!r.touching.contains(&"disc".to_string()));
+    assert!(r.residual_speed < 0.01);
+}

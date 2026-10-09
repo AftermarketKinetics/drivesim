@@ -1,18 +1,23 @@
 {
   "roots": [
     "tools",
-    "crates"
+    "crates",
+    "server",
+    "broker"
   ],
   "extensions": [
     ".py",
     ".rs",
     ".nix",
-    ".sh"
+    ".sh",
+    ".html"
   ],
   "ignore": [
     "**/target/**",
     "**/__pycache__/**",
-    "**/fixtures/**"
+    "**/fixtures/**",
+    "**/.venv/**",
+    "**/var/**"
   ],
   "sidecar_suffix": ".md"
 }

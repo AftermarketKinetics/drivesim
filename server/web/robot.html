@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drivesim robot</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<p><a href="./">← all robots</a></p>
+<h1 id="name">Robot</h1>
+<div id="status" class="card muted">loading…</div>
+<div id="check" class="card" hidden></div>
+<div id="chat"></div>
+<div class="card">
+  <textarea id="text" rows="3" placeholder="Reply…"></textarea>
+  <button id="send">Send</button> <span id="busy" class="muted"></span>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const rid = new URLSearchParams(location.search).get("id");
+const api = p => `/api/robots/${rid}${p}`;
+let live = null; // the assistant message being streamed
+
+function esc(s) { return s.replace(/[&<>]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c])); }
+function add(cls, text) {
+  const d = document.createElement("div");
+  d.className = "msg " + cls;
+  d.innerHTML = esc(text);
+  $("chat").appendChild(d);
+  return d;
+}
+function showCheck(r) {
+  $("check").hidden = false;
+  if (!r.ok) { $("check").innerHTML = `<b class="bad">Robot file check failed</b><pre>${esc(r.error)}</pre>`; return; }
+  const rest = r.rest;
+  $("check").innerHTML = `<b class="good">Robot file checks out</b>
+    <div>${r.total_mass_kg} kg · rests at ${rest.tilt_deg}° on ${rest.touching_floor.join(", ")}</div>
+    <div class="muted">${r.weapons.map(w => `${w.name}: ${w.no_load_rpm} rpm no-load, tip ${w.no_load_tip_speed_m_s} m/s`).join(" · ")}</div>`;
+}
+async function status() {
+  const b = await (await fetch(api(""))).json();
+  $("name").textContent = b.name || "Robot";
+  $("status").innerHTML = b.status === "failed" ? `<span class="bad">Import failed:</span> <pre>${esc(b.error)}</pre>`
+    : b.status === "importing" ? "Importing the STEP…" : b.checked ? `<span class="good">Ready to drive.</span>` : "Imported. Setting up roles…";
+}
+function history(msgs) {
+  for (const m of msgs) for (const b of m.content) {
+    if (b.type === "text" && !b.text.startsWith("[Automated notice")) add(m.role === "user" ? "user" : "assistant", b.text);
+    if (b.type === "tool_use") add("tool", `→ ${b.name}`);
+  }
+}
+async function start() {
+  await status();
+  history(await (await fetch(api("/messages"))).json());
+  const es = new EventSource(api("/events"));
+  es.onmessage = e => {
+    const ev = JSON.parse(e.data);
+    if (ev.type === "text") { live = live || add("assistant", ""); live.textContent += ev.text; }
+    else if (ev.type === "turn_end") live = null;
+    else if (ev.type === "tool_start") add("tool", `→ ${ev.name}`);
+    else if (ev.type === "robot") { showCheck(ev.report); status(); }
+    else if (ev.type === "status") status();
+    else if (ev.type === "error") add("tool bad", ev.message);
+    else if (ev.type === "idle") $("busy").textContent = "";
+  };
+}
+$("send").onclick = async () => {
+  const text = $("text").value.trim();
+  if (!text) return;
+  add("user", text);
+  $("text").value = "";
+  $("busy").textContent = "thinking…";
+  const r = await fetch(api("/messages"), { method: "POST", headers: {"Content-Type": "application/json"},
+                                            body: JSON.stringify({ text }) });
+  if (!r.ok) $("busy").textContent = (await r.json()).detail;
+};
+start();
+</script>
+</body>
+</html>

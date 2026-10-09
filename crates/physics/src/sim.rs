@@ -33,7 +33,7 @@ impl Sim {
         mesh: &dyn Fn(&str) -> Option<Vec<u8>>,
     ) -> Result<Sim, SpawnError> {
         let mut world = Self::empty_world(-GRAVITY);
-        add_arena(&mut world);
+        let _floor = add_arena(&mut world);
         let target = add_target(&mut world, 1.0, 0.0);
         let robot = spawn_robot(&mut world, &model, mesh, -1.0, 0.0, 0.0)?;
         Ok(Self::assemble(world, robot, model, target))

@@ -2,7 +2,7 @@
 # own workspace under web/, so `cargo test` here never builds Bevy.
 [workspace]
 resolver = "3"
-members = ["crates/input", "crates/robot", "crates/physics"]
+members = ["crates/input", "crates/robot", "crates/physics", "crates/cli"]
 
 [workspace.package]
 edition = "2024"

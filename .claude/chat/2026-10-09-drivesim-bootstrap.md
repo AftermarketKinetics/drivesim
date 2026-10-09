@@ -29,3 +29,9 @@ decision to make the sim a general tool in its own repo) are logged in
 - crates/physics (rapier3d 0.36): motor model, mixer, hull-or-VHACD shapes, arena + box, spawn (shared robot frame, model mass props, cylinder wheels, revolute joints), 4 kHz/1 kHz sim with motors as equal-and-opposite torques.
 - 17 tests pass: precession = tau/L within 10%, angular momentum within 1%, 97.6% of no-load speed, turning, disarm, weapon spin-up, box push. First failures were test bugs (box in the path; NaN mass props before first step).
 - Doc §6/§9/§10 updated; 34/34 sidecars; make test green (clippy/fmt clean).
+
+## 09:30 Commit, next step, server questions, server built
+**Asked:** Next? Web app first (Recommended) / Server first (as planned) / Momentum-core hook first → "Server first (as planned)". Commit? → "Commit both". Reuse? Copy and adapt (Recommended) / Shared library / Write fresh → "Copy and adapt (Recommended)". Model? claude-sonnet-5-5 (Recommended) / claude-opus-5-5 / claude-haiku-4-5 → "claude-sonnet-5-5 (Recommended)". API key? Its own key / Share the analyzer's key → "Share the analyzer's key". Sharing? Owner only, for v1 / Everyone signed in / Owner + explicit shares → "Owner only, for v1".
+**Did:**
+- Committed drivesim ad9d5ec and momentum eee7123 (momentum's 2D sim removed). Added physics `rest` + crates/cli drivesim-check.
+- server/ (FastAPI, uv: anthropic 1.13) copied/adapted from the analyzer: store, auth (+dev user), events, llm, loop, 4 tools, prompt, importer (broker|local), pages; broker/ (one fixed gVisor docker run). 38 server + 5 broker tests pass; 63/63 sidecars.

@@ -7,7 +7,7 @@ joints, motors, the arena and the target box, stepped at a fixed rate.
 
 ## Interface
 
-Modules `arena`, `mixer`, `motor`, `shapes`, `sim`, `spawn`; re-exports
+Modules `arena`, `mixer`, `motor`, `rest`, `shapes`, `sim`, `spawn`; re-exports
 `Sim`, `PHYSICS_HZ`, `CONTROL_HZ`.
 
 ## Implementation
