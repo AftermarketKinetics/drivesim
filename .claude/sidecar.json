@@ -1,0 +1,18 @@
+{
+  "roots": [
+    "tools",
+    "crates"
+  ],
+  "extensions": [
+    ".py",
+    ".rs",
+    ".nix",
+    ".sh"
+  ],
+  "ignore": [
+    "**/target/**",
+    "**/__pycache__/**",
+    "**/fixtures/**"
+  ],
+  "sidecar_suffix": ".md"
+}

@@ -1,0 +1,67 @@
+<!doctype html>
+<!-- Web pad test (docs/drivesim.md §7): shows exactly what Chrome's Gamepad
+     API reports for the radio, so the input crate's mapping is checked
+     against the radio's own channel monitor, as paddump did on Windows. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pad test</title>
+<style>
+  :root { --bg: #fafafa; --fg: #1a1a1a; --muted: #666; --bar: #2f6fdb; --track: #ddd; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161616; --fg: #eee; --muted: #999; --bar: #6aa0ff; --track: #333; }
+  }
+  body { background: var(--bg); color: var(--fg); font: 15px/1.4 system-ui, sans-serif;
+         margin: 0 auto; padding: 16px; max-width: 760px; }
+  .muted { color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+  td { padding: 4px 6px; }
+  td.v { font-family: ui-monospace, monospace; width: 6em; text-align: right; }
+  .track { position: relative; height: 12px; background: var(--track); border-radius: 6px; }
+  .fill { position: absolute; top: 0; bottom: 0; background: var(--bar); border-radius: 6px; }
+  .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--fg); }
+  pre { white-space: pre-wrap; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Pad test</h1>
+<p class="muted">Plug the radio in (USB Joystick mode) and move a stick so Chrome
+notices it. Move each control to its +100 end on the radio's channel monitor and
+check the matching axis goes to +1.</p>
+<div id="pads">No gamepad yet.</div>
+<pre id="log"></pre>
+<script>
+const pads = document.getElementById("pads");
+const log = document.getElementById("log");
+const seen = new Set();
+
+function frame() {
+  const list = [...navigator.getGamepads()].filter(Boolean);
+  if (list.length) {
+    pads.innerHTML = list.map(p => {
+      if (!seen.has(p.index)) {
+        seen.add(p.index);
+        log.textContent += `pad ${p.index}: id="${p.id}" mapping="${p.mapping}" ` +
+          `axes=${p.axes.length} buttons=${p.buttons.length}\n`;
+      }
+      const axes = p.axes.map((v, i) => {
+        const left = Math.min(50, 50 + v * 50), width = Math.abs(v * 50);
+        return `<tr><td>A${i} (CH${i + 1}?)</td><td class="v">${v.toFixed(3)}</td>
+          <td style="width:100%"><div class="track"><div class="fill"
+          style="left:${left}%;width:${width}%"></div><div class="mid"></div></div></td></tr>`;
+      }).join("");
+      const pressed = p.buttons.map((b, i) => b.pressed || b.value ? `B${i}=${b.value.toFixed(2)}` : "")
+        .filter(Boolean).join("  ");
+      return `<h2>${p.index}: ${p.id}</h2><table>${axes}</table>
+        <p class="muted">buttons: ${pressed || "none pressed"}</p>`;
+    }).join("");
+  }
+  requestAnimationFrame(frame);
+}
+window.addEventListener("gamepadconnected", e => log.textContent += `connected: ${e.gamepad.id}\n`);
+window.addEventListener("gamepaddisconnected", e => log.textContent += `disconnected: ${e.gamepad.id}\n`);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

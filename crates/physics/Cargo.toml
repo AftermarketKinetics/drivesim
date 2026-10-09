@@ -1,0 +1,10 @@
+[package]
+name = "drivesim-physics"
+version = "0.1.0"
+edition.workspace = true
+description = "rapier3d world for a loaded robot: bodies, joints, motors, arena (docs/drivesim.md §6)"
+
+[dependencies]
+rapier3d = "0.36"
+drivesim-robot = { path = "../robot" }
+drivesim-input = { path = "../input" }

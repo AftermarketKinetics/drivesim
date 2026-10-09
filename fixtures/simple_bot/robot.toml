@@ -1,0 +1,47 @@
+# The importer fixture as a drivable robot: an aluminium box, TPU wheels,
+# a steel disc. Hand-written; the numbers in crates/robot/tests follow from
+# it and from tools/import/tests/make_fixture.py's geometry.
+
+[robot]
+name = "simple_bot"
+up = "+z"
+forward = "+x"
+battery_v = 22.2
+
+[materials]
+default = "al6061"
+
+[[materials.rule]]
+parts = ["Wheel"]
+material = "tpu"
+
+[[materials.rule]]
+parts = ["weapon"]
+material = "steel"
+
+[[wheel]]
+name = "wheel_left"
+parts = ["wheel_L"]
+motor = "repeat-ultra-mk2-2830-1450kv"
+ratio = 6.0
+mu = 0.9
+
+[[wheel]]
+name = "wheel_right"
+parts = ["wheel_R"]
+motor = "repeat-ultra-mk2-2830-1450kv"
+ratio = 6.0
+mu = 0.9
+
+[[weapon]]
+name = "disc"
+parts = ["weapon"]
+motor = "badass-2820-1820kv"
+ratio = 4.0
+
+[control]
+kind = "mixer"
+throttle = 2
+turn = 1
+weapon = 3
+arm = 5

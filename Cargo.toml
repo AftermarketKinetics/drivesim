@@ -1,0 +1,13 @@
+# Host-tested library crates (docs/drivesim.md §8). The Bevy web app is its
+# own workspace under web/, so `cargo test` here never builds Bevy.
+[workspace]
+resolver = "3"
+members = ["crates/input", "crates/robot", "crates/physics"]
+
+[workspace.package]
+edition = "2024"
+
+# rapier is ~30x slower unoptimised; the physics tests step thousands of
+# times. Optimise dependencies in dev/test builds, keep our crates debuggable.
+[profile.dev.package."*"]
+opt-level = 3

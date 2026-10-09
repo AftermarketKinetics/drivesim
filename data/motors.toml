@@ -1,0 +1,21 @@
+# The motor library (docs/drivesim.md §5). robot.toml names a motor here
+# and may override any number. Units: kv in rpm/V, ohm, A, kg m².
+# Every value says where it came from; `provisional` lists placeholders
+# that are neither measured nor from a datasheet. Add motors as robots
+# need them, with sources.
+
+[motor.repeat-ultra-mk2-2830-1450kv]
+kv_rpm_per_v = 1450
+r_ohm = 0.06
+i_max_a = 40
+pole_pairs = 7
+source = "kv: Momentum config.py VITAMIN_MASSES ('2830 1450kv (Repeat)'). r_ohm, i_max_a, pole_pairs: Momentum's 2D sim placeholders (2026-10-09)."
+provisional = ["r_ohm", "i_max_a", "pole_pairs"]
+
+[motor.badass-2820-1820kv]
+kv_rpm_per_v = 1820
+r_ohm = 0.02
+i_max_a = 120
+pole_pairs = 7
+source = "kv: Innov8tive BadAss 2820 winds, Momentum config.py BA2820_KV (2026-09-15). i_max_a: Momentum's 120 A weapon ESC (config.py weapon_kv note). r_ohm, pole_pairs: placeholders."
+provisional = ["r_ohm", "pole_pairs"]
