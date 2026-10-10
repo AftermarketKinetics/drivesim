@@ -1,5 +1,5 @@
-//! A brushless motor behind its ESC, as a DC motor (carried over from
-//! Momentum's 2D sim, 2026-10-09): complementary PWM makes the winding see
+//! A motor behind its ESC, brushless or brushed, as a DC motor (carried
+//! over from Momentum's 2D sim, 2026-10-09): complementary PWM makes the winding see
 //! `duty · V`, so a duty below the back-EMF brakes rather than coasts.
 
 use drivesim_robot::Rotor;
@@ -38,6 +38,7 @@ mod tests {
             radius_m: 0.03,
             width_m: 0.02,
             motor: MotorSpec {
+                kind: Default::default(),
                 kv_rpm_per_v: 1450.0,
                 r_ohm: 0.06,
                 i_max_a: 40.0,

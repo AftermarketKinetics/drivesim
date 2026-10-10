@@ -2,8 +2,9 @@
 
 ## Function
 
-The brushless motor plus ESC as a DC motor, carried over from Momentum's
-2D sim (2026-10-09): what turns a duty into rotor torque.
+The motor plus ESC as a DC motor, carried over from Momentum's 2D sim
+(2026-10-09): what turns a duty into rotor torque. Brushless and brushed
+motors (`MotorKind`) share it; `kind` and `pole_pairs` are not read.
 
 ## Interface
 

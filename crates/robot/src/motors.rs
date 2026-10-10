@@ -3,17 +3,31 @@
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
-/// One brushless motor (plus its ESC's current limit), SI-ish units as
-/// motor datasheets give them.
+/// Brushless (three-phase, behind an ESC) or brushed. The motor model is
+/// the same DC model for both; `kind` is for choosing and showing motors.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MotorKind {
+    #[default]
+    Brushless,
+    Brushed,
+}
+
+/// One motor (plus its ESC's current limit), SI-ish units as motor
+/// datasheets give them.
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MotorSpec {
+    #[serde(default)]
+    pub kind: MotorKind,
     /// No-load speed constant, rpm per volt.
     pub kv_rpm_per_v: f64,
-    /// Phase-to-phase winding resistance, ohm.
+    /// Winding resistance, ohm: phase-to-phase (brushless) or terminal
+    /// (brushed).
     pub r_ohm: f64,
     /// ESC / motor current limit, A.
     pub i_max_a: f64,
+    /// Unused by the motor model; ignored for brushed motors.
     #[serde(default = "seven")]
     pub pole_pairs: u32,
     /// Rotor inertia about its own axis, kg m²; adds to the driven body.
@@ -89,6 +103,7 @@ mod tests {
         let lib = parse_library(LIB).unwrap();
         let m = &lib["test-2830"];
         assert_eq!(m.pole_pairs, 7);
+        assert_eq!(m.kind, MotorKind::Brushless);
         assert_eq!(m.rotor_inertia_kg_m2, 0.0);
         assert!((m.kv_rad() - 151.84).abs() < 0.01);
     }
@@ -100,6 +115,13 @@ mod tests {
             ..Default::default()
         });
         assert_eq!((m.r_ohm, m.kv_rpm_per_v), (0.03, 1450.0));
+    }
+
+    #[test]
+    fn kind_parses_and_rejects_unknown_values() {
+        let lib = "[motor.x]\nkind = \"brushed\"\nkv_rpm_per_v = 1\nr_ohm = 1\ni_max_a = 1\n";
+        assert_eq!(parse_library(lib).unwrap()["x"].kind, MotorKind::Brushed);
+        assert!(parse_library(&lib.replace("brushed", "stepper")).is_err());
     }
 
     #[test]
