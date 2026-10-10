@@ -28,3 +28,9 @@
 **Did:**
 - Waited for the toggle fork, read push.sh / accelerate rsync deploy history; user interrupted before any commit.
 - Fork finished: `OpponentKind` + `target.rs` box, web `round.rs`/`opponent_toggle.rs`/`target_render.rs`, sim page button; make test + web-build pass, not browser-tested.
+
+## 01:10 go
+**User:** go
+**Did:**
+- sidecar-check on changed files: fixed `test_tools.py.md`, rest OK. Committed + pushed drivesim 240bf98 (incl. welcome favicon, verified public); accelerate d80cf4c committed (no remote).
+- `deploy/push.sh` denied by the auto-mode classifier; deploy left for the user.
