@@ -51,7 +51,14 @@ pub fn settle(
     let touching_handles: Vec<RigidBodyHandle> = world
         .narrow_phase
         .contact_pairs_with(floor)
-        .filter(|p| p.has_any_active_contact())
+        // Touching means carrying load. Rapier keeps speculative contacts
+        // "active" before bodies meet (a disc 5.5 mm up was reported), and
+        // a point's `dist` is no better: loaded fork tips read 2.5 mm.
+        .filter(|p| {
+            p.manifolds()
+                .iter()
+                .any(|m| m.points.iter().any(|pt| pt.data.impulse > 0.0))
+        })
         .filter_map(|p| {
             let other = if p.collider1 == floor {
                 p.collider2

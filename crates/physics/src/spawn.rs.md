@@ -14,7 +14,7 @@ Turns a `RobotModel` into rapier bodies, colliders and revolute joints
   parallel to `model.bodies`, with `[0]` the chassis.
 - `SpawnError { MissingMesh, BadMesh }`.
 - Helpers: `v` (f64 array → `Vector`), `forward_sign(wheel)`,
-  `side_of(wheel)`, `BODY_MU` (0.3).
+  `side_of(wheel)`, `reflected_inertia(rotor)`, `BODY_MU` (0.3).
 
 ## Implementation
 
@@ -24,6 +24,16 @@ Turns a `RobotModel` into rapier bodies, colliders and revolute joints
   point on both bodies.
 - Mass properties are set from the model with `with_inertia_matrix`;
   colliders have zero density, so they add no mass.
+- **Each rotor body also gets its motor's reflected inertia,**
+  `rotor_inertia_kg_m2 · ratio²`, about its axis (added as `J a aᵀ`). It
+  is real (the gearbox spins the motor's rotor ratio times faster), and
+  it is what keeps the explicit motor torque stable at 4 kHz. Without it,
+  a 68 g wheel at 22.5:1 has a motor time constant of ~0.1 ms, under
+  the 0.25 ms step, and its speed rings between the current limits
+  (found 2026-10-10 when the fixture was regeared). The lump overstates
+  the rotor's angular momentum about `ratio` times, so wheel bodies have
+  rapier's gyroscopic term off. `gear_coupling.rs` corrects its reaction
+  on the chassis.
 - **Wheel colliders:** a cylinder at the measured radius and width,
   rotated from rapier's y axis onto the wheel's axis. A tessellated rim
   would bump.

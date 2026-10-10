@@ -34,7 +34,9 @@ impl SimRes {
 }
 
 fn now_ms() -> f64 {
-    web_sys::window().and_then(|w| w.performance()).map_or(0.0, |p| p.now())
+    web_sys::window()
+        .and_then(|w| w.performance())
+        .map_or(0.0, |p| p.now())
 }
 
 pub fn step_sim(time: Res<Time>, radio: Res<Radio>, s: Option<ResMut<SimRes>>) {
@@ -50,6 +52,10 @@ pub fn step_sim(time: Res<Time>, radio: Res<Radio>, s: Option<ResMut<SimRes>>) {
     let spent_ms = now_ms() - start;
     if ticks > 0 && spent_ms > 0.0 {
         let h = ticks as f64 * tick as f64 * 1e3 / spent_ms;
-        s.headroom = if s.headroom == 0.0 { h } else { s.headroom + HEADROOM_EMA * (h - s.headroom) };
+        s.headroom = if s.headroom == 0.0 {
+            h
+        } else {
+            s.headroom + HEADROOM_EMA * (h - s.headroom)
+        };
     }
 }

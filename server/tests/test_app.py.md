@@ -18,6 +18,8 @@ Tests:
 literal `meshes/../parts.json` to `parts.json` before sending, which made a
 first version of the test "fail" on an allowed file (2026-10-09).
 
+The import notice must name the fixture's 14 parts.
+
 ## Assertions
 - Checks what the model was sent (the import notice, the tool results) as
   well as what the API returns.

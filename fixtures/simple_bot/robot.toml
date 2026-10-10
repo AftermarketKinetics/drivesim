@@ -1,6 +1,17 @@
-# The importer fixture as a drivable robot: an aluminium box, TPU wheels,
-# a steel disc. Hand-written; the numbers in crates/robot/tests follow from
-# it and from tools/import/tests/make_fixture.py's geometry.
+# The importer fixture as a drivable robot, laid out like a real 12 lb
+# vertical spinner (user, 2026-10-10): an aluminium base and rails, steel
+# forks as the wedge and front skids, a steel disc between them, TPU wheels
+# behind centre. Hand-written; the numbers in crates/robot/tests follow
+# from it and from tools/import/tests/make_fixture.py's geometry.
+#
+# Drive gearing is Momentum-like: 24:1 on 63.5 mm wheels gives 4.5 m/s
+# no-load (Momentum targets 4.47 m/s) on Momentum's 240 mm track.
+#
+# Tyre grip of 1.4 is provisional, unmeasured. FingerTech's urethane
+# sumo wheel spec (pasted by the user, 2026-10-10) quotes μ 1.75
+# against smooth unpainted MDF, one figure for its Shore A20 and A45
+# tyres, so VytaFlex's 40A sits inside that. The discount is for the NHRL
+# floor being painted plywood, which is a guess.
 
 [robot]
 name = "simple_bot"
@@ -11,27 +22,38 @@ battery_v = 22.2
 [materials]
 default = "al6061"
 
+# Tyres: VytaFlex 40, a Shore 40A cast polyurethane (user, 2026-10-10);
+# specific gravity 1.0 (Smooth-On's data sheet).
 [[materials.rule]]
 parts = ["Wheel"]
-material = "tpu"
+density_kg_m3 = 1000
 
 [[materials.rule]]
-parts = ["weapon"]
-material = "steel"
+parts = ["Fork", "rear_bar", "weapon"]
+material = "ar500"
+
+[[materials.rule]]
+parts = ["top_plate"]
+material = "uhmw"
+
+[mass_overrides]
+"battery" = 0.35
+"esc" = 0.12
+"DriveMotor" = 0.17
 
 [[wheel]]
 name = "wheel_left"
 parts = ["wheel_L"]
 motor = "repeat-ultra-mk2-2830-1450kv"
-ratio = 6.0
-mu = 0.9
+ratio = 24.0
+mu = 1.4
 
 [[wheel]]
 name = "wheel_right"
 parts = ["wheel_R"]
 motor = "repeat-ultra-mk2-2830-1450kv"
-ratio = 6.0
-mu = 0.9
+ratio = 24.0
+mu = 1.4
 
 [[weapon]]
 name = "disc"

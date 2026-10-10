@@ -71,3 +71,53 @@ decision to make the sim a general tool in its own repo) are logged in
 **Did:**
 - Probe (temporary test, deleted): full-stick spin reaches 160 rad/s, 95–97% of the ideal 2v/track at every stick level, so friction is not losing anything; the fixture's invented gearing gives 16.9 m/s top speed (Momentum's target is 4.47 m/s on a 240 mm track, so ~37 rad/s).
 - Asking the user how to fix it (fixture gearing, turn shaping, scrub model) before changing anything.
+
+## 2026-10-10 03:40 Regear, ringing fix
+**Asked:** fixture gearing → "Momentum-like gearing (Recommended)"; turn shaping → "On the radio, as at an event (Recommended)"; tyre scrub → "Not now (Recommended)"; headroom/commit → "Same speed; commit".
+**Did:**
+- Committed the web app (0898b59). Fixture regeared to 22.5:1 (4.5 m/s, 44 rad/s full turn); this exposed wheel speed ringing at the current limits. Fixed by adding motor rotor inertia × ratio² to rotor bodies (`spawn.rs`, provisional 5e-6 kg m² in `data/motors.toml`) with gyroscopic forces off on wheels; lesson `explicit-motor-torque-needs-reflected-inertia.md`.
+- New drive tests: full-turn yaw = 2v/track, wheels roll without ringing; straight test now at 40%. Fixture backflips at full throttle from rest (CoM over axle, 2 × 5.9 N m), reported to the user.
+
+## 2026-10-10 04:20 Flips removed; turning still strong
+**User:** turning is still way too strong, flicking forward and backwards causes frontflips and backflips, without weapon spinup, remove them
+**Did:**
+- Cause: the lumped reflected inertia (J·r² on the wheel) returned ~22× too much spin-up reaction to the chassis. New `crates/physics/src/gear_coupling.rs` adds the real gearbox coupling torques each step (from last step's accelerations); full/reverse/full slams now keep up.z > 0.99. Test `slamming_throttle_does_not_flip_it`; sidecars, doc §6 and lesson updated.
+- Turning measured: traction-limited yaw accel ~180 rad/s², full stick 44 rad/s, quarter stick 11 rad/s (linear stick). Asked the user how to tame it.
+
+## 2026-10-10 05:30 Realistic fixture
+**Asked:** turning fix → "Make the test robot realistic"; then fixture → "Replace simple_bot"; weapon → "Vertical disc, front"; layout → "Wedge front, axle rear (Recommended)".
+**Did:**
+- `make_fixture.py` rewritten: 14-part vertical spinner (base/rails/top/rear bar, battery, ESC, steel forks, inline drive motors, 63.5 mm wheels 30 mm behind centre on a 240 mm track, 150 mm × 10 mm AR500 disc at 4:1); 5.30 kg, CoM 58 mm ahead of the axle, yaw inertia 0.087 kg m² (was ~0.03). Full stick now settles at 24 rad/s (fork drag), half at 15.
+- `rest.rs` counts contact by impulse (lesson `rapier-active-contacts-are-not-touching.md`); precession tests use the weapon's own axis; all importer/loader/CLI/server/physics tests updated to the new closed-form numbers.
+
+## 2026-10-10 06:00 Restart dev server
+**User:** restart
+**Did:**
+- Dev server (`tools/dev_server.py`, port 8417) had stopped with the previous session; restarted, serving the app, wasm and the new fixture.
+
+## 2026-10-10 06:10 Lighting
+**User:** remove the shadows and add overhead lights
+**Did:**
+- `web/src/arena_render.rs`: the shadow-mapped directional sun replaced by a 3 × 3 grid of shadowless point lights 3.5 m up (150,000 lm each, ~9,000 lx on the floor), each with an emissive panel; sidecar updated. Rebuilding the wasm.
+
+## 2026-10-10 15:10 Too dark
+**User:** its really dark
+**Did:**
+- `arena_render.rs`: added a shadowless downward directional "truss" light (6,000 lx) and global ambient fill (600 cd/m²), and raised the lamps to 600,000 lm; sidecar updated, rebuilding the wasm.
+
+## 2026-10-10 15:40 Slidey
+**User:** friction with the ground feels wrong, everything is slidey and ground contact feels wrong
+**Did:**
+- Probe (temporary, deleted) across rapier settings (Coulomb friction, no contact recycling, stiff contacts, 4 iterations): grip is Coulomb-correct in all of them: no creep under 15 N sideways, cornering lets go at ~0.6-0.9 g, braking 0.67 g (wheels carry ~75% of 0.9 g); only pivot wander improves (0.34 -> 0.08 m with stiff contacts + 4 iterations, ~1.7x cost).
+- Suspect the visuals (no shadows since last change, untextured floor and wheels give no grounding or motion cues) and twitchy steering (10% turn at half speed asks 0.8 g); asked the user.
+
+**Asked:** slidey when → "Stopping / letting go"; visual cues → "Floor texture (Recommended), Wheel markings (Recommended)"; physics → "Yes, stricter settings (Recommended)".
+**Did:**
+- `sim.rs` contact settings: Coulomb friction, no recycling, 200/400 Hz ζ 1 contacts, 4 iterations, joint warm-start (all tests pass). New `web/src/floor_texture.rs` (generated painted plywood, sheet seams, scuffs, mips) and 6-sector wheel markings in `robot_render.rs`; sidecars and doc §6 updated, wasm rebuilding.
+- Stopping probe: centred sticks lock the wheels within 50-100 ms (short-circuit braking through 24:1 overpowers 0.9 grip) and it skids 1.48 m from 4.4 m/s at 0.67 g; asking the user what stopping should feel like.
+
+**Asked:** stopping fix (options: more tyre grip / brake without locking / forks grip more / stops too slowly) → "the grip on the floor should either be sharpened steel cleats or vytaflex 40a polyurethane against wood"
+**User (pasted):** FingerTech urethane sumo wheel spec: Shore A20 or A45 polyurethane, "Coefficient of Friction (against smooth unpainted MDF wood): μ=1.75".
+**Did:**
+- Fixture tyres are VytaFlex 40: density 1000 kg/m³, mu 1.4 (provisional: FingerTech's 1.75 on unpainted MDF, discounted for paint); prompt.py tyre guidance lists cast PU ~1.4 and says steel cleats have no number (ask). No sourced cleat figure found.
+- Tests updated (masses 5.265 kg, straight run with the box moved away); stop from 4.45 m/s now 1.09 m in 0.5 s (was 1.48 m / 0.7 s), full turn 27.5 rad/s, slams still flat.

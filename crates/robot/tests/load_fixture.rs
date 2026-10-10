@@ -23,31 +23,35 @@ fn close(a: f64, b: f64) -> bool {
 }
 
 #[test]
-fn masses_come_from_densities() {
+fn masses_come_from_densities_and_overrides() {
     let m = fixture();
     let by = |n: &str| m.bodies.iter().find(|b| b.name == n).unwrap().mass.mass;
-    assert!(close(by("chassis"), 0.2 * 0.16 * 0.04 * 2700.0));
     assert!(close(
         by("wheel_left"),
-        PI * 0.03f64.powi(2) * 0.02 * 1200.0
+        PI * 0.03175f64.powi(2) * 0.025 * 1000.0
     ));
-    assert!(close(by("disc"), PI * 0.08f64.powi(2) * 0.006 * 7850.0));
+    assert!(close(by("disc"), PI * 0.075f64.powi(2) * 0.01 * 7850.0));
+    // Everything else is the chassis: aluminium base and rails, a UHMW
+    // top, AR500 forks and rear bar, and the overridden electronics.
+    let al = (0.25 * 0.2 * 0.006 + 2.0 * 0.28 * 0.01 * 0.05) * 2700.0;
+    let uhmw = 0.21 * 0.2 * 0.003 * 940.0;
+    let ar500 = (2.0 * 0.5 * 0.08 * 0.038 * 0.025 + 0.01 * 0.2 * 0.04) * 7850.0;
+    let overridden = 0.35 + 0.12 + 2.0 * 0.17;
+    assert!(close(by("chassis"), al + uhmw + ar500 + overridden));
 }
 
 #[test]
-fn chassis_inertia_is_the_boxs() {
-    let c = &fixture().bodies[0].mass;
-    let m = c.mass;
+fn the_disc_has_a_discs_inertia() {
+    let m = fixture();
+    let d = &m.bodies.iter().find(|b| b.name == "disc").unwrap().mass;
+    let (r, t) = (0.075f64, 0.01f64);
+    assert!(close(d.inertia[1][1], d.mass * r * r / 2.0));
     assert!(close(
-        c.inertia[0][0],
-        m / 12.0 * (0.16f64.powi(2) + 0.04f64.powi(2))
+        d.inertia[0][0],
+        d.mass * (3.0 * r * r + t * t) / 12.0
     ));
-    assert!(close(
-        c.inertia[2][2],
-        m / 12.0 * (0.2f64.powi(2) + 0.16f64.powi(2))
-    ));
-    assert!(c.inertia[0][1].abs() < 1e-12);
-    assert!(close(c.com[2], 0.03));
+    assert!(d.inertia[0][1].abs() < 1e-12);
+    assert!(close(d.com[0], 0.15) && close(d.com[2], 0.08));
 }
 
 #[test]
@@ -57,10 +61,10 @@ fn wheels_and_weapon_get_their_axes() {
     assert_eq!(l.side, Some(Side::Left));
     assert_eq!(m.wheels[1].side, Some(Side::Right));
     assert_eq!(l.axis_dir, [0.0, 1.0, 0.0]);
-    assert!(close(l.radius_m, 0.03) && close(l.axis_point[1], 0.1));
+    assert!(close(l.radius_m, 0.03175) && close(l.axis_point[1], 0.12));
     let w = &m.weapons[0];
-    assert_eq!(w.axis_dir, [0.0, 0.0, 1.0]);
-    assert!(close(w.radius_m, 0.08));
+    assert_eq!(w.axis_dir, [0.0, 1.0, 0.0]);
+    assert!(close(w.radius_m, 0.075));
     assert_eq!(w.mu, None);
 }
 
@@ -77,19 +81,18 @@ fn total_mass_scales_every_part_and_keeps_the_com() {
 
 #[test]
 fn mass_override_replaces_density() {
-    let m = edited(
-        "[[wheel]]",
-        "[mass_overrides]\n\"chassis\" = 1.5\n\n[[wheel]]",
-    )
-    .unwrap();
-    assert!(close(m.bodies[0].mass.mass, 1.5));
+    let m = edited("\"esc\" = 0.12", "\"esc\" = 0.12\n\"weapon\" = 1.5").unwrap();
+    assert!(close(
+        m.weapons.iter().map(|w| m.bodies[w.body].mass.mass).sum(),
+        1.5
+    ));
 }
 
 #[test]
 fn a_y_up_step_is_turned_upright() {
     // Claiming the fixture is Y-up puts its +y (wheel_L's side) on top.
     let m = edited("up = \"+z\"", "up = \"+y\"").unwrap();
-    assert!(close(m.wheels[0].axis_point[2], 0.1));
+    assert!(close(m.wheels[0].axis_point[2], 0.12));
 }
 
 #[test]
@@ -116,7 +119,7 @@ fn mistakes_are_named_errors() {
         Err(UnknownMaterial(_))
     ));
     assert!(matches!(
-        edited("mu = 0.9", "side = \"up\"\nmu = 0.9"),
+        edited("mu = 1.4", "side = \"up\"\nmu = 1.4"),
         Err(BadSide { .. })
     ));
     assert!(matches!(edited("arm = 5", "arm = 17"), Err(BadChannel(17))));
@@ -124,5 +127,5 @@ fn mistakes_are_named_errors() {
         edited("up = \"+z\"", "up = \"+x\""),
         Err(Frame { .. })
     ));
-    assert!(matches!(edited("mu = 0.9", "mu_typo = 0.9"), Err(Parse(_))));
+    assert!(matches!(edited("mu = 1.4", "mu_typo = 1.4"), Err(Parse(_))));
 }

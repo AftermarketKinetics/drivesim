@@ -196,7 +196,22 @@ its own fixed-tick loop.
 - **Motors act as torques,** not rapier joint motors: each physics step
   the motor model's torque goes onto the rotor about its axis and the
   opposite onto the chassis, so reaction torque is real. (Rapier's
-  velocity motors never moved the spike robot.)
+  velocity motors never moved the spike robot.) Each rotor body also
+  carries its motor's rotor inertia reflected through the gearing
+  (`J · ratio²`), which a real gearmotor has and which keeps the explicit
+  torque stable at 4 kHz. Wheels have rapier's gyroscopic term off,
+  because the lumped inertia overstates their angular momentum about
+  `ratio` times. The lump would also put ~`ratio` times too much
+  spin-up reaction on the chassis (the fixture flipped on every hard
+  reversal), so each step adds the gearbox coupling torques that turn it
+  into a real gearmotor (`gear_coupling.rs`).
+- **Contact settings** (user, 2026-10-10): rapier's exact Coulomb
+  friction per contact point, no contact recycling, stiff critically
+  damped floor contacts (200/400 Hz) and 4 solver iterations, for about
+  1.7× the physics cost. The defaults (a single friction cone plus a
+  twist constraint per patch, recycled points, soft 30 Hz contacts
+  tuned for piles) gave the same grip but more wander when spinning in
+  place.
 - **Arena:** NHRL's 12 lb cage: 16' × 16' usable, a floor of plywood
   painted with dead-flat paint (not steel), polycarbonate walls on a timber
   skirt, a roof (NHRL wiki, read 2026-10-09). **Target:** a free box,

@@ -67,7 +67,10 @@ parts = ["Wheel_L*"]
 motor = "<id from list_motors>"
 ratio = 6.0          # motor turns per wheel turn
 efficiency = 0.85    # optional, default 1
-mu = 0.9             # tyre grip on the arena floor, painted plywood (TPU/rubber ~0.8-1.0, hard plastic ~0.3)
+mu = 1.4             # tyre grip on the arena floor, painted plywood: soft cast polyurethane
+                     # (VytaFlex 40, sumo urethane) ~1.4, TPU/rubber ~0.8-1.0, hard plastic
+                     # ~0.3. None are measured. Steel cleats bite into the wood and have no
+                     # number: ask the user.
 side = "left"        # optional; default from the axle's position
 [wheel.motor_override]  # optional, any of: kv_rpm_per_v r_ohm i_max_a pole_pairs rotor_inertia_kg_m2
 i_max_a = 60

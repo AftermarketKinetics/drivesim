@@ -4,11 +4,13 @@
 //!
 //! `bundle_load` fetches and loads; `radio` reads the pad; `sim_step` runs
 //! the physics in real time; `robot_render` and `arena_render` draw;
-//! `camera` is the driver's eye; `hud` is the text overlay.
+//! `floor_texture` paints the floor; `camera` is the driver's eye; `hud`
+//! is the text overlay.
 
 mod arena_render;
 mod bundle_load;
 mod camera;
+mod floor_texture;
 mod hud;
 mod radio;
 mod robot_render;
@@ -61,6 +63,7 @@ fn setup(
     slot: Res<LoadSlot>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
 ) {
     // Rapier's world is z-up; Bevy's is y-up. Everything simulated hangs
     // off this one rotation.
@@ -72,7 +75,7 @@ fn setup(
         ))
         .id();
     commands.insert_resource(Root(root));
-    arena_render::spawn_arena(&mut commands, root, &mut meshes, &mut mats);
+    arena_render::spawn_arena(&mut commands, root, &mut meshes, &mut mats, &mut images);
     camera::spawn_camera(&mut commands, root);
     hud::spawn_hud(&mut commands);
 

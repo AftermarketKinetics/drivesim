@@ -9,6 +9,7 @@ the physics puts them.
 
 - `SimRoot`: a component marking the entity that turns rapier's z-up world
   into Bevy's y-up one.
+- `Axis { point, dir }`: a rotor axis in the robot frame, for marking.
 - `BodyLink(RigidBodyHandle)`: a component drawing an entity at that
   body's pose. `arena_render` uses it for the target box too.
 - `spawn_robot_visuals(commands, root, bundle, sim, meshes, mats)`: one
@@ -26,6 +27,13 @@ the physics puts them.
   normal, so faceted CAD tessellation reads as crisp edges. Faces are
   drawn double-sided, so a part with inward-wound faces still shows.
 - A part's colour is its CAD colour, or grey when the STEP has none.
+- **Wheels are marked:** each wheel's triangles are coloured, as vertex
+  colours, by which of `WHEEL_SECTORS` (6) sectors about its axis their
+  centroid lies in. Sectors alternate near-black tyre and amber stripe,
+  so a wheel is seen to roll, spin or lock. Plain cylinders looked the
+  same turning or not, and rolling read as sliding (user, 2026-10-10).
+  Marked wheels ignore their CAD colour. Large cap triangles can cross a
+  sector edge, so the pattern is blocky on the sidewalls.
 - A part whose STL won't parse is skipped rather than failing the load.
   The physics already loaded it, so this can't happen for a checked
   bundle.

@@ -9,13 +9,15 @@ kv_rpm_per_v = 1450
 r_ohm = 0.06
 i_max_a = 40
 pole_pairs = 7
-source = "kv: Momentum config.py VITAMIN_MASSES ('2830 1450kv (Repeat)'). r_ohm, i_max_a, pole_pairs: Momentum's 2D sim placeholders (2026-10-09)."
-provisional = ["r_ohm", "i_max_a", "pole_pairs"]
+rotor_inertia_kg_m2 = 5.0e-6
+source = "kv: Momentum config.py VITAMIN_MASSES ('2830 1450kv (Repeat)'). r_ohm, i_max_a, pole_pairs: Momentum's 2D sim placeholders (2026-10-09). rotor_inertia: estimate, ~30 g of can at r ~12.5 mm, scaled from Momentum's 2310 estimate (scripts/lifter_motor.py, 3e-6) (2026-10-10)."
+provisional = ["r_ohm", "i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
 
 [motor.badass-2820-1820kv]
 kv_rpm_per_v = 1820
 r_ohm = 0.02
 i_max_a = 120
 pole_pairs = 7
-source = "kv: Innov8tive BadAss 2820 winds, Momentum config.py BA2820_KV (2026-09-15). i_max_a: Momentum's 120 A weapon ESC (config.py weapon_kv note). r_ohm, pole_pairs: placeholders."
-provisional = ["r_ohm", "pole_pairs"]
+rotor_inertia_kg_m2 = 5.0e-6
+source = "rotor_inertia: estimate as for the 2830 (2026-10-10). kv: Innov8tive BadAss 2820 winds, Momentum config.py BA2820_KV (2026-09-15). i_max_a: Momentum's 120 A weapon ESC (config.py weapon_kv note). r_ohm, pole_pairs: placeholders."
+provisional = ["r_ohm", "pole_pairs", "rotor_inertia_kg_m2"]

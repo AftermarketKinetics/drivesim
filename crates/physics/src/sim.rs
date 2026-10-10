@@ -3,6 +3,7 @@
 //! weapon is unstable on a rapier joint at 1 ms and stable from 2 kHz).
 
 use crate::arena::{add_arena, add_target};
+use crate::gear_coupling::gear_coupling;
 use crate::mixer::{Duties, MixerConfig, mix};
 use crate::motor::rotor_torque;
 use crate::spawn::{RobotHandles, SpawnError, forward_sign, side_of, spawn_robot, v};
@@ -23,6 +24,11 @@ pub struct Sim {
     pub target: RigidBodyHandle,
     mixer: Option<MixerConfig>,
     pub duties: Duties,
+    /// Per rotor (wheels, then weapons): (rotor, chassis) absolute angular
+    /// velocity about the rotor's axis after the last step, and the
+    /// accelerations over it, for `gear_coupling`.
+    axis_w: Vec<(f32, f32)>,
+    axis_alpha: Vec<(f32, f32)>,
 }
 
 impl Sim {
@@ -43,8 +49,21 @@ impl Sim {
     pub fn empty_world(gravity_z: f32) -> PhysicsWorld {
         let mut w = PhysicsWorld::new();
         w.gravity = Vector::new(0.0, 0.0, gravity_z);
-        w.integration_parameters.dt = 1.0 / PHYSICS_HZ as f32;
-        w.integration_parameters.num_solver_iterations = 2;
+        let p = &mut w.integration_parameters;
+        p.dt = 1.0 / PHYSICS_HZ as f32;
+        // Contact as exact as rapier offers (user, 2026-10-10, for ~1.7x
+        // the physics cost): one Coulomb friction cone per contact point,
+        // not rapier's default single cone plus a "twist" constraint per
+        // patch; fresh contact points every step, not ones recycled while
+        // a pair barely moved (stale on a spinning wheel); and floor
+        // contact as stiff springs (200/400 Hz, critically damped) instead
+        // of the default 30/60 Hz with ζ = 10, tuned for piles of boxes.
+        p.friction_model = FrictionModel::Coulomb;
+        p.contact_recycling = false;
+        p.contact_softness = SpringCoefficients::new(200.0, 1.0);
+        p.static_contact_softness = SpringCoefficients::new(400.0, 1.0);
+        p.num_solver_iterations = 4;
+        p.warmstart_joints = true;
         w
     }
 
@@ -78,7 +97,25 @@ impl Sim {
             target,
             mixer,
             duties: Duties::default(),
+            axis_w: Vec::new(),
+            axis_alpha: Vec::new(),
         }
+    }
+
+    fn rotors(&self) -> impl Iterator<Item = &Rotor> {
+        self.model.wheels.iter().chain(&self.model.weapons)
+    }
+
+    /// (rotor, chassis) absolute angular velocity about each rotor's axis.
+    fn axis_speeds(&self) -> Vec<(f32, f32)> {
+        let c = &self.world.bodies[self.robot.bodies[0]];
+        self.rotors()
+            .map(|r| {
+                let a = *c.rotation() * v(r.axis_dir).normalize();
+                let b = &self.world.bodies[self.robot.bodies[r.body]];
+                (b.angvel().dot(a), c.angvel().dot(a))
+            })
+            .collect()
     }
 
     /// One control tick: decide duties from the radio frame (`None` = no
@@ -125,13 +162,34 @@ impl Sim {
             ));
         }
         let rot = *self.world.bodies[chassis].rotation();
-        for (body, tau, axis) in torques {
+        for (k, (body, tau, axis)) in torques.into_iter().enumerate() {
+            let rotor = self.rotors().nth(k).expect("one torque per rotor");
+            let (alpha_r, alpha_c) = self.axis_alpha.get(k).copied().unwrap_or_default();
+            let (fix_r, fix_c) = gear_coupling(
+                rotor.motor.rotor_inertia_kg_m2 as f32,
+                rotor.ratio as f32,
+                alpha_r,
+                alpha_c,
+            );
             let a = rot * axis.normalize();
             let h = self.robot.bodies[body];
-            self.world.bodies[h].add_torque(a * tau, true);
-            self.world.bodies[chassis].add_torque(-a * tau, true);
+            self.world.bodies[h].add_torque(a * (tau + fix_r), true);
+            self.world.bodies[chassis].add_torque(a * (fix_c - tau), true);
         }
+        let before = if self.axis_w.is_empty() {
+            self.axis_speeds()
+        } else {
+            std::mem::take(&mut self.axis_w)
+        };
         self.world.step();
+        let after = self.axis_speeds();
+        let dt = self.world.integration_parameters.dt;
+        self.axis_alpha = before
+            .iter()
+            .zip(&after)
+            .map(|(b, a)| ((a.0 - b.0) / dt, (a.1 - b.1) / dt))
+            .collect();
+        self.axis_w = after;
     }
 
     /// Rotor speed relative to the chassis about its axis, rad/s.

@@ -3,8 +3,8 @@
 //! Every body is created at the same pose, with its local frame equal to
 //! the robot frame, so model coordinates (CoMs, axis points) are used
 //! unchanged as local coordinates and joint anchors. Mass properties come
-//! from the model (the importer's exact B-rep numbers); colliders carry
-//! no mass.
+//! from the model (the importer's exact B-rep numbers) plus each rotor's
+//! motor inertia reflected through its gearing; colliders carry no mass.
 
 use crate::shapes::part_shape;
 use drivesim_robot::math::mat_vec;
@@ -36,6 +36,15 @@ impl fmt::Display for SpawnError {
             SpawnError::BadMesh(p) => write!(f, "mesh {p} is not a usable binary STL"),
         }
     }
+}
+
+/// The motor's own rotor as the driven body feels it, kg m², about the
+/// rotor axis: `J_motor · ratio²`. At 22.5:1 a 2830's rotor outweighs a
+/// 68 g wheel's inertia ~80 times; without it the wheel is so light that
+/// the explicit motor torque (from last step's speed) overshoots and the
+/// wheel's speed rings between the current limits.
+pub fn reflected_inertia(rotor: &drivesim_robot::Rotor) -> f64 {
+    rotor.motor.rotor_inertia_kg_m2 * rotor.ratio * rotor.ratio
 }
 
 pub fn v(a: [f64; 3]) -> Vector {
@@ -93,7 +102,17 @@ pub fn spawn_robot(
     let mut bodies = Vec::new();
     for (i, body) in model.bodies.iter().enumerate() {
         let m = &body.mass;
-        let inertia = Matrix::from_cols(v(m.inertia[0]), v(m.inertia[1]), v(m.inertia[2]));
+        let mut inertia = Matrix::from_cols(v(m.inertia[0]), v(m.inertia[1]), v(m.inertia[2]));
+        for rotor in model
+            .wheels
+            .iter()
+            .chain(&model.weapons)
+            .filter(|r| r.body == i)
+        {
+            let a = v(rotor.axis_dir).normalize();
+            inertia +=
+                Matrix::from_cols(a * a.x, a * a.y, a * a.z) * reflected_inertia(rotor) as f32;
+        }
         let is_weapon = model.weapons.iter().any(|wp| wp.body == i);
         let handle = w.bodies.insert(
             RigidBodyBuilder::dynamic()
@@ -104,7 +123,11 @@ pub fn spawn_robot(
                     m.mass as f32,
                     inertia,
                 ))
-                .ccd_enabled(is_weapon),
+                .ccd_enabled(is_weapon)
+                // A wheel body carries its motor's reflected inertia, which
+                // overstates its angular momentum ~ratio times: keep that
+                // out of the gyroscopic term (a real wheel's is negligible).
+                .gyroscopic_forces_enabled(wheel_of(i).is_none()),
         );
         if let Some(wh) = wheel_of(i) {
             let axis = v(wh.axis_dir).normalize();

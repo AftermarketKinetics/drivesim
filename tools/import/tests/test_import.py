@@ -47,34 +47,47 @@ class ImportFixture(unittest.TestCase):
         cls.tmp.cleanup()
 
     def test_instances_keep_their_names(self):
-        self.assertEqual(sorted(self.by), ["chassis", "weapon", "wheel_L", "wheel_R"])
+        self.assertEqual(sorted(self.by), sorted([
+            "base_plate", "rail_L", "rail_R", "top_plate", "rear_bar", "battery", "esc",
+            "fork_L", "fork_R", "wheel_L", "wheel_R", "drive_motor_L", "drive_motor_R",
+            "weapon"]))
         self.assertEqual(self.by["wheel_L"]["product"], "Wheel")
+        self.assertEqual(self.by["fork_R"]["product"], "Fork")
         self.assertEqual(self.by["wheel_R"]["path"], "simple_bot/wheel_R")
 
     def test_volumes_are_exact(self):
-        self.assertAlmostEqual(self.by["chassis"]["volume_m3"], 0.2 * 0.16 * 0.04, places=12)
-        self.assertAlmostEqual(self.by["wheel_L"]["volume_m3"], math.pi * 0.03**2 * 0.02, places=12)
-        self.assertAlmostEqual(self.by["weapon"]["volume_m3"], math.pi * 0.08**2 * 0.006, places=12)
+        self.assertAlmostEqual(self.by["base_plate"]["volume_m3"], 0.25 * 0.2 * 0.006, places=12)
+        self.assertAlmostEqual(self.by["wheel_L"]["volume_m3"],
+                               math.pi * 0.03175**2 * 0.025, places=12)
+        self.assertAlmostEqual(self.by["weapon"]["volume_m3"], math.pi * 0.075**2 * 0.01, places=12)
+        # The fork is a right-triangle prism: legs 80 and 38 mm, 25 mm wide.
+        self.assertAlmostEqual(self.by["fork_L"]["volume_m3"], 0.5 * 0.08 * 0.038 * 0.025,
+                               places=12)
 
     def test_instances_are_placed(self):
-        for name, com in (("chassis", (0, 0, 0.03)), ("wheel_L", (0, 0.1, 0.03)),
-                          ("wheel_R", (0, -0.1, 0.03)), ("weapon", (0, 0, 0.058))):
+        for name, com in (("base_plate", (-0.025, 0, 0.009)),
+                          ("wheel_L", (-0.03, 0.12, 0.03175)),
+                          ("wheel_R", (-0.03, -0.12, 0.03175)),
+                          ("weapon", (0.15, 0, 0.08)),
+                          # A triangle's centroid is its vertices' mean.
+                          ("fork_L", ((0.12 + 0.2 + 0.12) / 3, 0.0425, (0.002 * 2 + 0.04) / 3)),
+                          ("fork_R", ((0.12 + 0.2 + 0.12) / 3, -0.0425, (0.002 * 2 + 0.04) / 3))):
             for got, want in zip(self.by[name]["com_m"], com):
                 self.assertAlmostEqual(got, want, places=9, msg=name)
 
     def test_inertia_is_about_the_centre_at_unit_density(self):
         disc = self.by["weapon"]
-        v, r, t = disc["volume_m3"], 0.08, 0.006
-        izz = v * r * r / 2
-        ixx = v * (3 * r * r + t * t) / 12
+        v, r, t = disc["volume_m3"], 0.075, 0.01
+        i_axis = v * r * r / 2
+        i_across = v * (3 * r * r + t * t) / 12
         i = disc["inertia_m5"]
-        self.assertAlmostEqual(i[2][2] / izz, 1.0, places=9)
-        self.assertAlmostEqual(i[0][0] / ixx, 1.0, places=9)
+        self.assertAlmostEqual(i[1][1] / i_axis, 1.0, places=9)
+        self.assertAlmostEqual(i[0][0] / i_across, 1.0, places=9)
         self.assertAlmostEqual(i[0][1], 0.0, places=15)
 
     def test_wheels_and_weapon_report_their_axes(self):
-        for name, d, r, w in (("wheel_L", (0, 1, 0), 0.03, 0.02),
-                              ("weapon", (0, 0, 1), 0.08, 0.006)):
+        for name, d, r, w in (("wheel_L", (0, 1, 0), 0.03175, 0.025),
+                              ("weapon", (0, 1, 0), 0.075, 0.01)):
             ax = self.by[name]["rotation_axis"]
             self.assertEqual([round(x, 9) for x in ax["dir"]], list(d), name)
             self.assertAlmostEqual(ax["curved_fraction"] + ax["cap_fraction"], 1.0, places=6)
@@ -83,8 +96,9 @@ class ImportFixture(unittest.TestCase):
             self.assertAlmostEqual(ax["radius_m"], r, delta=1e-6)
             self.assertAlmostEqual(ax["width_m"], w, delta=1e-6)
 
-    def test_a_box_has_no_axis(self):
-        self.assertIsNone(self.by["chassis"]["rotation_axis"])
+    def test_boxes_and_prisms_have_no_axis(self):
+        for name in ("base_plate", "rail_L", "fork_L", "battery"):
+            self.assertIsNone(self.by[name]["rotation_axis"], name)
 
     def test_meshes_are_closed_and_wound_outward(self):
         for p in self.doc["parts"]:

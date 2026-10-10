@@ -2,12 +2,14 @@
 //!
 //! `spawn` turns a `RobotModel` into bodies and revolute joints, using
 //! `shapes` for collision geometry; `arena` adds the floor, walls and the
-//! target box; `motor` is the DC motor model; `mixer` the generic control;
+//! target box; `motor` is the DC motor model and `gear_coupling` its gearbox
+//! correction; `mixer` the generic control;
 //! `sim` steps it all at a fixed rate; `rest` reports how a robot sits
 //! on the floor, for checking a robot file. Bevy-free and file-free: meshes
 //! arrive through a fetch closure, so it runs in tests and in WASM.
 
 pub mod arena;
+pub mod gear_coupling;
 pub mod mixer;
 pub mod motor;
 pub mod rest;
