@@ -1,10 +1,11 @@
 # drivesim: a driving simulator for NHRL robots
 
-Status: **2026-10-09.** Built and tested locally: the STEP importer (§4),
-the robot loader (§5), the input mapping (§7), the physics with its
-validation tests (§6, §9), and the server with its import broker and role
-conversation (§4). Planned: the web app (§11 step 5) and deployment. Decisions in §2 are the user's; anything else marked
-*proposal* is open to review.
+Status: **live 2026-10-11** at https://drivesim.combat-robot.systems
+(§11 step 6). Built and tested: the STEP importer and its gVisor sandbox
+(§4), the robot loader (§5), the physics with its validation tests (§6,
+§9), the input mapping (§7), the server with its role conversation and
+daily budget, and the browser app. Decisions in §2 are the user's;
+anything else marked *proposal* is open to review.
 
 ## 1. Goal
 

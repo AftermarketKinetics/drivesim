@@ -292,3 +292,8 @@ and also zoom out the camera just a little bit
 **User:** the video hits the auth wall and 302s [pasted: GET https://drivesim.combat-robot.systems/bigwheels.mp4 → 302]
 **Did:**
 - Caddy rewrites / to /welcome/ internally, so the relative `src="bigwheels.mp4"` resolved to /bigwheels.mp4 (not public). Now `/welcome/bigwheels.mp4`; new test `test_the_landing_page_uses_only_absolute_public_paths` (49 pass); deployed, video 200 anonymously; committed.
+
+## 2026-10-11 02:10 README
+**User:** write a simple readme for the drivesim repo
+**Did:**
+- New `README.md` (what it is, live URL and accounts via the wiki, how it works, layout, develop commands, deploy, conventions); doc status line updated to "live 2026-10-11". Committed.
