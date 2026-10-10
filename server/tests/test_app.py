@@ -111,6 +111,22 @@ def test_the_robot_page_offers_delete_and_delete_removes_everything(client, sett
 
 
 def test_the_landing_page_shows_the_demo_video(client):
-    assert 'src="bigwheels.mp4"' in client.get("/welcome/").text
+    assert 'src="/welcome/bigwheels.mp4"' in client.get("/welcome/").text
     video = client.get("/welcome/bigwheels.mp4")
     assert video.status_code == 200 and video.headers["content-type"] == "video/mp4"
+
+
+def test_the_landing_page_uses_only_absolute_public_paths():
+    # Caddy serves the landing page at / by an internal rewrite, so the
+    # browser resolves relative paths against /, outside the public
+    # /welcome/* and /radio/*: a relative bigwheels.mp4 hit the login.
+    import re
+    from conftest import REPO
+    for name in ("index.html", "guide.html"):
+        page = (REPO / "server/web/welcome" / name).read_text()
+        for attr, url in re.findall(r'\b(src|href)="([^"]+)"', page):
+            if url.startswith(("https://", "#")):
+                continue
+            assert url.startswith(("/welcome/", "/radio/", "/outpost.goauthentik.io/")), (name, url)
+        for url in re.findall(r'fetch\("([^"]+)"', page):
+            assert url.startswith("/welcome/"), (name, url)

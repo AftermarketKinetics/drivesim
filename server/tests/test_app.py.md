@@ -16,6 +16,7 @@ Tests:
 - `test_pages_are_revalidated_by_content_not_mtime`
 - `test_the_robot_page_offers_delete_and_delete_removes_everything`
 - `test_the_landing_page_shows_the_demo_video`
+- `test_the_landing_page_uses_only_absolute_public_paths`
 
 ## Implementation
 **Traversal cases are percent-encoded**: the HTTP client normalises a

@@ -287,3 +287,8 @@ and also zoom out the camera just a little bit
 **User:** commit
 **Did:**
 - Committed this session's drivesim files (Phase A deploy, delete button, landing page with wiki pointer and video) and accelerate files (compose, Caddyfile, tunnel record, homepage, authentik lesson), staged by name; left the other sessions' motor-library and root-landing-page files unstaged.
+
+## 2026-10-11 02:00 Video behind the login
+**User:** the video hits the auth wall and 302s [pasted: GET https://drivesim.combat-robot.systems/bigwheels.mp4 → 302]
+**Did:**
+- Caddy rewrites / to /welcome/ internally, so the relative `src="bigwheels.mp4"` resolved to /bigwheels.mp4 (not public). Now `/welcome/bigwheels.mp4`; new test `test_the_landing_page_uses_only_absolute_public_paths` (49 pass); deployed, video 200 anonymously; committed.

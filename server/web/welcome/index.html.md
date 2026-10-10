@@ -17,10 +17,17 @@ drivesim is, has a Sign in button, and shows the two guides.
   controls. Browsers only autoplay muted video.
 
 ## Implementation
+**Every path is absolute** (`/welcome/...`): Caddy serves this page at `/`
+by an internal rewrite, so the browser's base is `/` and a relative
+`bigwheels.mp4` resolved to `/bigwheels.mp4`, behind login (user report,
+2026-10-11).
+
 Caddy leaves only `/`, `/welcome/*` and `/radio/*` public, so the page
 needs nothing else: its styles are inline (the site's `style.css` is
 behind login) and it calls no API.
 
 ## Assertions
+- [ ] Every `src`/`href` it loads is absolute and under `/welcome/` or
+  `/radio/` (tested).
 - [ ] Loads nothing outside `/welcome/` and `/radio/`. (Links out, such as
   to the wiki, are fine; it loads no resources from them.)

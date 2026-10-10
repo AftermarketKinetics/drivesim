@@ -2,7 +2,9 @@
 <!-- The public landing page: what an anonymous visitor to drivesim sees.
      Caddy serves only /, /welcome/* and /radio/* without login and rewrites
      / to /welcome/ when there is no authentik cookie, so this page must
-     need nothing else: its styles are inline and it calls no API. -->
+     need nothing else: its styles are inline and it calls no API. The
+     browser's address stays /, so every path here is absolute: a relative
+     one resolves against / and hits the login (bigwheels.mp4 did). -->
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -36,7 +38,7 @@ the drive motors, tyre grip and your weapon's gyroscopic effect.</p>
 <p class="muted">drivesim is invite-only and uses your combat-robot.systems account. No account
 yet? See <a href="https://wiki.combat-robot.systems/">wiki.combat-robot.systems</a> for how to get
 one.</p>
-<video class="demo" src="bigwheels.mp4" autoplay muted loop playsinline controls
+<video class="demo" src="/welcome/bigwheels.mp4" autoplay muted loop playsinline controls
        aria-label="Driving a big-wheeled robot in drivesim"></video>
 <a class="signin" href="/outpost.goauthentik.io/start?rd=/">Sign in</a>
 <div id="guide"></div>
