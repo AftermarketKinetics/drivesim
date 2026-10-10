@@ -47,6 +47,10 @@ class Settings:
     #: /admin-dashboard (user, 2026-10-10). Sending messages and deleting
     #: stay with the owner.
     admins: frozenset[str]
+    #: House robots' bundles (house.py): one directory per robot, each a
+    #: bundle (parts.json, robot.toml, meshes/). Seeded into the store at
+    #: startup as public robots (user, 2026-10-10). Missing = none.
+    house_root: Path
 
 
 def load_settings(env: dict[str, str] | None = None) -> Settings:
@@ -74,4 +78,5 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         budget_tz=e.get("DRIVESIM_BUDGET_TZ", "America/Los_Angeles"),
         dev_user=e.get("DRIVESIM_DEV_USER") or None,
         admins=frozenset(n.strip() for n in e.get("DRIVESIM_ADMINS", "").split(",") if n.strip()),
+        house_root=Path(e.get("DRIVESIM_HOUSE_ROOT", repo / "fixtures")),
     )

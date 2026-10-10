@@ -25,6 +25,13 @@ check result.
   `mine: false` (an admin viewing someone else's robot), the reply box
   and Delete are hidden, and a line names the owner. The server refuses
   both anyway.
+- **Publicly accessible** (user, 2026-10-10): the `#share` card, shown
+  only to the owner of a ready, checked robot. A checkbox plus a weight
+  class select (3/12/30 lb, the owner's choice) call
+  `PUT /api/robots/{id}/public` with `{public, weight_lb}`. Ticking it
+  with no class chosen asks for one and sends nothing. Changing the class
+  of a public robot saves immediately. A public robot is listed as an AI
+  opponent on everyone's sim page.
 - Once the robot is checked, links to the browser sim at
   `sim/?robot={id}` (`make web-build` puts the app in `web/sim/`).
 
@@ -40,3 +47,4 @@ check result.
 
 ## Assertions
 - Never inserts model or user text as HTML unescaped.
+- The publish control never sends `public: true` without a weight class.

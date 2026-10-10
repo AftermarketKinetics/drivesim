@@ -10,7 +10,10 @@ All under authentik, and scoped to the caller's own robots: anyone else's
 robot is a 404. **Admins** (`Settings.admins`, user 2026-10-10) may also
 read and drive every robot: the read routes use `viewable` (owner or
 admin), while `DELETE` and `POST .../messages` stay `owned`, so an admin
-can neither delete a robot nor spend its owner's budget.
+can neither delete a robot nor spend its owner's budget. **Public
+robots** (user, 2026-10-10) are AI opponents for everyone: their bundle
+uses `drivable` (viewable or public), and nothing else about them is
+readable. The three dependencies live in `access.py`.
 
 | Route | Does |
 |---|---|
@@ -18,18 +21,19 @@ can neither delete a robot nor spend its owner's budget.
 | `GET /api/usage` | today's `{"used", "budget", "resets_at", "tz"}`, in input-token equivalents |
 | `GET /api/robots` | the caller's robots, newest first |
 | `POST /api/robots` (multipart `file`) | 201 `{"id", "bytes"}`; starts the import; 413 over the cap; 429 when today's budget is spent |
-| `GET /api/robots/{id}` | `id, name, status, error, checked, created, owner, mine` (viewable) |
+| `GET /api/robots/{id}` | `id, name, status, error, checked, created, public, weight_lb, owner, mine` (viewable) |
 | `DELETE /api/robots/{id}` | 204; deletes the files and history |
 | `GET /api/robots/{id}/messages` | the stored history (viewable) |
 | `POST /api/robots/{id}/messages` `{"text"}` | 202, runs the agent; 409 until imported; 429 when the owner's budget is spent |
 | `GET /api/robots/{id}/events` | SSE: see `events.py.md` (viewable) |
-| `GET /api/robots/{id}/bundle/{rel}` | only `parts.json`, `robot.toml`, `meshes/NNN.stl` (viewable) |
+| `GET /api/robots/{id}/bundle/{rel}` | only `parts.json`, `robot.toml`, `meshes/NNN.stl` (drivable) |
 | `GET /api/admin/robots` | admins only, 403 otherwise: see `admin.py.md` (router included here) |
+| `PUT /api/robots/{id}/public`, `GET /api/opponents` | see `opponents.py.md` (router included here) |
 | `GET /api/motors.toml` | the motor library |
 | `/` | `server/web` pages, mounted last |
 
 Also `build_state(settings=None, model=None)`, so tests can inject their own
-settings and a scripted model, and `budget(s, user)` and
+settings and a scripted model (it seeds the house robots, `house.py`), and `budget(s, user)` and
 `require_budget(s, user)`.
 
 **Static files** (`WebFiles`) are served `no-cache` with an ETag from each
@@ -66,8 +70,11 @@ cost nothing and are never limited.
   accelerate, Caddy's forward_auth covers every path.
 
 ## Assertions
-- [ ] Every `/api/robots/{id}...` route goes through `owned` or `viewable`;
-  anything that changes a robot or spends budget goes through `owned`.
-  (Changed deliberately 2026-10-10 for admin access; it was `owned` only.)
+- [ ] Every `/api/robots/{id}...` route goes through `owned`, `viewable`
+  or `drivable`; anything that changes a robot or spends budget goes
+  through `owned`; only the bundle goes through `drivable`. (Changed
+  deliberately 2026-10-10 for admin access; it was `owned` only. Changed
+  deliberately again 2026-10-10 for public robots: the bundle went from
+  `viewable` to `drivable`.)
 - [ ] Nothing outside a robot's `bundle/` allowlist is served.
 - [ ] A failed import never crashes the server; it marks the robot `failed`.

@@ -5,3 +5,9 @@
 **Did:**
 - Added step 5 to `server/drivesim_server/prompt.py`: once ready, list every tunable robot.toml setting with value + measured/given/guessed, top 2–3 first.
 - Test `test_the_prompt_ends_with_every_tunable_setting` in `server/tests/test_tools.py`; sidecars updated; 35 tests pass.
+
+## 21:50 commit and deploy
+**User:** commit and deploy
+**Did:**
+- Committed + pushed c91d152 (crop-bigwheels chat log left out, another session's). Started deploy/push.sh in background.
+- push.sh exit 0, images loaded on mint; `docker compose up -d drivesim` recreated the server; live SYSTEM contains step 5.

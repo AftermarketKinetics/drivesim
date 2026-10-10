@@ -4,18 +4,21 @@
 //!
 //! `bundle_load` fetches and loads; `round` builds the simulation and its
 //! visuals, again whenever `opponent_toggle` (the page's button) switches
-//! opponent; `radio` reads the pad; `sim_step` runs the physics in real
+//! opponent, with `rival_load` fetching the AI's rival robot; `radio`
+//! reads the pad; `sim_step` runs the physics in real
 //! time; `robot_render`, `target_render` and `arena_render` draw;
 //! `floor_texture` paints the floor; `camera` is the driver's eye; `hud`
-//! is the text overlay.
+//! is the text overlay, and `countdown` the AI round's 3-2-1.
 
 mod arena_render;
 mod bundle_load;
 mod camera;
+mod countdown;
 mod floor_texture;
 mod hud;
 mod opponent_toggle;
 mod radio;
+mod rival_load;
 mod robot_render;
 mod round;
 mod sim_step;
@@ -58,6 +61,7 @@ fn main() {
                 sim_step::step_sim,
                 robot_render::sync_bodies,
                 hud::update_hud,
+                countdown::update_countdown,
             )
                 .chain(),
         )
@@ -84,19 +88,24 @@ fn setup(
     arena_render::spawn_arena(&mut commands, root, &mut meshes, &mut mats, &mut images);
     camera::spawn_camera(&mut commands, root);
     hud::spawn_hud(&mut commands);
+    countdown::spawn_countdown(&mut commands);
 
     let slot = slot.0.clone();
     match locate() {
-        Ok((base, motors)) => wasm_bindgen_futures::spawn_local(async move {
-            let result = fetch_bundle(base, motors).await;
-            *slot.lock().unwrap() = Some(result);
-        }),
+        Ok((base, motors)) => {
+            commands.insert_resource(rival_load::Rivals::new(motors.clone()));
+            wasm_bindgen_futures::spawn_local(async move {
+                let result = fetch_bundle(base, motors).await;
+                *slot.lock().unwrap() = Some(result);
+            })
+        }
         Err(e) => *slot.lock().unwrap() = Some(Err(e)),
     }
 }
 
 /// When the fetch finishes: build the first round, with the opponent the
-/// page asks for, or show why it failed.
+/// page asks for (as the copy, if it wants a rival: `apply_opponent_toggle`
+/// swaps that in once it loads), or show why it failed.
 fn take_bundle(
     mut commands: Commands,
     slot: Res<LoadSlot>,
@@ -122,7 +131,11 @@ fn take_bundle(
         &mut commands,
         root.0,
         &bundle,
-        opponent_toggle::wanted(),
+        opponent_toggle::Choice {
+            kind: opponent_toggle::wanted().kind,
+            rival: String::new(),
+        },
+        None,
         old.iter(),
         &mut meshes,
         &mut mats,

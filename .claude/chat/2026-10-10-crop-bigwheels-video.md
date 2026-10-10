@@ -20,3 +20,8 @@
 **User:** (ran the corrected `docker load` + `docker compose up -d drivesim` via `!`)
 **Did:**
 - Image loaded, drivesim recreated; a pasted line break made it `up -d` with no service name (others stayed Running, no change). Live check: /welcome/bigwheels.mp4 200 at 465335 bytes (the cropped file), landing 200.
+
+## 21:00 commit and push
+**User:** commit and push
+**Did:**
+- Committed 3e0d3b7 (video, sidecar, session log, lesson) and pushed to origin main.

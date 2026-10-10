@@ -3,13 +3,14 @@
 ## Function
 
 The rapier3d world for a loaded robot (docs/drivesim.md §6): bodies,
-joints, motors, the arena and an opponent (a copy of the robot, or a
-box), stepped at a fixed rate.
+joints, motors, the arena and an opponent (a copy of the robot or a
+rival robot, held
+still or AI-driven, or a box), stepped at a fixed rate.
 
 ## Interface
 
-Modules `arena`, `drivetrain`, `gear_coupling`, `mixer`, `motor`, `rest`, `shapes`, `sim`, `spawn`, `target`; re-exports
-`Sim`, `OpponentKind`, `PHYSICS_HZ`, `CONTROL_HZ`.
+Modules `ai_driver`, `arena`, `drivetrain`, `gear_coupling`, `mixer`, `motor`, `opponent`, `rest`, `shapes`, `sim`, `spawn`, `target`; re-exports
+`Sim`, `OpponentKind`, `Rival`, `PHYSICS_HZ`, `CONTROL_HZ`.
 
 ## Implementation
 

@@ -9,13 +9,15 @@ use rapier3d::prelude::*;
 /// Inside width of the square arena, m: 16 ft (NHRL wiki).
 pub const ARENA_SIDE_M: f32 = 16.0 * 0.3048;
 /// The wiki gives no wall height; the cage is roofed, so the walls only
-/// need to be taller than any robot can climb. PROVISIONAL.
+/// need to be taller than any robot can climb. PROVISIONAL. The roof sits
+/// on top of them.
 pub const WALL_H_M: f32 = 2.4;
 /// Floor friction factor; colliders combine friction by multiplying, so a
 /// tyre's robot.toml `mu` is its grip on this floor (painted plywood).
 pub const FLOOR_MU: f32 = 1.0;
 
-/// Returns the floor's collider, for contact queries.
+/// The floor, four walls and a roof on them, so nothing thrown can leave
+/// (user, 2026-10-10). Returns the floor's collider, for contact queries.
 pub fn add_arena(w: &mut PhysicsWorld) -> ColliderHandle {
     let half = ARENA_SIDE_M / 2.0;
     let floor = w.colliders.insert(
@@ -37,5 +39,10 @@ pub fn add_arena(w: &mut PhysicsWorld) -> ColliderHandle {
                 .friction(0.3),
         );
     }
+    w.colliders.insert(
+        ColliderBuilder::cuboid(half + 2.0 * t, half + 2.0 * t, t)
+            .translation(Vector::new(0.0, 0.0, WALL_H_M + t))
+            .friction(0.3),
+    );
     floor
 }

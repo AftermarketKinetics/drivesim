@@ -10,20 +10,28 @@ The fixed-step loop (docs/drivesim.md §6):
 ## Interface
 
 - `PHYSICS_HZ` 4000, `CONTROL_HZ` 1000, `STEPS_PER_TICK` 4, `GRAVITY`.
-- `OpponentKind { Copy (default), Box }`: what the robot faces.
-- `Sim { world, robot, model, opponent, target, duties }`:
+- `OpponentKind { Copy (default), Box, Ai }`: what the robot faces.
+- `Rival<'a> { model, mesh }`: another robot to face in place of the
+  copy.
+- `Sim { world, robot, model, opponent, target, duties, time_s }`:
   - `Sim::new(model, mesh, kind)`: the arena, the robot at (−1, 0)
     facing +x, and at (1, 0) either an opponent copy of the same model
-    facing it (`opponent`) or the box from `target.rs`, as heavy as the
-    robot (`target`). Exactly one of the two is set;
+    facing it (`opponent`, with an `AiDriver` for `Ai`) or the box from
+    `target.rs`, as heavy as the robot (`target`). Exactly one of the
+    two is set;
+  - `Sim::versus(model, mesh, kind, rival)`: `new`, with `rival` (if
+    `Some`) spawned at (1, 0) in place of the copy for `Copy` and `Ai`;
+    `Box` ignores it. `new` is `versus(.., None)`;
   - `empty_world(gravity_z)` and `assemble(world, robot, model,
-    opponent)`, for tests that build their own scene (with `None`, no
-    opponent);
+    opponent: Option<Opponent>)`, for tests that build their own scene
+    (with `None`, no opponent);
   - `control_tick(frame)`, `physics_step()`;
+  - `time_s`: simulated seconds since the round started;
+  - `countdown_left()`: seconds until the AI starts, `None` without an
+    AI or once it has;
   - `rotor_speed(rotor)`, `chassis()`, `opponent_chassis()` (the
     copy's chassis or the box's body).
-- `Opponent { robot }`, and `OPPONENT_DUTIES`: the opponent is armed
-  with its sticks centred, so its wheels brake and its weapon is off.
+- `Opponent` and `OPPONENT_DUTIES` live in `opponent.rs`.
 
 ## Implementation
 
@@ -41,6 +49,15 @@ The fixed-step loop (docs/drivesim.md §6):
     instead of the default 30/60 Hz with ζ = 10, which is tuned for
     piles;
   - 4 solver iterations, with joints warm-started.
+- **Contact prediction margin of 5 mm**, not rapier's default 20 mm
+  (`normalized_prediction_distance` 0.005; 2026-10-10). Every hull within
+  the margin of another surface gets a speculative manifold in the
+  solver. Obliterator 6 v72 (a low robot) had 19 hulls within 20 mm of
+  the floor: 83 solver contacts at rest instead of about 17. At 4 kHz a
+  body at 20 m/s moves 5 mm per step, and the weapon has real CCD. 2 mm
+  saved little more, but it flipped the outcome of the chaotic
+  `a_hit_throws_the_opponent_up_not_the_robot` test. Lesson
+  `rapier-default-prediction-distance-is-20mm.md`.
 
   Measured against the defaults, grip itself didn't change: no creep
   under a 15 N side push, corners letting go at ~0.6–0.9 g, braking at
@@ -54,11 +71,14 @@ The fixed-step loop (docs/drivesim.md §6):
   robot.
 - **Each robot has its own `Drivetrain`** (`drivetrain.rs`), which
   applies its motor and gear-coupling torques before each world step and
-  records its accelerations after. The opponent's runs with
-  `OPPONENT_DUTIES`.
+  records its accelerations after. The opponent's runs with its own
+  `duties`, which `Opponent::control` sets once per control tick:
+  `OPPONENT_DUTIES`, or the AI's after the countdown. The opponent's
+  drivetrain runs on the opponent's own `model`, so a rival brings its
+  own motors, gearing and battery.
 - **The opponent copy** replaced the target box (user, 2026-10-10). It
-  shares the driven robot's model, and so its mass, gearing and
-  colliders. It holds its ground on braked wheels, like an idle robot,
+  is a clone of the driven robot's model, and so has its mass, gearing
+  and colliders. It holds its ground on braked wheels, like an idle robot,
   rather than rolling away freely. It roughly doubles the physics cost:
   native 2.8× real time alone, 1.9× with it.
 - **The box is the other choice** (user, 2026-10-10: a toggle on the sim
@@ -67,7 +87,16 @@ The fixed-step loop (docs/drivesim.md §6):
   `assemble` never sets it: `new` adds it after, so tests that build
   their own scene are unchanged.
 - **Duties update once per control tick** and are held across its four
-  physics steps.
+  physics steps, the driven robot's and the opponent's alike.
+- **The AI opponent** (user, 2026-10-10) is the copy with an
+  `AiDriver`; it waits `COUNTDOWN_S` of sim time, then chases with its
+  weapon at full. `time_s` counts from `new`/`assemble`, so a rebuilt
+  round restarts the countdown.
+- **A rival** (user, 2026-10-10) is a public robot picked for the AI on
+  the sim page. It goes through the same `spawn_robot` at the same spot
+  as the copy, with its own mesh closure, and becomes an `Opponent` with
+  its own model. `versus` doesn't check the weight class: picking a
+  mismatched opponent is allowed.
 - **Momentum's firmware control (`kind = "momentum-core"`) isn't built
   yet;** such a robot sits idle.
 
@@ -81,5 +110,7 @@ The fixed-step loop (docs/drivesim.md §6):
   - the weapon reaches no-load speed and the robot stays upright;
   - driving shoves the opponent, copy or box; the box spawns at (1, 0)
     with the robot's mass;
+  - (tests/ai.rs) a rival keeps its own model and mass and still
+    reaches the robot;
   - full turn reaches 2 v / track; wheels roll without ringing; slamming
     the throttle does not flip it.

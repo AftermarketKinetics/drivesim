@@ -24,6 +24,7 @@ variables, with development defaults (repo-relative):
 | `budget_tz` | `BUDGET_TZ` | `America/Los_Angeles` (midnight Pacific resets it) |
 | `dev_user` | `DEV_USER` | unset |
 | `admins` | `ADMINS` | empty; comma-separated usernames, blanks ignored (user, 2026-10-10) |
+| `house_root` | `HOUSE_ROOT` | `fixtures` (the image: `/app/house`); house robots' bundles, see `house.py` |
 
 ## Implementation
 The 95 MB upload cap is under Cloudflare's 100 MB free-plan body limit, which

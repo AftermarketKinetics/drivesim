@@ -3,15 +3,16 @@
 ## Function
 
 Draws NHRL's 12 lb cage (physics `arena.rs`): the painted plywood floor,
-see-through polycarbonate walls with distance markings, and overhead
-lights.
+see-through polycarbonate walls with distance markings, a see-through
+roof, a dark rail along the walls' tops, and overhead lights.
 
 ## Interface
 
 - `spawn_arena(commands, root, meshes, mats, images)`: floor (textured by
   `floor_texture.rs`), four walls with their distance markings
-  (`wall_markings.rs`) and the overhead lights, all under `root`.
-- `LIGHT_HEIGHT_M` = 3.5.
+  (`wall_markings.rs`), the roof, the top rail and the overhead
+  lights, all under `root`.
+- `RAIL_M` = 0.04, `LIGHT_HEIGHT_M` = 3.5.
 
 ## Implementation
 
@@ -20,6 +21,15 @@ lights.
 - Walls are alpha-blended at 0.12 so the driver can see through them, as
   through real polycarbonate, and sit just outside the usable 16 ft
   square.
+- The roof (user, 2026-10-10) uses the same material, on the walls' tops
+  at `WALL_H_M`. The driver's eye (1.7 m) is below it, so it is seen
+  only at a grazing angle. With no shadow maps it doesn't dim the
+  lamps above it.
+- **The top rail** (user, 2026-10-10): a 4 cm opaque dark-grey bar
+  along each wall's top edge, just under the roof. Without it the upper
+  1.4 m of wall is a featureless tint with no visible end, and a robot
+  thrown over a wall (before the roof) looked like it went through it.
+  Drawn only: the physics walls and roof already close the cage.
 
 - **Lighting is overhead, as at an event, and casts no shadows** (user,
   2026-10-10). It replaced the first build's single shadow-mapped sun, and has three

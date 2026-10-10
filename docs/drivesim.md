@@ -25,9 +25,10 @@ other, plus one optional hook (its firmware core in the loop, §6).
 **v1:** upload a STEP, set its roles, drive it around a walled arena with
 a full-speed weapon, and hit an undriven opponent: a copy of the same
 robot, drawn orange, on braked wheels (user, 2026-10-10; it replaced a
-free box).
+free box). The sim page also offers a box and an AI-driven copy (§2),
+and the AI can drive any public robot instead of the copy (§2).
 
-**Not in v1:** a second robot or AI opponent; damage and part failure;
+**Not in v1:** a second, different robot driven by a person; damage and part failure;
 tagging parts by clicking in the 3D view; telemetry replay; arena
 hazards; a native desktop build.
 
@@ -67,6 +68,24 @@ hazards; a native desktop build.
 - **Development is local first:** the WASM build is served from WSL on
   localhost with cross-origin isolation; nothing is deployed until the
   last step (§11).
+- **Opponent: copy, box or AI** (user, 2026-10-10), chosen with three
+  buttons on the sim page, each switch restarting the round. The AI
+  drives the orange copy: it waits a 3-2-1 countdown, then chases the
+  robot with its weapon always at full, backs out when wedged, and
+  drives inverted when flipped. No difficulty setting, no pathfinding,
+  no aiming of the weapon side. This brought an AI opponent into v1.
+- **Public robots as AI opponents** (user, 2026-10-10). An owner can tag
+  a drivable robot "publicly accessible" with its weight class (3, 12 or
+  30 lb, the owner's pick, not derived from mass). Every signed-in user's
+  sim page then lists the public robots in a dropdown shown while AI is
+  chosen, grouped by class with the driven robot's class first. The
+  first entry is the robot's own copy. Publishing shares the robot's
+  bundle (3D model and robot file), never its conversation. The first
+  public set is simple_bot (12 lb), seeded at every start from
+  `fixtures/` as a database robot owned by `drivesim-house`, and Seraphs
+  V1, which its owner ticks public. Any class can face any class; the
+  arena stays the 12 lb cage. This brought "a second, different robot as
+  opponent" into v1, for the AI only.
 
 ## 3. Pipeline
 
@@ -231,9 +250,13 @@ its own fixed-tick loop.
   place.
 - **Arena:** NHRL's 12 lb cage: 16' × 16' usable, a floor of plywood
   painted with dead-flat paint (not steel), polycarbonate walls on a timber
-  skirt, a roof (NHRL wiki, read 2026-10-09). **Opponent:** an undriven copy of the robot, drawn orange,
+  skirt, a roof (NHRL wiki, read 2026-10-09); the roof is simulated too, on
+  the walls' tops, so a hit can't throw a robot out (user, 2026-10-10). **Opponent:** an undriven copy of the robot, drawn orange,
   armed with sticks centred so it brakes (user, 2026-10-10; it replaced
-  a free target box).
+  a free target box); or the box; or the copy driven by
+  `ai_driver.rs` after a countdown of sim time (§2). The AI can drive a
+  rival robot instead of the copy (`Sim::versus`): spawned at the copy's
+  spot, it brings its own model, so its own masses, motors and gearing.
 
 **Timestep.** The physics step is sized from the fastest rotor, not the
 control rate. Measured 2026-10-09 (timing spike, lesson

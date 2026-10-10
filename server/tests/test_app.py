@@ -7,6 +7,7 @@ from dataclasses import replace
 
 from conftest import FIXTURE_BUNDLE, FIXTURE_STEP, wait_for
 from drivesim_server.config import load_settings
+from drivesim_server.house import HOUSE_USER, house_id
 
 BOB = {"X-authentik-username": "bob"}
 
@@ -72,7 +73,8 @@ def test_the_admin_dashboard_lists_every_robot_for_admins_only(client):
     rid = upload(client).json()["id"]
     assert client.get("/api/admin/robots").status_code == 403
     d = client.get("/api/admin/robots", headers=BOB).json()
-    assert [(r["id"], r["username"]) for r in d["robots"]] == [(rid, "alice")]
+    # The seeded house robot is a row like any other, older than alice's.
+    assert [(r["id"], r["username"]) for r in d["robots"]] == [(rid, "alice"), (house_id("simple_bot"), HOUSE_USER)]
     assert "users_today" in d and d["budget"] > 0
     page = client.get("/admin-dashboard/")
     assert page.status_code == 200 and "/api/admin/robots" in page.text

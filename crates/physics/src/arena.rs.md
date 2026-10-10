@@ -2,13 +2,13 @@
 
 ## Function
 
-The arena (docs/drivesim.md §6): floor and four walls.
+The arena (docs/drivesim.md §6): floor, four walls and a roof.
 
 ## Interface
 
 - `ARENA_SIDE_M` 4.877 (16 ft), `WALL_H_M` 2.4 (PROVISIONAL), `FLOOR_MU` 1.0.
 - `add_arena(world) -> ColliderHandle` (the floor's, for contact
-  queries).
+  queries). It also adds the walls and the roof.
 
 ## Implementation
 
@@ -19,6 +19,13 @@ The arena (docs/drivesim.md §6): floor and four walls.
   wall height isn't published; 2.4 m only has to be taller than any robot
   climbs. The skirt isn't modelled separately: the walls are a rigid
   boundary from the floor up.
+
+**The roof** (user, 2026-10-10: "add a roof so its impossible for bots
+to launch themselves out of the box") is a 10 cm slab resting on the
+walls' tops at `WALL_H_M`, overhanging them like the floor's corners, so
+there is no seam to slip through. Before it, a hit could throw a robot
+over the 2.4 m walls and out of the world. At 4 kHz even 30 m/s moves
+7.5 mm a step, well under its 10 cm, so nothing tunnels through.
 
 The floor's friction is 1.0 and combines by multiplying, so each tyre
 grips with exactly its robot.toml `mu`. Rapier uses the stronger of two
@@ -32,3 +39,5 @@ alternative opponent, in its own file (`target.rs`).
 ## Assertions
 
 - The arena is centred on the origin, with the floor top at z = 0.
+- Closed on all six sides: floor, four walls and roof overlap at every
+  edge (tests/arena.rs throws a robot at the roof and a top corner).

@@ -12,11 +12,16 @@ Gamepad API, and draws everything from the driver's box.
 - The window is bound to the page's `<canvas id="drivesim">` and fits its
   parent.
 - Resources it owns: `LoadSlot` (the async fetch's result) and `Root`
-  (the `SimRoot` entity, read by `opponent_toggle`).
+  (the `SimRoot` entity, read by `opponent_toggle`). Startup also inserts
+  `rival_load::Rivals` with the page's motor library URL, when the URL
+  locates a bundle.
 - Update systems run chained, in this order: `poll_radio`, `take_bundle`,
-  `apply_opponent_toggle`, `step_sim`, `sync_bodies`, `update_hud`.
-- The wasm module exports `set_opponent_box` (`opponent_toggle.rs`) for
-  the page's button.
+  `apply_opponent_toggle`, `step_sim`, `sync_bodies`, `update_hud`,
+  `update_countdown`.
+- Startup spawns the HUD and the countdown banner (`countdown.rs`).
+- The wasm module exports `set_opponent` (`opponent_toggle.rs`) for
+  the page's opponent buttons and `set_rival` (`rival_load.rs`) for its
+  AI robot dropdown.
 
 ## Implementation
 
@@ -26,7 +31,9 @@ Gamepad API, and draws everything from the driver's box.
 - **Loading is async but the App is not.** `setup` starts `fetch_bundle`
   with `spawn_local`, which leaves its result in `LoadSlot`. `take_bundle`
   polls the slot each frame; on success it builds the first round
-  (`round.rs`) with the opponent the page asks for, and keeps the bundle
+  (`round.rs`) with the opponent the page asks for (the AI on its own
+  copy, if a rival is wanted: `apply_opponent_toggle` swaps the rival in
+  once its bundle loads), and keeps the bundle
   as `Loaded` so `apply_opponent_toggle` can rebuild without refetching.
   On failure the HUD shows the reason. Systems that need the sim take `Option<Res<SimRes>>` and do
   nothing until it exists.

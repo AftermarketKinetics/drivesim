@@ -3,7 +3,8 @@ the robot bundle the browser sim loads (docs/drivesim.md §3-4).
 
 Every route is behind authentik (Caddy forward_auth) and scoped to the
 signed-in user's own robots (user, 2026-10-09: owner only for v1), except
-that admins may read and drive every robot (user, 2026-10-10). Adapted
+that admins may read and drive every robot and anyone may drive a public
+one (user, 2026-10-10; access.py, opponents.py). Adapted
 from the Combat Robot Analyzer's app (2026-10-09). Chat is fire-and-forget:
 POST a message, watch ``/events`` (SSE) for streamed text and tool activity.
 """
@@ -26,11 +27,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
 
-from . import admin
+from . import admin, opponents
+from .access import drivable, owned, viewable
 from .auth import current_user, is_admin
 from .config import Settings, load_settings
 from .db import Store
 from .events import EventBus
+from .house import seed_house
 from .importer import BUNDLE, STEP_NAME, run_import
 from .llm import AnthropicClient, ModelClient
 from .loop import Agent
@@ -44,6 +47,7 @@ MESH = re.compile(r"^meshes/\d{3,6}\.stl$")
 def build_state(settings: Settings | None = None, model: ModelClient | None = None) -> dict[str, Any]:
     settings = settings or load_settings()
     store = Store(settings.db_path)
+    seed_house(settings, store)
     bus = EventBus()
     agent = Agent(store, model or AnthropicClient(settings.model, settings.effort), settings, bus)
     return {"settings": settings, "store": store, "bus": bus, "agent": agent, "tasks": set()}
@@ -95,23 +99,6 @@ app = FastAPI(lifespan=lifespan)
 
 def state(request: Request) -> dict[str, Any]:
     return request.app.state.s
-
-
-def owned(robot_id: str, request: Request, user: str = Depends(current_user)) -> str:
-    """Dependency: the robot id, if it belongs to the caller (404 otherwise)."""
-    if len(robot_id) != 32 or state(request)["store"].owner(robot_id) != user:
-        raise HTTPException(status_code=404, detail="no such robot")
-    return robot_id
-
-
-def viewable(robot_id: str, request: Request, user: str = Depends(current_user)) -> str:
-    """Dependency: the robot id, if the caller owns it or is an admin (404
-    otherwise). For reading and driving; changing a robot stays `owned`."""
-    if len(robot_id) != 32 or not (
-            (owner := state(request)["store"].owner(robot_id)) == user
-            or (owner is not None and is_admin(request, user))):
-        raise HTTPException(status_code=404, detail="no such robot")
-    return robot_id
 
 
 def budget(s: dict[str, Any], user: str) -> dict[str, Any]:
@@ -176,7 +163,8 @@ async def upload(file: UploadFile, request: Request, user: str = Depends(current
 def robot(request: Request, robot_id: str = Depends(viewable),
           user: str = Depends(current_user)) -> dict[str, Any]:
     r = state(request)["store"].robot(robot_id)
-    return {**{k: r[k] for k in ("id", "name", "status", "error", "checked", "created")},
+    return {**{k: r[k] for k in ("id", "name", "status", "error", "checked", "created",
+                                 "public", "weight_lb")},
             "owner": r["username"], "mine": r["username"] == user}
 
 
@@ -230,8 +218,9 @@ async def events(request: Request, robot_id: str = Depends(viewable)) -> Streami
 
 
 @app.get("/api/robots/{robot_id}/bundle/{rel:path}")
-def bundle_file(rel: str, request: Request, robot_id: str = Depends(viewable)) -> FileResponse:
-    """What the browser sim fetches: parts.json, robot.toml and the meshes."""
+def bundle_file(rel: str, request: Request, robot_id: str = Depends(drivable)) -> FileResponse:
+    """What the browser sim fetches: parts.json, robot.toml and the meshes,
+    for the robot driven and for a public robot as the AI opponent."""
     if rel not in BUNDLE_FILES and not MESH.match(rel):
         raise HTTPException(status_code=404, detail="no such file")
     path = state(request)["settings"].robots_root / robot_id / BUNDLE / rel
@@ -281,6 +270,7 @@ class WebFiles(StaticFiles):
 
 
 app.include_router(admin.router)
+app.include_router(opponents.router)
 
 # The pages, last so every /api route above takes precedence.
 _web = load_settings().web_dir

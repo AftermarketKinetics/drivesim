@@ -20,6 +20,10 @@ from typing import Any, Iterator
 #: robot.toml passes the check (``checked``).
 STATUSES = ("importing", "ready", "failed")
 
+#: NHRL weight classes, lb, an owner tags a public robot with (user,
+#: 2026-10-10: the owner picks; 0 = untagged).
+WEIGHT_CLASSES = (3, 12, 30)
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS robots (
     id TEXT PRIMARY KEY,
@@ -28,7 +32,9 @@ CREATE TABLE IF NOT EXISTS robots (
     status TEXT NOT NULL,
     error TEXT NOT NULL DEFAULT '',
     checked INTEGER NOT NULL DEFAULT 0,
-    created REAL NOT NULL
+    created REAL NOT NULL,
+    public INTEGER NOT NULL DEFAULT 0,
+    weight_lb INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS robots_by_user ON robots(username, created);
 CREATE TABLE IF NOT EXISTS messages (
@@ -39,6 +45,7 @@ CREATE TABLE IF NOT EXISTS messages (
     created REAL NOT NULL,
     PRIMARY KEY (robot_id, seq)
 );
+-- (public, weight_lb) added 2026-10-10; MIGRATIONS adds them to older files.
 -- One row per model turn, for the daily budget. No reference to robots:
 -- deleting a robot must not hand its usage back.
 CREATE TABLE IF NOT EXISTS usage (
@@ -52,6 +59,13 @@ CREATE TABLE IF NOT EXISTS usage (
 CREATE INDEX IF NOT EXISTS usage_by_user ON usage(username, at);
 """
 
+#: Columns added after the first deploy: (table, column, definition). The
+#: CREATE above has them; an older file gets them by ALTER at startup.
+MIGRATIONS = (
+    ("robots", "public", "INTEGER NOT NULL DEFAULT 0"),
+    ("robots", "weight_lb", "INTEGER NOT NULL DEFAULT 0"),
+)
+
 
 class Store:
     def __init__(self, path: Path) -> None:
@@ -59,6 +73,10 @@ class Store:
         self.path = path
         with self._conn() as c:
             c.executescript(SCHEMA)
+            for table, col, definition in MIGRATIONS:
+                have = {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}
+                if col not in have:
+                    c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {definition}")
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
@@ -82,7 +100,7 @@ class Store:
     def robots_for(self, username: str) -> list[dict[str, Any]]:
         with self._conn() as c:
             rows = c.execute(
-                "SELECT id, name, status, error, checked, created FROM robots "
+                "SELECT id, name, status, error, checked, created, public, weight_lb FROM robots "
                 "WHERE username = ? ORDER BY created DESC",
                 (username,),
             ).fetchall()
@@ -98,6 +116,35 @@ class Store:
                 "FROM robots r ORDER BY r.created DESC"
             ).fetchall()
         return [dict(r) for r in rows]
+
+    def public_robots(self) -> list[dict[str, Any]]:
+        """Robots their owners made public that are drivable (ready and
+        checked), by weight class then name: the AI opponent choices."""
+        with self._conn() as c:
+            rows = c.execute(
+                "SELECT id, name, username, weight_lb FROM robots "
+                "WHERE public = 1 AND status = 'ready' AND checked = 1 "
+                "ORDER BY weight_lb, name COLLATE NOCASE"
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def set_public(self, robot_id: str, public: bool, weight_lb: int) -> None:
+        """Public needs a weight class; a private robot keeps its tag (or 0),
+        so publishing it again remembers the class."""
+        assert weight_lb in WEIGHT_CLASSES or (not public and weight_lb == 0), weight_lb
+        with self._conn() as c:
+            c.execute("UPDATE robots SET public = ?, weight_lb = ? WHERE id = ?",
+                      (int(public), weight_lb, robot_id))
+
+    def seed_robot(self, robot_id: str, username: str, name: str, weight_lb: int) -> None:
+        """A drivable, public robot with a fixed id (house.py), created
+        once and left alone after; no conversation."""
+        with self._conn() as c:
+            c.execute(
+                "INSERT OR IGNORE INTO robots (id, username, name, status, checked, created, "
+                "public, weight_lb) VALUES (?, ?, ?, 'ready', 1, ?, 1, ?)",
+                (robot_id, username, name, time.time(), weight_lb),
+            )
 
     def used_by_user_since(self, since: float) -> dict[str, float]:
         """Weighted usage per username since `since` (epoch s)."""

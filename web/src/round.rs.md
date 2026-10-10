@@ -9,15 +9,17 @@ switch, which puts both robots back at their start spots.
 
 ## Interface
 
-- `OPPONENT_ORANGE` [0.95, 0.45, 0.08]: the colour of the opponent, copy
-  or box.
+- `OPPONENT_ORANGE` [0.95, 0.45, 0.08]: the colour of the opponent, copy,
+  rival or box.
 - `Loaded(Bundle)`: resource holding the fetched bundle for rebuilds.
-- `BuiltWith(OpponentKind)`: resource naming the opponent the current
-  round was built with.
-- `build_round(commands, root, bundle, kind, old, meshes, mats) ->
-  Result<(), String>`: builds `Sim::new(…, kind)`, despawns `old`, spawns
-  the robot's visuals and the opponent's (orange copy or orange box), and
-  inserts `SimRes` and `BuiltWith(kind)`.
+- `BuiltWith(opponent_toggle::Choice)`: resource naming the opponent
+  (kind and rival) the current round was built with.
+- `build_round(commands, root, bundle, choice, rival: Option<&Bundle>,
+  old, meshes, mats) -> Result<(), String>`: builds `Sim::versus(…,
+  choice.kind, rival)`, despawns `old`, spawns the robot's visuals and the
+  opponent's (orange copy, orange rival or orange box), and inserts
+  `SimRes` and `BuiltWith(choice)`. `rival` is the loaded bundle of
+  `choice.rival`, `None` for the robot's own copy.
 - `RoundVisuals`: the query for a round's visuals, every entity with a
   `BodyLink`.
 
@@ -31,6 +33,8 @@ switch, which puts both robots back at their start spots.
 - **Rebuilding is the reset** (user, 2026-10-10: switching restarts the
   round rather than swapping the opponent in place). A fresh `Sim` needs
   no removal path in the physics, and `SimRes` starts with no backlog.
+- **A rival is drawn from its own bundle and model** (`o.model`), so its
+  meshes and bodies match what was spawned; the copy uses the robot's.
 - The opponent is orange (user, 2026-10-10), so it can't be mistaken for
   the robot being driven; the box takes the same colour.
 

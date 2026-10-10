@@ -12,6 +12,18 @@
 <h1 id="name">Robot</h1>
 <div id="status" class="card muted">loading…</div>
 <div id="check" class="card" hidden></div>
+<div id="share" class="card" hidden>
+  <label><input type="checkbox" id="public"> Publicly accessible: anyone signed in can pick it as their AI opponent</label>
+  <label>Weight class
+    <select id="weight">
+      <option value="0">choose…</option>
+      <option value="3">3 lb</option>
+      <option value="12">12 lb</option>
+      <option value="30">30 lb</option>
+    </select></label>
+  <span id="shared" class="muted"></span>
+  <div class="muted">Others get its 3D model and robot file to drive against, never this conversation.</div>
+</div>
 <div id="chat"></div>
 <div id="reply" class="card">
   <textarea id="text" rows="3" placeholder="Reply…"></textarea>
@@ -55,6 +67,10 @@ async function status() {
     $("admin").hidden = false;
     $("admin").textContent = `Viewing ${b.owner}'s robot as an admin: read and drive only.`;
   }
+  // Publishing (user, 2026-10-10): the owner's, once the robot is drivable.
+  $("share").hidden = !(b.mine && b.status === "ready" && b.checked);
+  $("public").checked = !!b.public;
+  $("weight").value = String(b.weight_lb || 0);
   $("status").innerHTML = b.status === "failed" ? `<span class="bad">Import failed:</span> <pre>${esc(b.error)}</pre>`
     : b.status === "importing" ? "Importing the STEP…" : b.checked ? `<span class="good">Ready to drive.</span> <a href="sim/?robot=${encodeURIComponent(rid)}">Drive it →</a>` : "Imported. Setting up roles…";
 }
@@ -93,6 +109,17 @@ $("send").onclick = async () => {
                                             body: JSON.stringify({ text }) });
   if (!r.ok) $("busy").textContent = (await r.json()).detail;
 };
+// A public robot needs a weight class; ticking with none chosen waits for
+// one. Changing the class of a public robot saves at once.
+async function savePublic() {
+  const weight_lb = Number($("weight").value), pub = $("public").checked;
+  if (pub && !weight_lb) { $("shared").textContent = "choose its weight class to make it public"; return; }
+  const r = await apiFetch(api("/public"), { method: "PUT", headers: {"Content-Type": "application/json"},
+                                           body: JSON.stringify({ public: pub, weight_lb }) });
+  $("shared").textContent = r.ok ? (pub ? "public" : "private") : (await r.json()).detail;
+}
+$("public").onchange = savePublic;
+$("weight").onchange = () => { if ($("public").checked) savePublic(); };
 // Deleting removes the upload, the robot file and the conversation; the
 // day's usage stays counted. Asks first: it cannot be undone.
 $("delete").onclick = async () => {

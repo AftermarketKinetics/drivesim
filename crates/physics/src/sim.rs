@@ -5,6 +5,7 @@
 use crate::arena::add_arena;
 use crate::drivetrain::{Drivetrain, rotor_speed};
 use crate::mixer::{Duties, MixerConfig, mix};
+use crate::opponent::{COUNTDOWN_S, Opponent};
 use crate::spawn::{RobotHandles, SpawnError, spawn_robot};
 use crate::target::add_target;
 use drivesim_input::Frame;
@@ -17,29 +18,22 @@ pub const CONTROL_HZ: u32 = 1000;
 pub const STEPS_PER_TICK: u32 = PHYSICS_HZ / CONTROL_HZ;
 pub const GRAVITY: f32 = 9.81;
 
-/// What the opponent's ESCs get: armed with its sticks centred, so its
-/// wheels brake and its weapon is off. It holds its ground like an idle
-/// robot rather than rolling away on free wheels.
-pub const OPPONENT_DUTIES: Duties = Duties {
-    left: Some(0.0),
-    right: Some(0.0),
-    weapon: Some(0.0),
-};
-
-/// What the robot faces: a copy of itself (the default) or a free box
-/// (user, 2026-10-10: a toggle on the sim page).
+/// What the robot faces: an undriven copy of itself (the default), a
+/// free box, or a copy the AI drives (user, 2026-10-10: a toggle on the
+/// sim page). `Sim::versus` swaps the copy for another robot.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum OpponentKind {
     #[default]
     Copy,
     Box,
+    Ai,
 }
 
-/// An undriven copy of the robot (user, 2026-10-10: "replace the box with
-/// a copy of simple bot"), sharing the driven robot's model.
-pub struct Opponent {
-    pub robot: RobotHandles,
-    drive: Drivetrain,
+/// Another robot to face in place of the copy (user, 2026-10-10: a public
+/// robot picked for the AI on the sim page): its model and its meshes.
+pub struct Rival<'a> {
+    pub model: RobotModel,
+    pub mesh: &'a dyn Fn(&str) -> Option<Vec<u8>>,
 }
 
 pub struct Sim {
@@ -52,23 +46,41 @@ pub struct Sim {
     mixer: Option<MixerConfig>,
     pub duties: Duties,
     drive: Drivetrain,
+    /// Simulated seconds since the round started.
+    pub time_s: f32,
 }
 
 impl Sim {
     /// The arena, the robot at (−1, 0) facing +x, and at (1, 0) either its
-    /// opponent copy facing it or a box as heavy as it.
+    /// opponent copy facing it (the AI's, for `Ai`) or a box as heavy as it.
     pub fn new(
         model: RobotModel,
         mesh: &dyn Fn(&str) -> Option<Vec<u8>>,
         kind: OpponentKind,
     ) -> Result<Sim, SpawnError> {
+        Self::versus(model, mesh, kind, None)
+    }
+
+    /// `new`, with `rival` (when given) in place of the copy for `Copy`
+    /// and `Ai`. The box ignores it.
+    pub fn versus(
+        model: RobotModel,
+        mesh: &dyn Fn(&str) -> Option<Vec<u8>>,
+        kind: OpponentKind,
+        rival: Option<Rival>,
+    ) -> Result<Sim, SpawnError> {
         let mut world = Self::empty_world(-GRAVITY);
         let _floor = add_arena(&mut world);
         let robot = spawn_robot(&mut world, &model, mesh, -1.0, 0.0, 0.0)?;
         Ok(match kind {
-            OpponentKind::Copy => {
-                let opponent =
-                    spawn_robot(&mut world, &model, mesh, 1.0, 0.0, std::f32::consts::PI)?;
+            OpponentKind::Copy | OpponentKind::Ai => {
+                let (o_model, o_mesh) = match rival {
+                    Some(r) => (r.model, r.mesh),
+                    None => (model.clone(), mesh),
+                };
+                let handles =
+                    spawn_robot(&mut world, &o_model, o_mesh, 1.0, 0.0, std::f32::consts::PI)?;
+                let opponent = Opponent::new(handles, o_model, kind == OpponentKind::Ai);
                 Self::assemble(world, robot, model, Some(opponent))
             }
             OpponentKind::Box => {
@@ -99,6 +111,11 @@ impl Sim {
         p.static_contact_softness = SpringCoefficients::new(400.0, 1.0);
         p.num_solver_iterations = 4;
         p.warmstart_joints = true;
+        // Speculative contacts within 5 mm, not the default 20 mm: at 4 kHz
+        // a body at 20 m/s moves 5 mm a step, and the weapon has real CCD.
+        // 20 mm gave a low robot (Obliterator 6 v72) 83 solver contacts at
+        // rest. 2 mm saved little more and flipped the hit test's outcome.
+        p.normalized_prediction_distance = 0.005;
         w
     }
 
@@ -106,7 +123,7 @@ impl Sim {
         world: PhysicsWorld,
         robot: RobotHandles,
         model: RobotModel,
-        opponent: Option<RobotHandles>,
+        opponent: Option<Opponent>,
     ) -> Sim {
         let mixer = match model.control {
             Control::Mixer {
@@ -129,27 +146,38 @@ impl Sim {
             world,
             robot,
             model,
-            opponent: opponent.map(|robot| Opponent {
-                robot,
-                drive: Drivetrain::default(),
-            }),
+            opponent,
             target: None,
             mixer,
             duties: Duties::default(),
             drive: Drivetrain::default(),
+            time_s: 0.0,
         }
     }
 
     /// One control tick: decide duties from the radio frame (`None` = no
-    /// radio), then run `STEPS_PER_TICK` physics steps with them held.
+    /// radio) and the opponent's, then run `STEPS_PER_TICK` physics steps
+    /// with them held.
     pub fn control_tick(&mut self, frame: Option<&Frame>) {
+        let dt = 1.0 / CONTROL_HZ as f32;
         self.duties = match &self.mixer {
             Some(cfg) => mix(frame, cfg),
             None => Duties::default(),
         };
+        if let Some(o) = &mut self.opponent {
+            o.control(&self.world, self.robot.bodies[0], self.time_s, dt);
+        }
         for _ in 0..STEPS_PER_TICK {
             self.physics_step();
         }
+        self.time_s += dt;
+    }
+
+    /// Seconds left before the AI opponent starts; `None` when there is
+    /// no AI or it has started.
+    pub fn countdown_left(&self) -> Option<f32> {
+        let ai = self.opponent.as_ref().is_some_and(|o| o.ai.is_some());
+        (ai && self.time_s < COUNTDOWN_S).then_some(COUNTDOWN_S - self.time_s)
     }
 
     /// One physics step with the current duties: each robot's motor
@@ -159,12 +187,12 @@ impl Sim {
             .apply(&mut self.world, &self.model, &self.robot, &self.duties);
         if let Some(o) = &mut self.opponent {
             o.drive
-                .apply(&mut self.world, &self.model, &o.robot, &OPPONENT_DUTIES);
+                .apply(&mut self.world, &o.model, &o.robot, &o.duties);
         }
         self.world.step();
         self.drive.observe(&self.world, &self.model, &self.robot);
         if let Some(o) = &mut self.opponent {
-            o.drive.observe(&self.world, &self.model, &o.robot);
+            o.drive.observe(&self.world, &o.model, &o.robot);
         }
     }
 

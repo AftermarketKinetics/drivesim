@@ -2,8 +2,8 @@
 
 ## Function
 Builds `drivesim:latest`, the server container on accelerate. It holds the
-FastAPI service, the robot checker, the motor library, and the pages with
-the browser sim.
+FastAPI service, the robot checker, the motor library, the pages with
+the browser sim, and the house robots' bundles.
 
 ## Interface
 - `nix-build deploy/server-image.nix && docker load < result` (or
@@ -16,7 +16,8 @@ the browser sim.
 - Environment set here: `DRIVESIM_ROBOTS_ROOT=/robots`, `DRIVESIM_DB_PATH`,
   `DRIVESIM_IMPORT_MODE=broker`,
   `DRIVESIM_BROKER_URL=http://drivesim-broker:8711`, `DRIVESIM_CHECK_BIN`,
-  `DRIVESIM_MOTORS_TOML`, `DRIVESIM_WEB_DIR=/app/web`.
+  `DRIVESIM_MOTORS_TOML`, `DRIVESIM_WEB_DIR=/app/web`,
+  `DRIVESIM_HOUSE_ROOT=/app/house`.
 - Runs as `1000:100`.
 
 ## Implementation
@@ -26,6 +27,9 @@ the browser sim.
 - **The sim is the local build** (user, 2026-10-10). `server/web/sim/`
   comes from `make web-build`, which `push.sh` runs first. The build fails
   if the wasm is missing. Sidecar `.md` files stay out of `/app/web`.
+- **House robots** (user, 2026-10-10): `fixtures/simple_bot`, minus
+  sidecars, is linked in as `/app/house/simple_bot`. `house.py` copies it
+  into `/robots` at every start and seeds it as a public 12 lb robot.
 - **1000:100 owns the files it writes** in mint's `~/drivesim` bind mounts,
   as the operator. Sandbox-written files are world-writable (the broker's
   `umask 0`).

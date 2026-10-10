@@ -1,12 +1,14 @@
 //! Draws NHRL's 12 lb cage (physics `arena.rs`): the painted plywood
-//! floor, polycarbonate walls with distance markings, and overhead lights.
+//! floor, polycarbonate walls and roof, a rail along the walls' tops,
+//! distance markings, and overhead lights.
 
 use crate::floor_texture::floor_image;
 use crate::wall_markings::spawn_wall_markings;
 use bevy::prelude::*;
 use drivesim_physics::arena::{ARENA_SIDE_M, WALL_H_M};
 
-/// Floor, walls and overhead lights, under `root` (rapier coordinates, z up).
+/// Floor, walls, roof and overhead lights, under `root` (rapier
+/// coordinates, z up).
 pub fn spawn_arena(
     commands: &mut Commands,
     root: Entity,
@@ -50,8 +52,56 @@ pub fn spawn_arena(
             .id();
         commands.entity(root).add_child(w);
     }
+    // The roof, the same see-through polycarbonate, on the walls' tops.
+    let roof = commands
+        .spawn((
+            Mesh3d(meshes.add(Cuboid::new(s + 2.0 * t, s + 2.0 * t, t))),
+            MeshMaterial3d(wall_mat),
+            Transform::from_xyz(0.0, 0.0, WALL_H_M + t / 2.0),
+        ))
+        .id();
+    commands.entity(root).add_child(roof);
+    spawn_top_rail(commands, root, meshes, mats, t);
     spawn_overhead_lights(commands, root, meshes, mats);
     spawn_wall_markings(commands, root, meshes, mats);
+}
+
+/// The top rail's square section, m.
+pub const RAIL_M: f32 = 0.04;
+
+/// An opaque dark rail along each wall's top edge, under the roof, so the
+/// driver can see where the see-through walls end (user, 2026-10-10: a
+/// robot thrown over a wall looked like it flew through it). `t` is the
+/// drawn wall thickness; the rail is centred on it.
+fn spawn_top_rail(
+    commands: &mut Commands,
+    root: Entity,
+    meshes: &mut Assets<Mesh>,
+    mats: &mut Assets<StandardMaterial>,
+    t: f32,
+) {
+    let s = ARENA_SIDE_M;
+    let mat = mats.add(StandardMaterial {
+        base_color: Color::srgb(0.18, 0.18, 0.2),
+        perceptual_roughness: 0.6,
+        ..default()
+    });
+    let (c, len, z) = (s / 2.0 + t / 2.0, s + 2.0 * t, WALL_H_M - RAIL_M / 2.0);
+    for (x, y, sx, sy) in [
+        (c, 0.0, RAIL_M, len),
+        (-c, 0.0, RAIL_M, len),
+        (0.0, c, len, RAIL_M),
+        (0.0, -c, len, RAIL_M),
+    ] {
+        let rail = commands
+            .spawn((
+                Mesh3d(meshes.add(Cuboid::new(sx, sy, RAIL_M))),
+                MeshMaterial3d(mat.clone()),
+                Transform::from_xyz(x, y, z),
+            ))
+            .id();
+        commands.entity(root).add_child(rail);
+    }
 }
 
 /// Overhead lights height above the floor, m: over the cage roof.
