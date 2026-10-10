@@ -230,3 +230,4 @@ and also zoom out the camera just a little bit
 **User:** commit, then plan the deploy
 **Did:**
 - Committed items 1-3 (stale thinking drop, import sandbox image + smoke test, daily budget). Planning the accelerate deploy next.
+- Mistake: `git add -A` swept another session's uncommitted motor-library work (9 files) into that commit; took them back out (reset --soft, restore --staged, commit -C ORIG_HEAD), files on disk unchanged (md5 checked); now 598c965. Lesson `stage-only-your-own-files.md`.
