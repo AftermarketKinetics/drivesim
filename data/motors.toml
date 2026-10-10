@@ -3,6 +3,18 @@
 # Every value says where it came from; `provisional` lists placeholders
 # that are neither measured nor from a datasheet. Add motors as robots
 # need them, with sources.
+#
+# `kind` is "brushless" (default) or "brushed"; the motor model treats
+# both as one DC motor. r_ohm is phase-to-phase for brushless, terminal for
+# brushed. A brushed gearmotor's kv is the BARE motor's (output rpm x gear
+# ratio / V); its gearbox ratio goes in robot.toml's `ratio`, and `source`
+# lists the stock ratios. i_max_a is a motor rating or the ESC limit
+# builders run, and `source` says which; brushed entries use stall current.
+# rotor_inertia_kg_m2 is the motor's own rotor, without blade or gearbox.
+# Sections run by weight class (1, 3, 12, 30 lb); most motors fit a range.
+# Library filled from NHRL/HPOD/GSCRL Discord and vendor pages, 2026-10-10.
+
+# --- existing entries (Momentum, 3-12 lb) -----------------------------------
 
 [motor.repeat-ultra-mk2-2830-1450kv]
 kv_rpm_per_v = 1450
@@ -10,7 +22,7 @@ r_ohm = 0.06
 i_max_a = 40
 pole_pairs = 7
 rotor_inertia_kg_m2 = 5.0e-6
-source = "kv: Momentum config.py VITAMIN_MASSES ('2830 1450kv (Repeat)'). r_ohm, i_max_a, pole_pairs: Momentum's 2D sim placeholders (2026-10-09). rotor_inertia: estimate, ~30 g of can at r ~12.5 mm, scaled from Momentum's 2310 estimate (scripts/lifter_motor.py, 3e-6) (2026-10-10)."
+source = "kv: Momentum config.py VITAMIN_MASSES ('2830 1450kv (Repeat)'). r_ohm, i_max_a, pole_pairs: Momentum's 2D sim placeholders (2026-10-09). rotor_inertia: estimate, ~30 g of can at r ~12.5 mm, scaled from Momentum's 2310 estimate (scripts/lifter_motor.py, 3e-6) (2026-10-10). Gearbox (Repeat Ultra Mk2 gearmotor, 170 g): 14:1 drive or 51:1 high reduction, https://repeat-robotics.com/buy/ultra-2/ ; the most-used 12 lb brushless drive (https://discord.com/channels/1003800896033005619/1070177998541688963/1111326784118599700) (2026-10-10)."
 provisional = ["r_ohm", "i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
 
 [motor.badass-2820-1820kv]
@@ -21,3 +33,427 @@ pole_pairs = 7
 rotor_inertia_kg_m2 = 5.0e-6
 source = "rotor_inertia: estimate as for the 2830 (2026-10-10). kv: Innov8tive BadAss 2820 winds, Momentum config.py BA2820_KV (2026-09-15). i_max_a: Momentum's 120 A weapon ESC (config.py weapon_kv note). r_ohm, pole_pairs: placeholders."
 provisional = ["r_ohm", "pole_pairs", "rotor_inertia_kg_m2"]
+
+# --- 1 lb (antweight) ------------------------------------------------------
+# Repeat, Emax and the 1106 makers publish no winding R or pole count:
+# r_ohm is a published 2207 datasheet scaled by kv^2, pole_pairs the usual
+# FPV layout, rotor inertia rotating mass x radius^2. Brushed i_max_a is
+# stall current; brushless is the ESC limit builders run unless a vendor
+# peak exists. NHRL #1lbs: https://discord.com/channels/651601084019900483/810932754979749909/
+
+[motor.repeat-16mm-brushed-030]
+kind = "brushed"
+kv_rpm_per_v = 2298
+r_ohm = 6.0
+i_max_a = 2.0
+rotor_inertia_kg_m2 = 6e-8
+source = "Repeat 16mm brushed planetary Mk2, custom 030 motor: https://palmbeachbots.com/products/repeat-robotics-16mm-brushed-planetary-motor-mk2-4mm-shaft — 1220 rpm free @12V, stall 2 A @12V, stall 1187 g cm, 27 g, 2-4S, 22.6:1 only. kv = 1220 x 22.6 / 12; r_ohm = 12/2; i_max_a = stall current. The quoted stall torque implies ~1.2 A after gearbox loss, so 2 A may be rounded. rotor_inertia: estimate, ~5 g armature r ~5 mm. Use: budget ant drive (https://discord.com/channels/651601084019900483/1404484287348215828/1404484792833015888) (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.fingertech-silver-spark]
+kind = "brushed"
+kv_rpm_per_v = 1922
+r_ohm = 4.6
+i_max_a = 1.3
+rotor_inertia_kg_m2 = 6e-8
+source = "FingerTech Silver Spark 16mm, Mabuchi FK-050SH-13125: https://palmbeachbots.com/products/fingertech-silver-spark-16mm-gearmotor-22-1 — 11530 rpm no-load @6V, 0.09 A no-load, 1.3 A stall, 17 g motor / 29 g with 22:1; 3-18.5 V (life shortens above 10 V). kv = 11530/6; r_ohm = 6/1.3; i_max_a = stall current. Ratios 11, 22, 33, 50, 100, 600:1, but the vendor's own 2S/3S output rpm imply ~26.9:1 for '22:1' and ~40.6:1 for '33:1', so the listed ratios look nominal. rotor_inertia: estimate, ~5 g armature r ~5 mm. Use: legacy ant kit drive; Discord rates it weak and fragile next to Repeat (https://discord.com/channels/651601084019900483/810932754979749909/1468437411334983680) (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.pololu-micro-metal-hpcb-12v]
+kind = "brushed"
+kv_rpm_per_v = 2737
+r_ohm = 16.0
+i_max_a = 0.75
+rotor_inertia_kg_m2 = 2.5e-8
+source = "Pololu 30:1 Micro Metal Gearmotor HPCB 12V (#3038, N20 size): https://www.pololu.com/product/3038 — exact 29.86:1, 1100 rpm and 80 mA no-load @12V, stall 0.75 A (extrapolated). kv = 1100 x 29.86 / 12; r_ohm = 12/0.75; i_max_a = stall current. Ratios 5:1 to 1000:1: https://www.pololu.com/category/60/micro-metal-gearmotors . Stands in for generic N20s. rotor_inertia: estimate, ~3 g armature r ~4 mm. Use: light ant/plant drive at 3S; N20s die often in plastic ants (https://discord.com/channels/651601084019900483/810932754979749909/1377328907572740096). ~10 g (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.pololu-micro-metal-hp-6v]
+kind = "brushed"
+kv_rpm_per_v = 4977
+r_ohm = 3.75
+i_max_a = 1.6
+rotor_inertia_kg_m2 = 2.5e-8
+source = "Pololu Micro Metal Gearmotor HP 6V, 30:1 = #1093: https://www.pololu.com/category/60/micro-metal-gearmotors — 1000 rpm no-load @6V, stall 1.6 A. kv = 1000 x 29.86 / 6, assuming #3038's 29.86:1 train (so kv is provisional); r_ohm = 6/1.6; i_max_a = stall current @6V. Ratios 5:1 to 1000:1. rotor_inertia: estimate as for the HPCB. Use: ant/plant drive, usually overvolted on 2S (2026-10-10)."
+provisional = ["kv_rpm_per_v", "rotor_inertia_kg_m2"]
+
+[motor.repeat-mini-1106-3500kv]
+kind = "brushless"
+kv_rpm_per_v = 3500
+r_ohm = 0.25
+i_max_a = 20
+pole_pairs = 6
+rotor_inertia_kg_m2 = 1.3e-7
+source = "Repeat Mini 16mm brushless planetary Mk4.1, custom 1106 3500kv: https://palmbeachbots.com/products/repeat-robotics-mini-16mm-brushless-planetary-motor-mk4-4mm-shaft — 28.5:1 gives 909/1363/1818 rpm @2/3/4S, 22.4-23.2 g; also 10:1, and the Mini Pro (same motor, 22.6:1, 24.6 g: https://palmbeachbots.com/products/repeat-robotics-mini-pro-16mm-brushless-planetary-motor-4mm-shaft). i_max_a: the 20 A BLHeli ESC Repeat sells with it (https://discord.com/channels/651601084019900483/663805006226391080/985567015047676005). r_ohm: estimate, typical 1106 3-4 kkv windings. pole_pairs: estimate, usual 1106 9N12P. rotor_inertia: estimate, ~3 g bell r ~6.5 mm. Use: the default NHRL ant drive (2026-10-10)."
+provisional = ["r_ohm", "i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.emax-rs2205s-2300kv]
+kind = "brushless"
+kv_rpm_per_v = 2300
+r_ohm = 0.06
+i_max_a = 35
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.7e-6
+source = "Emax RS2205S 2300kv: 12N14P, 22x5 stator, ~30 g, 3-4S (https://rccorner.ae/emax-rs2205-racespec-motor-cooling-series-2300kv-cw); no Rm published. i_max_a: the 35 A BLHeli_S ESC builders use (Repeat's Scalar kit, 6 in ~100 g blade: https://discord.com/channels/651601084019900483/810932754979749909/1200569760765710476). r_ohm: estimate, Velox 2207 1950kv 50 mOhm scaled by kv^2 and the shorter stack. rotor_inertia: estimate, ~12 g bell r ~12.5 mm. Use: popular ant weapon (https://discord.com/channels/651601084019900483/810932754979749909/866172401695588372 , https://discord.com/channels/651601084019900483/810932754979749909/1507803964299804802) (2026-10-10)."
+provisional = ["r_ohm", "i_max_a", "rotor_inertia_kg_m2"]
+
+[motor.tmotor-velox-v2207-v2-1950kv]
+kind = "brushless"
+kv_rpm_per_v = 1950
+r_ohm = 0.050
+i_max_a = 45.8
+pole_pairs = 7
+rotor_inertia_kg_m2 = 2.1e-6
+source = "T-Motor Velox V2 2207 1950kv: https://www.racedayquads.com/products/t-motor-velox-v2-2207-1950kv-motor — 12N14P, 50 mOhm, idle 1.3 A, peak 45.8 A (60 s; used here, builders cap at a 35 A ESC), 34.3 g. rotor_inertia: estimate, ~14 g bell r ~12.5 mm. Use: ant weapon on 3-4S (https://discord.com/channels/651601084019900483/810932754979749909/1347727245820825683); ant weapons typically 2000-2500kv (https://discord.com/channels/651601084019900483/810932754979749909/1217840242778964108) (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.repeat-2207-hubmotor-1800kv]
+kind = "brushless"
+kv_rpm_per_v = 1800
+r_ohm = 0.06
+i_max_a = 35
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.2e-5
+source = "Repeat 2207 Antweight Battle Ready Hubmotor: https://repeat-robotics.com/products/2207-antweight-battle-ready-hubmotor — 2207.5 stator, 1200/1800/2400kv, 55 g motor, 1.73 in OD, 3-4S, pairs with Repeat's 35 A weapon ESC (i_max_a). r_ohm: estimate, Velox 2207 1950kv 50 mOhm x (1950/1800)^2. pole_pairs: estimate, 12N14P. rotor_inertia: estimate, rotor only (no blade), ~30 g at r ~18-22 mm. Use: ant hub-motor weapon (2026-10-10)."
+provisional = ["r_ohm", "i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.repeat-ant-belt-drive-2305-2400kv]
+kind = "brushless"
+kv_rpm_per_v = 2400
+r_ohm = 0.04
+i_max_a = 35
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.6e-6
+source = "Repeat Ant Belt Drive 2305 2400kv: https://repeat-robotics.com/products/ant-belt-drive-2305 — 2-4S, 30.2 g, 5 mm shaft for the 18T 3M pulley. i_max_a: the usual 35 A ant weapon ESC. r_ohm: estimate, Velox 2207 50 mOhm x (1950/2400)^2, corrected for the shorter stack. pole_pairs: estimate, 12N14P. rotor_inertia: estimate, ~12 g bell r ~13 mm. Use: ant belt-driven weapon (2026-10-10)."
+provisional = ["r_ohm", "i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
+
+# --- 3 lb (beetleweight) ---------------------------------------------------
+# Repeat, FingerTech and JCR publish no winding R, pole count or max current
+# for their beetle brushless motors; those are estimated, saying how. Beetle
+# brushless drive i_max_a = 8 is Repeat's suggested 1-3 lb current limit on
+# its AM32 dual drive ESC (an ESC limit, not a motor rating):
+# https://palmbeachbots.com/products/repeat-robotics-am32-dual-brushless-drive-esc-with-bec
+
+[motor.repeat-compact-1806-2300kv]
+kind = "brushless"
+kv_rpm_per_v = 2300
+r_ohm = 0.20
+i_max_a = 8
+pole_pairs = 7
+rotor_inertia_kg_m2 = 9.0e-7
+source = "kv, 22.6:1 ratio, 1130 rpm @3S / 1500 @4S, 44.5 g gearmotor (22.4 g motor), 'Recommended 20A+ ESC': https://repeat-robotics.com/products/repeat-compact-1806 and https://palmbeachbots.com/products/repeat-robotics-compact-1806-22mm-brushless-planetary-motor-beetle-drive. i_max_a: AM32 dual ESC suggested 1-3 lb limit (see header). r_ohm: estimate from comparable 1806 2300kv 12N14P drone motors, 161-260 mOhm (Energy Propel 1806 0.161, SunnySky X1806S 0.244, Lumenier RX1806-14 0.260). pole_pairs: estimate, usual 12N14P. rotor_inertia: estimate, ~8 g bell at r ~10.5 mm. Use: beetle drive, lightest brushless beetle gearmotor (22.6:1, 4 mm shaft); in ants it runs heavy-ant drive and hammersaw/lifter arms on a 20 A ESC (https://discord.com/channels/651601084019900483/810932754979749909/1468435973531767028), so override i_max_a there (2026-10-10)."
+provisional = ["r_ohm", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.repeat-max-2006-mk2-2100kv]
+kind = "brushless"
+kv_rpm_per_v = 2100
+r_ohm = 0.10
+i_max_a = 8
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.6e-6
+source = "kv, 27:1 ratio, 863 rpm @12V / 1151 @4S / 1726 @6S, 2-6S, 66 g: https://repeat-robotics.com/products/repeat-drive-max-v2. i_max_a: AM32 dual ESC suggested 1-3 lb limit. r_ohm: estimate, VCI Spark 2206 2500kv 50 mOhm scaled by (2500/2100)^2, x1.4 for the smaller 2006 stator. pole_pairs: estimate, 12N14P. rotor_inertia: estimate, ~12 g bell at r ~11.5 mm. Use: beetle drive, 24 mm Max gearbox, 6 mm shaft. Discord: https://discord.com/channels/651601084019900483/663805006226391080/1490139553187758181 (2026-10-10)."
+provisional = ["r_ohm", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.repeat-pro-2006-2500kv]
+kind = "brushless"
+kv_rpm_per_v = 2500
+r_ohm = 0.07
+i_max_a = 8
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.6e-6
+source = "kv (4S version, 2-4S), 27:1 drive or 131:1 high-reduction gearbox, 64.5 g: https://repeat-robotics.com/products/repeat-drive-pro. i_max_a: AM32 dual ESC suggested 1-3 lb limit. r_ohm: estimate, VCI Spark 2206 2500kv 50 mOhm x1.4 for the smaller stator. pole_pairs: estimate, 12N14P. rotor_inertia: estimate as for the Max 2006. Use: beetle drive. Discord: https://discord.com/channels/651601084019900483/663805006226391080/1400548977283436627 (2026-10-10)."
+provisional = ["r_ohm", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.repeat-pro-2006-1900kv]
+kind = "brushless"
+kv_rpm_per_v = 1900
+r_ohm = 0.12
+i_max_a = 8
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.6e-6
+source = "kv (6S version, 2-6S), 27:1 or 131:1, 64.5 g: https://repeat-robotics.com/products/repeat-drive-pro. i_max_a: AM32 dual ESC suggested 1-3 lb limit. r_ohm: estimate, the 2500kv estimate scaled by (2500/1900)^2. pole_pairs, rotor_inertia: estimates as for the 2500kv. Use: beetle drive on 5-6S (2026-10-10)."
+provisional = ["r_ohm", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.repeat-tangent-2207-1200kv]
+kind = "brushless"
+kv_rpm_per_v = 1200
+r_ohm = 0.20
+i_max_a = 8
+pole_pairs = 7
+rotor_inertia_kg_m2 = 2.7e-6
+source = "kv, 2207.5 size, 2-6S, 36.1 g, 7 mm knurled shaft, no gearbox (friction drive on the wheel): https://repeat-robotics.com/products/repeat-tangent-drive-2207. i_max_a: AM32 dual ESC suggested 1-3 lb limit (the page pairs it with that ESC). r_ohm: estimate, Axisflying 2306 2100kv 64 mOhm scaled by (2100/1200)^2. pole_pairs: estimate, 12N14P. rotor_inertia: estimate, ~16 g bell at r ~13 mm. Use: beetle tangent drive (2026-10-10)."
+provisional = ["r_ohm", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.fingertech-mega-spark-ft1806-2300kv]
+kind = "brushless"
+kv_rpm_per_v = 2300
+r_ohm = 0.20
+i_max_a = 8
+pole_pairs = 7
+rotor_inertia_kg_m2 = 9.0e-7
+source = "kv, FT1806 outrunner, 21.5:1 planetary, 1187 rpm @3S / 1583 @4S, 71.5 g, 6 mm shaft: https://palmbeachbots.com/products/fingertech-brushless-mega-spark-24mm-premium-planetary-gearmotor. i_max_a: estimate, Repeat's AM32 1-3 lb limit applied (FingerTech gives none). r_ohm: estimate as for the Repeat Compact 1806. pole_pairs: estimate. rotor_inertia: estimate, ~8 g bell at r ~10.5 mm. Use: beetle drive. Discord: https://discord.com/channels/1003800896033005619/1003800943571238932/1328155104804732979 (2026-10-10)."
+provisional = ["r_ohm", "i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.repeat-compact-brushed]
+kind = "brushed"
+kv_rpm_per_v = 2015
+r_ohm = 2.79
+i_max_a = 4.3
+rotor_inertia_kg_m2 = 2.0e-7
+source = "All at 12 V from https://palmbeachbots.com/products/repeat-robotics-compact-22mm-brushed-planetary-motor-4mm-shaft-beetle-drive: 1070 rpm free, 4.3 A stall, 3.85 kg.cm stall torque, 22.6:1 (only ratio), 130-size motor, 45.5 g, 2-4S. kv = 1070 x 22.6 / 12; r_ohm = 12 / 4.3; i_max_a = stall current. Cross-check: ideal stall torque 0.46 N m vs 0.378 quoted, ~82% gearbox efficiency. rotor_inertia: estimate, 130 armature ~7 g at r ~7.5 mm. Use: beetle drive (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.repeat-max-brushed]
+kind = "brushed"
+kv_rpm_per_v = 2408
+r_ohm = 2.0
+i_max_a = 6
+rotor_inertia_kg_m2 = 2.0e-7
+source = "All at 12 V from https://repeat-robotics.com/products/repeat-max-brushed: 1070 rpm free, 6 A stall, 5.25 kg.cm stall, 27:1 (only ratio), 130-size motor, 24 mm Max gearbox, 71 g, 2-4S. kv = 1070 x 27 / 12; r_ohm = 12 / 6; i_max_a = stall current. rotor_inertia: estimate as for the Compact brushed. Use: beetle drive (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.justcuz-dartbox-v2-gecko-brushed]
+kind = "brushed"
+kv_rpm_per_v = 2062
+r_ohm = 3.17
+i_max_a = 3.5
+rotor_inertia_kg_m2 = 2.0e-7
+source = "From https://palmbeachbots.com/products/just-cuz-dartbox-v2-gecko-drive-gear-motor-6mm-shaft: 1100 +/-55 rpm @12V, 22.5:1, stall 3.5 A @11.1V / 4.5 A @14.6V / 8 A @24V, 3-6S, 53.7-56.0 g, 22 mm gearbox. kv = 1100 x 22.5 / 12; r_ohm = 11.1 / 3.5 (14.6/4.5 = 3.24 and 24/8 = 3.0 agree); i_max_a = 3S stall current. rotor_inertia: estimate, 130-class armature. Use: beetle drive (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.repeat-2836-1800kv]
+kind = "brushless"
+kv_rpm_per_v = 1800
+r_ohm = 0.03
+i_max_a = 40
+pole_pairs = 7
+rotor_inertia_kg_m2 = 5.5e-6
+source = "kv, 28 mm can x 36 mm, 2-5S, 89 g with wires: https://repeat-robotics.com/products/repeat-2836-brushless-motor. r_ohm: estimate, BadAss 2820-1350 (0.016 ohm) scaled by (1350/1800)^2, x3 for the smaller stator in a 28 mm can. i_max_a: estimate, typical 30-40 A beetle weapon ESC. pole_pairs: estimate, 12N14P. rotor_inertia: estimate, ~35 g can and magnets at r ~12.5 mm. Use: the standard NHRL beetle weapon motor. Discord: https://discord.com/channels/651601084019900483/663805006226391080/1400548977283436627 , https://discord.com/channels/651601084019900483/810932842564943913/1354298930107777114 (2026-10-10)."
+provisional = ["r_ohm", "i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.repeat-2812-hub-1300kv]
+kind = "brushless"
+kv_rpm_per_v = 1300
+r_ohm = 0.08
+i_max_a = 40
+pole_pairs = 7
+rotor_inertia_kg_m2 = 5.8e-5
+source = "kv (also sold as 800/1800kv; scale r_ohm by (1300/kv)^2), 2812 stator, 3-6S, 175 g bare: https://repeat-robotics.com/products/2812-beetleweight-battle-ready-hubmotor. r_ohm: estimate, JCR RDY-5735 950kv 0.144 ohm (same 28x12 stator) scaled by (950/1300)^2. i_max_a: estimate, typical beetle weapon ESC. pole_pairs: estimate. rotor_inertia: estimate for the motor alone (no blade), ~100 g outer rotor at r_eff ~24 mm. Use: beetle hub-motor weapon, blade bolted to the can (2026-10-10)."
+provisional = ["r_ohm", "i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.justcuz-rdy5735-hub-950kv]
+kind = "brushless"
+kv_rpm_per_v = 950
+r_ohm = 0.144
+i_max_a = 40
+pole_pairs = 7
+rotor_inertia_kg_m2 = 5.2e-5
+source = "kv, 'Winding Resistance (Phase-to-Phase) ~144 milliohms', 3-6S, 57 mm can x 35 mm, ~28x12 stator, 153.7 g: https://palmbeachbots.com/products/rdy-5735-hubmotor-battle-ready-weapon-motor-750kv-or-950kv-beetle. i_max_a: estimate, not published. pole_pairs: estimate. rotor_inertia: estimate, ~90 g outer rotor at r_eff ~24 mm, no blade. Use: beetle hub-motor weapon. Discord: https://discord.com/channels/651601084019900483/663805006226391080/1292902272757403809 , https://discord.com/channels/1003800896033005619/1003800943571238932/1280961436188938305 (2026-10-10)."
+provisional = ["i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.justcuz-rdy5735-hub-750kv]
+kind = "brushless"
+kv_rpm_per_v = 750
+r_ohm = 0.124
+i_max_a = 40
+pole_pairs = 7
+rotor_inertia_kg_m2 = 5.2e-5
+source = "kv, '~124 milliohms' phase-to-phase, 4-8S: same URL as the 950kv. A lower R for the lower-kv wind is as published but may be a vendor typo. i_max_a, pole_pairs, rotor_inertia: estimates as for the 950kv. Use: beetle hub weapon on high voltage (2026-10-10)."
+provisional = ["r_ohm", "i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.badass-2820-1350kv]
+kind = "brushless"
+kv_rpm_per_v = 1350
+r_ohm = 0.016
+i_max_a = 75
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.4e-5
+source = "https://innov8tivedesigns.com/badass-2820-1350kv-brushless-motor.html: kv, Rm 0.024 ohm per phase / 0.016 phase-to-phase (delta), Io 2.75 A @10V, 75 A max continuous, 14 magnet poles, 149 g, 35.6 mm OD, 28x20 stator. rotor_inertia: estimate, ~60 g bell and magnets at r_eff ~15.5 mm. Use: beetle weapon (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.badass-2826-1360kv]
+kind = "brushless"
+kv_rpm_per_v = 1360
+r_ohm = 0.013
+i_max_a = 95
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.8e-5
+source = "https://innov8tivedesigns.com/badass-2826-1360kv-brushless-motor.html: kv, Rm 0.020 per phase / 0.013 phase-to-phase, Io 3.70 A @10V, 95 A max continuous, 12N14P, 186 g, 28x26 stator. rotor_inertia: estimate, ~75 g bell at r_eff ~15.5 mm. Use: heavy beetle weapon (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.badass-2814-1950kv]
+kind = "brushless"
+kv_rpm_per_v = 1950
+r_ohm = 0.013
+i_max_a = 78
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.1e-5
+source = "https://innov8tivedesigns.com/badass-2814-1950kv-brushless-motor.html: kv, Rm 0.020 per phase / 0.013 phase-to-phase, Io 3.92 A @10V, 78 A max continuous, 12N14P, 119 g, 28x14 stator. rotor_inertia: estimate, ~45 g bell at r_eff ~15.5 mm. Use: lighter beetle weapon (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.fingertech-s2838-2970kv]
+kind = "brushless"
+kv_rpm_per_v = 2970
+r_ohm = 0.05
+i_max_a = 20
+pole_pairs = 2
+rotor_inertia_kg_m2 = 8.4e-7
+source = "https://palmbeachbots.com/products/fingertech-s2838-brushless-inrunner-2970kv-beetle-beater-bar-motor: kv, 'Max Resistance: 0.0500 Ohm' (upper bound, method not given), 2-4S, 300 W max, 98.7 g, 28x38 mm inrunner. i_max_a: derived, 300 W / 14.8 V. pole_pairs: estimate, small inrunners are usually 2- or 4-pole. rotor_inertia: estimate, ~30 g solid rotor at r ~7.5 mm. Use: beetle beater-bar weapon, belted (2026-10-10)."
+provisional = ["i_max_a", "pole_pairs", "rotor_inertia_kg_m2"]
+
+# --- 12 lb (hobbyweight; 6 lb where it overlaps) ---------------------------
+# Brushed i_max_a is the stall current. Discord gave 12 lb weapon motors
+# only by size ("about 360 g", "2000-2500 W"); the Propdrive 4248 and
+# Scorpion 4020 were picked to fit that, not named by builders.
+
+[motor.banebots-rs550]
+kind = "brushed"
+kv_rpm_per_v = 1608
+r_ohm = 0.141
+i_max_a = 85
+rotor_inertia_kg_m2 = 6.5e-6
+source = "BaneBots M5-RS550-12: 12 V, free 19300 rpm, free current 1.4 A, stall 85 A, stall 70.55 oz-in (https://wiki.penfieldrobotics.com/wiki/images/1/10/2012_MotorInfo.pdf ; https://andymark.com/products/banebots-550-motor: 0.49 N m stall, 220 g). kv = 19300/12; r_ohm = 12/85; i_max_a = stall current. rotor_inertia: estimate, ~90 g armature solid cylinder r = 12 mm. Gearbox: Banebots P60/P61, 4:1, 5:1, 16:1, 20:1, 26:1 ... up to 256:1. Use: 12 lb drive on 3-4S. Discord: https://discord.com/channels/651601084019900483/748510923915788359/843608530556026880 (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.banebots-rs540]
+kind = "brushed"
+kv_rpm_per_v = 1400
+r_ohm = 0.286
+i_max_a = 42
+rotor_inertia_kg_m2 = 4.2e-6
+source = "BaneBots RS-540 12 V: no-load 16800 rpm, 1 A, stall 42 A, 278.8 mN m, Kv 1400 stated (https://www.chiefdelphi.com/t/2007-motor-specs/75429). r_ohm = 12/42; i_max_a = stall current. rotor_inertia: estimate, ~70 g armature r = 11 mm. Gearbox: Banebots P60, as the RS-550. Use: budget 6/12 lb drive. Mass ~160 g, estimate (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.dewalt-18v-drill]
+kind = "brushed"
+kv_rpm_per_v = 1222
+r_ohm = 0.072
+i_max_a = 250
+rotor_inertia_kg_m2 = 2.9e-5
+source = "Old-style DeWalt 18 V motor #393111-01 (https://www.robowars.org/wikka/DewaltDrivetrain): 22000 rpm unloaded at 18 V, terminal resistance 0.072 ohm, stall 250 A, stall 2.1 N m, no-load 2.6 A, 470 g. kv = 22000/18; the same page also states 1100 rpm/V, unresolved, so kv is provisional. i_max_a = stall current. Stock 2-speed gearbox #380264-13: 15.31:1 and 45.94:1, 205 g. rotor_inertia: estimate, ~200 g armature r = 17 mm. Use: classic 12-30 lb drive; no current NHRL Discord match, legacy (2026-10-10)."
+provisional = ["kv_rpm_per_v", "rotor_inertia_kg_m2"]
+
+[motor.propdrive-v2-3536-910kv]
+kind = "brushless"
+kv_rpm_per_v = 910
+r_ohm = 0.043
+i_max_a = 38
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.0e-5
+source = "PROPDRIVE v2 3536 910KV (https://www.rapidrcmodels.com/propdrive-v2-3536-910kv-brushless-outrunner-motor-12488-p.asp): max 38 A, 88 g, 14 poles, 3-4S. r_ohm: '43 mH' (read as 43 mOhm) from a search snippet of the HobbyKing page (403 on fetch), phase-to-phase assumed. Use: 12 lb drive on a Banebots P60 (https://discord.com/channels/651601084019900483/663805025046364199/920809824239902740 , https://discord.com/channels/651601084019900483/663805025046364199/1115292910968123462); the kv in those builds is not stated (1400/1800kv winds exist); also a 1-3 lb weapon. rotor_inertia: estimate, ~40 g bell r_eff 15.5 mm (2026-10-10)."
+provisional = ["r_ohm", "rotor_inertia_kg_m2"]
+
+[motor.turnigy-sk3-3536-1400kv]
+kind = "brushless"
+kv_rpm_per_v = 1400
+r_ohm = 0.021
+i_max_a = 40
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.2e-5
+source = "Turnigy Aerodrive SK3 3536-1400kv (https://thehobbywarehouse.co.nz/products/turnigy-aerodrive-sk3-3536-1400kv-brushless-outrunner-motor): Ri 0.021 ohm, max 40 A, 590 W, 110 g. pole_pairs: estimate, SK3 outrunners are generally 14-pole. Use: 1-3 lb and light 6 lb weapon (https://discord.com/channels/651601084019900483/663805006226391080/820370566720389130 , https://discord.com/channels/1003800896033005619/1003801103818833950/1235343688016597033), also 12 lb P60 drive. rotor_inertia: estimate, ~50 g bell r_eff 15.5 mm (2026-10-10)."
+provisional = ["pole_pairs", "rotor_inertia_kg_m2"]
+
+[motor.propdrive-v2-4248-650kv]
+kind = "brushless"
+kv_rpm_per_v = 650
+r_ohm = 0.0235
+i_max_a = 70
+pole_pairs = 7
+rotor_inertia_kg_m2 = 3.6e-5
+source = "PROPDRIVE v2 4248 650KV, HobbyKing spec mirrored at https://falcon.com.kw/h-k-motor-p-d-42-48-650kv.html (read via search snippet; page now 404): max 70 A, 4-5S, 14 poles, 231 g, 23.5 mOhm, 1295 W. Use: 12 lb weapon, sized to Discord's description of one (https://discord.com/channels/651601084019900483/663805006226391080/938134954313912370 , https://discord.com/channels/651601084019900483/1176360518588571668/1178188425397030993); not named there. rotor_inertia: estimate, ~100 g bell r_eff 19 mm (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.scorpion-hkiv-4020-1320kv]
+kind = "brushless"
+kv_rpm_per_v = 1320
+r_ohm = 0.006
+i_max_a = 105
+pole_pairs = 5
+rotor_inertia_kg_m2 = 6.6e-5
+source = "Scorpion HKIV-4020-1320KV (https://scorpionsystem.com/catalog/helicopter/motors_4/hkiv-40/HKIV_4020_1320): Rm 0.006 ohm, Io 5.74 A @10V, 90 A continuous, 105 A burst (5 s; used here), 310 g, 10 magnet poles, 40x20 stator, 49.5 mm OD. Use: 12 lb weapon, sized to Discord's description (not named there). rotor_inertia: estimate, ~130 g bell r_eff 22.5 mm (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+# --- 30 lb (featherweight) -------------------------------------------------
+# Modern NHRL feather drive is a ~2820-stator outrunner through a Banebots
+# or Repeat Magnum planetary ("most use badass, some use cobra or
+# flashhobby": https://discord.com/channels/651601084019900483/748510923915788359/1425543580490924172).
+# No NHRL evidence of brushed 775 or drill drive in feathers; those are the
+# brushed baseline. Flipsky and Flashhobby don't say whether their R is
+# phase-to-phase; it is taken as such, as hobby outrunners usually quote.
+
+[motor.banebots-rs775-18v]
+kind = "brushed"
+kv_rpm_per_v = 1083
+r_ohm = 0.138
+i_max_a = 130
+rotor_inertia_kg_m2 = 1.5e-5
+source = "BaneBots M7-RS775-18, https://banebots.com/m7-rs775-18/: 19500 rpm no-load @18V, 2.7 A no-load, 130 A stall, 166.65 oz-in, 337 g. kv = 19500/18; r_ohm = 18/130; i_max_a = stall current. Cross-check: the FRC 2012 table gives 13000 rpm / 86.7 A at 12 V, the same kv and R (https://wiki.penfieldrobotics.com/wiki/images/1/10/2012_MotorInfo.pdf). Gearbox: Banebots P60 (4:1 ... 26:1) or P80 (3:1 to 256:1). rotor_inertia: estimate, ~120 g armature solid cylinder r = 16 mm. Use: 12 lb drive on 4-5S, budget/legacy brushed 30 lb drive (https://discord.com/channels/651601084019900483/748510923915788359/1523183366801850429) (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.ampflow-e30-150-24]
+kind = "brushed"
+kv_rpm_per_v = 233.3
+r_ohm = 0.190
+i_max_a = 126
+rotor_inertia_kg_m2 = 1.9e-4
+source = "https://www.ampflow.com/electric-motors/high-performance/3-inch-76mm/ : 5600 rpm no-load @24V, 0.190 ohm, 2.1 A no-load, 710 oz-in stall, 1.63 kg. kv = 5600/24. i_max_a: stall computed as 24/0.190 (not published). Stock gearmotor E30-150-24-G8 8:1 (also 4/8/16/19/27:1, https://www.ampflow.com/electric-gearmotors/ampflow/); builders also pair it with a P60 (https://discord.com/channels/651601084019900483/810932842564943913/1303012456746188933). rotor_inertia: estimate, ~550 g armature r = 26 mm. Use: 30 lb brushed weapon or heavy drive (2026-10-10)."
+provisional = ["i_max_a", "rotor_inertia_kg_m2"]
+
+[motor.ampflow-a28-150]
+kind = "brushed"
+kv_rpm_per_v = 254.2
+r_ohm = 0.064
+i_max_a = 375
+rotor_inertia_kg_m2 = 2.0e-4
+source = "https://www.ampflow.com/electric-motors/high-performance/3-inch-76mm/ : 6100 rpm no-load @24V, 0.064 ohm, 4.4 A no-load, 1950 oz-in stall, 1.72 kg. kv = 6100/24. i_max_a: stall computed as 24/0.064 (not published); an ESC will limit far below this. Stock gearmotor A28-150-G8 8:1. rotor_inertia: estimate, ~600 g armature r = 26 mm. Use: 30 lb brushed drum/spinner weapon (2026-10-10)."
+provisional = ["i_max_a", "rotor_inertia_kg_m2"]
+
+[motor.badass-2820-1080kv]
+kind = "brushless"
+kv_rpm_per_v = 1080
+r_ohm = 0.024
+i_max_a = 65
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.4e-5
+source = "https://innov8tivedesigns.com/badass-2820-1080kv-brushless-motor.html: kv, 0.024 ohm phase-to-phase (0.036 per phase), 65 A max continuous, 12N14P, 148 g, Io 2.06 A @10V. rotor_inertia: estimate, ~55 g bell thin ring at r = 16 mm. Use: 30 lb drive through a Banebots P60 or Repeat Magnum (NHRL thread in the header) (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.badass-2820-910kv]
+kind = "brushless"
+kv_rpm_per_v = 910
+r_ohm = 0.031
+i_max_a = 65
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.4e-5
+source = "https://innov8tivedesigns.com/badass-2820-910kv-brushless-motor.html: kv, 0.031 ohm phase-to-phase (0.047 per phase), 12-turn delta, 65 A max continuous, 12N14P, 148 g, Io 1.56 A @10V. rotor_inertia: estimate, as the 1080kv. Use: 30 lb drive on 6S (NHRL thread in the header) (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.flashhobby-d4250-600kv]
+kind = "brushless"
+kv_rpm_per_v = 600
+r_ohm = 0.032
+i_max_a = 57.83
+pole_pairs = 7
+rotor_inertia_kg_m2 = 3.2e-5
+source = "Flashhobby D4250 EVO 600KV, reseller spec table https://rcdrone.top/es/products/src-flashhobby-d4250evo-d4250evo-fixed-wing-motor: kv, 32.0 mOhm internal resistance (convention not stated), 57.83 A max, 12N14P, 209 g, 42.8x50 mm, 5-6S; an 800kv wind is 20.3 mOhm, 60.74 A. rotor_inertia: estimate, ~85 g bell thin ring r = 19.5 mm. Use: geared 30 lb drive ('2x 4250's on 5s' https://discord.com/channels/651601084019900483/1159301431229165578/1198802708958810192 ; https://discord.com/channels/651601084019900483/663805006226391080/1119453645226913842) or small feather weapon (https://discord.com/channels/651601084019900483/748510923915788359/1072303127149154375) (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
+
+[motor.flipsky-5065-270kv]
+kind = "brushless"
+kv_rpm_per_v = 270
+r_ohm = 0.064
+i_max_a = 80
+pole_pairs = 7
+rotor_inertia_kg_m2 = 1.1e-4
+source = "HGLRC-Flipsky 5065 270KV, reseller https://racer.lt/item/hglrc-flipsky-5065-270kv-1550w-brushless-sensored-motor-shaft-8mm-for-electric-skateboard-rc-model-15398.html: kv, 64 mOhm (convention not stated), 80 A max, 14 poles, 450 g, 50x65 mm, 8 mm shaft. i_max_a is provisional: Flipsky's own 5065 200KV page gives 38 A max / 21 A rated (https://flipsky.net/products/flipsky-sensored-outrunner-brushless-dc-motor-battle-hardened-5065-200kv-1800w). rotor_inertia: estimate, ~200 g bell thin ring r = 23 mm. Use: lighter 30 lb weapon; not named on Discord (2026-10-10)."
+provisional = ["i_max_a", "rotor_inertia_kg_m2"]
+
+[motor.flipsky-6374-190kv]
+kind = "brushless"
+kv_rpm_per_v = 190
+r_ohm = 0.05
+i_max_a = 85
+pole_pairs = 7
+rotor_inertia_kg_m2 = 3.4e-4
+source = "https://flipsky.net/products/bldc-belt-motor-6374-190kv-3250w-for-electric-skateboard: kv, 0.05 ohm (convention not stated), 85 A max, 14 poles, 860 g, 63x74 mm, 8 mm keyed shaft, max 12S. rotor_inertia: estimate, ~400 g bell thin ring r = 29 mm. Use: 30 lb weapon ('6374 190kV for weapon motor' https://discord.com/channels/651601084019900483/748510923915788359/1503109017226973383 ; 230kv 6374 on 12S https://discord.com/channels/651601084019900483/748510923915788359/1325540032009736243 ; ~45 A spinup / 20 A at speed on 12S https://discord.com/channels/651601084019900483/748510923915788359/1499023212707713155) (2026-10-10)."
+provisional = ["rotor_inertia_kg_m2"]
