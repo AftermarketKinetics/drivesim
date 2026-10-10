@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from conftest import FIXTURE_BUNDLE, FIXTURE_STEP, wait_for
+from drivesim_server.config import load_settings
 
 BOB = {"X-authentik-username": "bob"}
 
@@ -49,6 +50,39 @@ def test_robots_are_the_owners_only(client):
     assert client.get(f"/api/robots/{rid}/bundle/parts.json", headers=BOB).status_code == 404
 
 
+def test_admins_read_and_drive_every_robot_but_cannot_change_it(client):
+    s = client.app.state.s
+    s["settings"] = replace(s["settings"], admins=frozenset({"bob"}))
+    rid = upload(client).json()["id"]
+    wait_for(lambda: client.get(f"/api/robots/{rid}").json()["status"] != "importing")
+    info = client.get(f"/api/robots/{rid}", headers=BOB).json()
+    assert info["owner"] == "alice" and info["mine"] is False
+    assert client.get(f"/api/robots/{rid}").json()["mine"] is True
+    assert client.get(f"/api/robots/{rid}/messages", headers=BOB).status_code == 200
+    assert client.get(f"/api/robots/{rid}/bundle/parts.json", headers=BOB).status_code == 200
+    assert client.post(f"/api/robots/{rid}/messages", json={"text": "hi"}, headers=BOB).status_code == 404
+    assert client.delete(f"/api/robots/{rid}", headers=BOB).status_code == 404
+    assert client.get("/api/robots", headers=BOB).json() == []  # their own list stays theirs
+    assert client.get("/api/me", headers=BOB).json() == {"username": "bob", "admin": True}
+
+
+def test_the_admin_dashboard_lists_every_robot_for_admins_only(client):
+    s = client.app.state.s
+    s["settings"] = replace(s["settings"], admins=frozenset({"bob"}))
+    rid = upload(client).json()["id"]
+    assert client.get("/api/admin/robots").status_code == 403
+    d = client.get("/api/admin/robots", headers=BOB).json()
+    assert [(r["id"], r["username"]) for r in d["robots"]] == [(rid, "alice")]
+    assert "users_today" in d and d["budget"] > 0
+    page = client.get("/admin-dashboard/")
+    assert page.status_code == 200 and "/api/admin/robots" in page.text
+
+
+def test_admins_come_from_a_comma_separated_env_var():
+    assert load_settings({"DRIVESIM_ADMINS": " arctic, lily ,"}).admins == {"arctic", "lily"}
+    assert load_settings({}).admins == frozenset()
+
+
 def test_only_bundle_files_are_served(client):
     rid = upload(client).json()["id"]
     wait_for(lambda: client.get(f"/api/robots/{rid}").json()["status"] != "importing")
@@ -74,7 +108,7 @@ def test_no_header_and_no_dev_user_is_401(client):
     s = client.app.state.s
     s["settings"] = replace(s["settings"], dev_user=None)
     assert client.get("/api/me").status_code == 401
-    assert client.get("/api/me", headers=BOB).json() == {"username": "bob"}
+    assert client.get("/api/me", headers=BOB).json() == {"username": "bob", "admin": False}
 
 
 def test_the_radio_model_is_downloadable_from_the_front_page(client):
@@ -130,7 +164,10 @@ def test_the_landing_page_uses_only_absolute_public_paths():
             assert url.startswith(("/welcome/", "/radio/", "/outpost.goauthentik.io/")), (name, url)
         for url in re.findall(r'fetch\("([^"]+)"', page):
             assert url.startswith("/welcome/"), (name, url)
-    # Without an icon of its own the browser fetches /favicon.ico, which is
-    # behind the login and leaves an authentik_proxy cookie behind.
+    # Without an icon of its own the browser fetches /favicon.ico, which was
+    # behind the login and left an authentik_proxy cookie behind. The icon is
+    # inline, or the shared site icon on the public apex host.
     index = (REPO / "server/web/welcome/index.html").read_text()
-    assert re.search(r'<link rel="icon" href="data:', index)
+    assert re.search(
+        r'<link rel="icon" href="(data:|https://combat-robot\.systems/favicon\.svg")', index
+    )

@@ -13,6 +13,7 @@
 <div id="guide"></div>
 
 <h2>Your robots</h2>
+<p id="adminlink" hidden><a href="admin-dashboard/">Admin dashboard: all robots →</a></p>
 <p id="usage" class="muted"></p>
 <p class="muted">Upload a robot as a STEP assembly. It is imported, then Claude asks you a few
 questions (which parts are wheels and weapon, materials, motors) and writes its robot file.</p>
@@ -61,6 +62,7 @@ $("go").onclick = async () => {
 fetch("/welcome/guide.html").then(r => r.ok ? r.text() : "").then(t => { $("guide").innerHTML = t; });
 load();
 usage();
+apiFetch("/api/me").then(r => r.ok ? r.json() : {}).then(u => { $("adminlink").hidden = !u.admin; });
 </script>
 </body>
 </html>

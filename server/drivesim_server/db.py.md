@@ -12,7 +12,8 @@ persist until deleted, unlike the analyzer's expiring sessions.
   - **Updating:** `set_status(id, status, error="")`; `set_checked(id, checked, name=None)`.
   - **History:** `append(id, role, content)`; `messages(id) -> [{"role", "content"}]`.
   - **Deleting:** `delete_robot(id)`.
-  - **Usage:** `record_usage(username, robot_id, model, usage, weighted)`; `used_since(username, since) -> float` (weighted sum since an epoch time).
+  - **Usage:** `record_usage(username, robot_id, model, usage, weighted)`; `used_since(username, since) -> float` (weighted sum since an epoch time); `used_by_user_since(since) -> {username: float}`.
+  - **Admin:** `all_robots()`: every robot, newest first, with `username` and `used` (its lifetime weighted usage).
 - Columns of `robots`: `id`, `username`, `name`, `status`, `error`, `checked`, `created`.
 - Columns of `usage`: `username`, `robot_id`, `at`, `model`, `usage` (the turn's JSON), `weighted`. It does not reference `robots`: deleting a robot must not hand its usage back to the daily budget.
 

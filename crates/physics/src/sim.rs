@@ -6,6 +6,7 @@ use crate::arena::add_arena;
 use crate::drivetrain::{Drivetrain, rotor_speed};
 use crate::mixer::{Duties, MixerConfig, mix};
 use crate::spawn::{RobotHandles, SpawnError, spawn_robot};
+use crate::target::add_target;
 use drivesim_input::Frame;
 use drivesim_robot::robot_file::Control;
 use drivesim_robot::{RobotModel, Rotor};
@@ -25,6 +26,15 @@ pub const OPPONENT_DUTIES: Duties = Duties {
     weapon: Some(0.0),
 };
 
+/// What the robot faces: a copy of itself (the default) or a free box
+/// (user, 2026-10-10: a toggle on the sim page).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum OpponentKind {
+    #[default]
+    Copy,
+    Box,
+}
+
 /// An undriven copy of the robot (user, 2026-10-10: "replace the box with
 /// a copy of simple bot"), sharing the driven robot's model.
 pub struct Opponent {
@@ -37,23 +47,37 @@ pub struct Sim {
     pub robot: RobotHandles,
     pub model: RobotModel,
     pub opponent: Option<Opponent>,
+    /// The box opponent's body, when `OpponentKind::Box` was chosen.
+    pub target: Option<RigidBodyHandle>,
     mixer: Option<MixerConfig>,
     pub duties: Duties,
     drive: Drivetrain,
 }
 
 impl Sim {
-    /// The arena, the robot at (−1, 0) facing +x, and its opponent copy at
-    /// (1, 0) facing it.
+    /// The arena, the robot at (−1, 0) facing +x, and at (1, 0) either its
+    /// opponent copy facing it or a box as heavy as it.
     pub fn new(
         model: RobotModel,
         mesh: &dyn Fn(&str) -> Option<Vec<u8>>,
+        kind: OpponentKind,
     ) -> Result<Sim, SpawnError> {
         let mut world = Self::empty_world(-GRAVITY);
         let _floor = add_arena(&mut world);
         let robot = spawn_robot(&mut world, &model, mesh, -1.0, 0.0, 0.0)?;
-        let opponent = spawn_robot(&mut world, &model, mesh, 1.0, 0.0, std::f32::consts::PI)?;
-        Ok(Self::assemble(world, robot, model, Some(opponent)))
+        Ok(match kind {
+            OpponentKind::Copy => {
+                let opponent =
+                    spawn_robot(&mut world, &model, mesh, 1.0, 0.0, std::f32::consts::PI)?;
+                Self::assemble(world, robot, model, Some(opponent))
+            }
+            OpponentKind::Box => {
+                let target = add_target(&mut world, 1.0, 0.0, model.total_mass() as f32);
+                let mut s = Self::assemble(world, robot, model, None);
+                s.target = Some(target);
+                s
+            }
+        })
     }
 
     /// A world with nothing in it, for tests that build their own scene.
@@ -109,6 +133,7 @@ impl Sim {
                 robot,
                 drive: Drivetrain::default(),
             }),
+            target: None,
             mixer,
             duties: Duties::default(),
             drive: Drivetrain::default(),
@@ -152,10 +177,12 @@ impl Sim {
         &self.world.bodies[self.robot.bodies[0]]
     }
 
-    /// The opponent's chassis, if there is one.
+    /// The opponent's chassis (the copy's, or the box), if there is one.
     pub fn opponent_chassis(&self) -> Option<&RigidBody> {
         self.opponent
             .as_ref()
-            .map(|o| &self.world.bodies[o.robot.bodies[0]])
+            .map(|o| o.robot.bodies[0])
+            .or(self.target)
+            .map(|h| &self.world.bodies[h])
     }
 }

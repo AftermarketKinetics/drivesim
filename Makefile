@@ -41,9 +41,10 @@ test-broker:
 	cd broker && python -m unittest -q test_broker
 # The server on http://localhost:8420 as user "dev", importing locally (no
 # sandbox, no authentik). Needs ANTHROPIC_API_KEY or an `ant auth login`.
+# "dev" is an admin, so /admin-dashboard can be tried locally.
 server-dev:
 	cargo build -q --release -p drivesim-cli
-	cd server && DRIVESIM_DEV_USER=dev DRIVESIM_IMPORT_PYTHON=$$(command -v python3) \
+	cd server && DRIVESIM_DEV_USER=dev DRIVESIM_ADMINS=dev DRIVESIM_IMPORT_PYTHON=$$(command -v python3) \
 	  uv run uvicorn drivesim_server.app:app --host 127.0.0.1 --port 8420
 
 # The browser app -> server/web/sim/ (served by the server at /sim/, and by

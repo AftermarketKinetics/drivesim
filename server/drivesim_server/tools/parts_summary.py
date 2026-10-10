@@ -71,7 +71,7 @@ async def run(ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
         else:
             rows.extend((p["volume_m3"], _line(p)) for p in ps)
     rows.sort(key=lambda r: -r[0])
-    return {"source": doc["source"], "frame": doc["frame"], "count": len(parts),
+    return {"robot_id": ctx.robot_id, "source": doc["source"], "frame": doc["frame"], "count": len(parts),
             "robot_bbox": _bbox(every) if every else None,
             "note": ("biggest first; more than two instances of one product share a line. "
                      "The STEP origin is arbitrary: it is not the floor."),
@@ -87,7 +87,7 @@ TOOL = Tool(
         "curved about / flat across that axis, and how far the part's centre is from it (a "
         "balanced rotor: ~0). Biggest parts first; more than two instances of one product "
         "(screws, bearings, magnets) share one line with their ids. Also gives the whole "
-        "robot's bounding box. Optional `contains` filters by a substring of the instance, "
+        "robot's bounding box and its robot_id, for the user to quote when asking for help. Optional `contains` filters by a substring of the instance, "
         "product or tree path."),
     input_schema={"type": "object", "properties": {"contains": {"type": "string"}},
                   "additionalProperties": False},

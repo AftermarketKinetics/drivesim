@@ -12,9 +12,11 @@ Gamepad API, and draws everything from the driver's box.
 - The window is bound to the page's `<canvas id="drivesim">` and fits its
   parent.
 - Resources it owns: `LoadSlot` (the async fetch's result) and `Root`
-  (the `SimRoot` entity).
+  (the `SimRoot` entity, read by `opponent_toggle`).
 - Update systems run chained, in this order: `poll_radio`, `take_bundle`,
-  `step_sim`, `sync_bodies`, `update_hud`.
+  `apply_opponent_toggle`, `step_sim`, `sync_bodies`, `update_hud`.
+- The wasm module exports `set_opponent_box` (`opponent_toggle.rs`) for
+  the page's button.
 
 ## Implementation
 
@@ -23,12 +25,13 @@ Gamepad API, and draws everything from the driver's box.
   arena entity is its child. Poses therefore copy across unchanged.
 - **Loading is async but the App is not.** `setup` starts `fetch_bundle`
   with `spawn_local`, which leaves its result in `LoadSlot`. `take_bundle`
-  polls the slot each frame; on success it builds `Sim::new`, the robot's
-  visuals and the opponent's (all orange, `OPPONENT_ORANGE`), and inserts
-  `SimRes`. On failure the HUD shows the
-  reason. Systems that need the sim take `Option<Res<SimRes>>` and do
+  polls the slot each frame; on success it builds the first round
+  (`round.rs`) with the opponent the page asks for, and keeps the bundle
+  as `Loaded` so `apply_opponent_toggle` can rebuild without refetching.
+  On failure the HUD shows the reason. Systems that need the sim take `Option<Res<SimRes>>` and do
   nothing until it exists.
-- **The order matters:** the radio is read before the step that uses it,
+- **The order matters:** a switched round is built before it is stepped;
+  the radio is read before the step that uses it,
   and bodies are synced after the step that moved them.
 
 ## Assertions

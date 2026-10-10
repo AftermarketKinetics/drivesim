@@ -6,10 +6,25 @@ mod common;
 use common::radio;
 use drivesim_physics::motor::no_load_speed;
 use drivesim_physics::spawn::forward_sign;
-use drivesim_physics::{CONTROL_HZ, Sim};
+use drivesim_physics::target::BOX_HALF_M;
+use drivesim_physics::{CONTROL_HZ, OpponentKind, Sim};
 
 fn sim() -> Sim {
-    Sim::new(common::fixture_model(), &common::fixture_mesh).unwrap()
+    Sim::new(
+        common::fixture_model(),
+        &common::fixture_mesh,
+        OpponentKind::Copy,
+    )
+    .unwrap()
+}
+
+fn sim_box() -> Sim {
+    Sim::new(
+        common::fixture_model(),
+        &common::fixture_mesh,
+        OpponentKind::Box,
+    )
+    .unwrap()
 }
 
 /// The fixture on its own: the opponent copy moved far out of its way.
@@ -138,6 +153,30 @@ fn the_opponent_is_a_copy_facing_the_robot() {
     assert_eq!(o.robot.bodies.len(), s.robot.bodies.len());
     let x = *s.opponent_chassis().unwrap().rotation() * rapier3d::prelude::Vector::X;
     assert!(x.x < -0.99, "opponent faces {x:?}");
+}
+
+#[test]
+fn the_box_opponent_sits_at_the_copys_spot_as_heavy_as_the_robot() {
+    let s = sim_box();
+    assert!(s.opponent.is_none());
+    let b = s.opponent_chassis().unwrap();
+    let p = b.translation();
+    assert!((p.x - 1.0).abs() < 1e-6 && p.y.abs() < 1e-6 && (p.z - BOX_HALF_M[2]).abs() < 1e-6);
+    let want = s.model.total_mass() as f32;
+    assert!(
+        (b.mass() / want - 1.0).abs() < 1e-3,
+        "box {} kg, robot {want} kg",
+        b.mass()
+    );
+}
+
+#[test]
+fn driving_into_the_box_shoves_it() {
+    let mut s = sim_box();
+    let o0 = s.opponent_chassis().unwrap().translation();
+    run(&mut s, radio(0.0, 1.0, -1.0, true), 3.0);
+    let moved = s.opponent_chassis().unwrap().translation() - o0;
+    assert!(moved.x > 0.3, "box moved {moved:?}");
 }
 
 /// The weapon spun up to full speed in place, 2.5 s.

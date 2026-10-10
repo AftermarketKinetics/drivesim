@@ -4,8 +4,9 @@
 //! `shapes` for collision geometry; `arena` adds the floor and walls;
 //! `motor` is the DC motor model and `gear_coupling` its gearbox
 //! correction, both applied per robot by `drivetrain`; `mixer` the generic
-//! control; `sim` steps the robot and its opponent copy at a fixed rate; `rest` reports how a robot sits
-//! on the floor, for checking a robot file. Bevy-free and file-free: meshes
+//! control; `sim` steps the robot and its opponent (a copy of it, or the
+//! `target` box) at a fixed rate; `rest` reports how a robot sits on the
+//! floor, for checking a robot file. Bevy-free and file-free: meshes
 //! arrive through a fetch closure, so it runs in tests and in WASM.
 
 pub mod arena;
@@ -17,5 +18,6 @@ pub mod rest;
 pub mod shapes;
 pub mod sim;
 pub mod spawn;
+pub mod target;
 
-pub use sim::{CONTROL_HZ, PHYSICS_HZ, Sim};
+pub use sim::{CONTROL_HZ, OpponentKind, PHYSICS_HZ, Sim};

@@ -23,6 +23,7 @@ variables, with development defaults (repo-relative):
 | `daily_budget` | `DAILY_BUDGET` | 3,000,000 input-token equivalents (user, 2026-10-10; provisional) |
 | `budget_tz` | `BUDGET_TZ` | `America/Los_Angeles` (midnight Pacific resets it) |
 | `dev_user` | `DEV_USER` | unset |
+| `admins` | `ADMINS` | empty; comma-separated usernames, blanks ignored (user, 2026-10-10) |
 
 ## Implementation
 The 95 MB upload cap is under Cloudflare's 100 MB free-plan body limit, which

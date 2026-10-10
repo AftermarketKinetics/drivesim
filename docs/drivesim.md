@@ -46,7 +46,9 @@ hazards; a native desktop build.
   event bus, agent loop and broker pattern, rather than sharing a library
   or starting fresh. The role conversation runs on `claude-sonnet-5-5`,
   with the analyzer's API key on accelerate. Robots are visible to their
-  owner only in v1.
+  owner only in v1. (2026-10-10: plus admins, named in
+  `DRIVESIM_ADMINS`, who may read and drive every robot from
+  `/admin-dashboard`; replying and deleting stay with the owner.)
 - **Roles come from a Claude conversation.** A STEP does not say which
   part is a wheel or the weapon, or what anything is made of; Claude asks
   the user and writes the robot file. The user first asked for this as a

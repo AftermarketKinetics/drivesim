@@ -13,10 +13,11 @@
 <div id="status" class="card muted">loading…</div>
 <div id="check" class="card" hidden></div>
 <div id="chat"></div>
-<div class="card">
+<div id="reply" class="card">
   <textarea id="text" rows="3" placeholder="Reply…"></textarea>
   <button id="send">Send</button> <span id="busy" class="muted"></span>
 </div>
+<p id="admin" class="muted" hidden></p>
 <p><button id="delete" class="danger">Delete this robot</button></p>
 <script>
 const $ = id => document.getElementById(id);
@@ -47,6 +48,13 @@ function showCheck(r) {
 async function status() {
   const b = await (await apiFetch(api(""))).json();
   $("name").textContent = b.name || "Robot";
+  // An admin viewing someone else's robot reads and drives; replying and
+  // deleting stay with the owner (the server refuses them anyway).
+  if (!b.mine) {
+    $("reply").hidden = $("delete").hidden = true;
+    $("admin").hidden = false;
+    $("admin").textContent = `Viewing ${b.owner}'s robot as an admin: read and drive only.`;
+  }
   $("status").innerHTML = b.status === "failed" ? `<span class="bad">Import failed:</span> <pre>${esc(b.error)}</pre>`
     : b.status === "importing" ? "Importing the STEP…" : b.checked ? `<span class="good">Ready to drive.</span> <a href="sim/?robot=${encodeURIComponent(rid)}">Drive it →</a>` : "Imported. Setting up roles…";
 }

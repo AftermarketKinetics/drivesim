@@ -8,7 +8,7 @@ import pytest
 
 from conftest import FIXTURE_BUNDLE
 from drivesim_server.db import Store
-from drivesim_server.prompt import MATERIALS
+from drivesim_server.prompt import MATERIALS, SYSTEM
 from drivesim_server.tools import TOOLS, Ctx, ToolError
 
 
@@ -29,6 +29,7 @@ def ctx(settings, bundle_dir, tmp_path):
 async def test_parts_summary_lists_parts_with_axes(ctx):
     out = await TOOLS["parts_summary"].run(ctx, {})
     assert out["count"] == 14
+    assert out["robot_id"] == ctx.robot_id
     wheel = next(line for line in out["parts"] if "wheel_L" in line)
     assert "axis (0.00,1.00,0.00) r 31.8 mm" in wheel
     assert (await TOOLS["parts_summary"].run(ctx, {"contains": "weapon"}))["count"] == 1
@@ -81,3 +82,7 @@ async def test_prompt_materials_load(ctx, material):
     text = (FIXTURE_BUNDLE / "robot.toml").read_text().replace('default = "al6061"', f'default = "{material}"')
     out = await TOOLS["write_robot_toml"].run(ctx, {"robot_toml": text})
     assert out["ok"] is True, out
+
+
+def test_the_prompt_points_problems_to_discord_with_the_robot_id():
+    assert "arctic256" in SYSTEM and "robot_id" in SYSTEM

@@ -12,6 +12,8 @@ The repo's entry points, run inside `nix-shell`.
 - `make test-import`: `tools/import/tests` under `unittest`.
 - `make web-dev`: serves the repo on http://localhost:8417 with
   cross-origin isolation (`tools/dev_server.py`).
+- `make server-dev`: the server on http://localhost:8420 as user `dev`
+  (also an admin, so `/admin-dashboard/` works), importing locally.
 
 ## Implementation
 

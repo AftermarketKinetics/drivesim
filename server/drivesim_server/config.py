@@ -43,6 +43,10 @@ class Settings:
     #: Development only: the username used when no authentik header is
     #: present. Never set in a deployed image.
     dev_user: str | None
+    #: Usernames that may read and drive every robot and open
+    #: /admin-dashboard (user, 2026-10-10). Sending messages and deleting
+    #: stay with the owner.
+    admins: frozenset[str]
 
 
 def load_settings(env: dict[str, str] | None = None) -> Settings:
@@ -69,4 +73,5 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         daily_budget=float(e.get("DRIVESIM_DAILY_BUDGET", "3000000")),
         budget_tz=e.get("DRIVESIM_BUDGET_TZ", "America/Los_Angeles"),
         dev_user=e.get("DRIVESIM_DEV_USER") or None,
+        admins=frozenset(n.strip() for n in e.get("DRIVESIM_ADMINS", "").split(",") if n.strip()),
     )

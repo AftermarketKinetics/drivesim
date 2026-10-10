@@ -26,7 +26,8 @@ colliders' combine rules, so every robot collider sets Multiply too.
 
 There used to be a target box here: first a fixed 5.44 kg, then as heavy
 as the robot. On 2026-10-10 the user replaced it with an opponent copy
-of the robot (`sim.rs`).
+of the robot (`sim.rs`), then brought it back the same day as the
+alternative opponent, in its own file (`target.rs`).
 
 ## Assertions
 

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drivesim admin</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../session.js"></script>
+<style>
+  body { max-width: 1100px; }
+  #find { font: inherit; padding: 6px 8px; width: 100%; max-width: 420px; border-radius: 6px;
+          border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  .wrap { overflow-x: auto; }
+  td code { font-size: 12px; }
+</style>
+</head>
+<body>
+<p><a href="../">← your robots</a></p>
+<h1>All robots</h1>
+<p id="msg" class="muted">loading…</p>
+<div id="users"></div>
+<p><input id="find" type="search" placeholder="Filter by owner, name or robot ID"></p>
+<div class="wrap"><table id="robots" hidden>
+  <thead><tr><th>Robot</th><th>Owner</th><th>State</th><th>Uploaded</th><th>Claude usage</th><th>Robot ID</th></tr></thead>
+  <tbody></tbody>
+</table></div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const m = n => (n / 1e6).toFixed(2) + " M";
+let robots = [];
+function state(b) {
+  if (b.status === "failed") return `<span class="bad" title="${esc(b.error)}">import failed</span>`;
+  if (b.status === "importing") return "importing…";
+  return b.checked ? `<span class="good">ready</span> · <a href="../sim/?robot=${encodeURIComponent(b.id)}">drive</a>` : "setting up";
+}
+function render() {
+  const q = $("find").value.trim().toLowerCase();
+  const rows = robots.filter(b => !q || `${b.username} ${b.name} ${b.id}`.toLowerCase().includes(q));
+  $("robots").tBodies[0].innerHTML = rows.map(b => `<tr>
+    <td><a href="../robot.html?id=${encodeURIComponent(b.id)}">${esc(b.name || "robot")}</a></td>
+    <td>${esc(b.username)}</td><td>${state(b)}</td>
+    <td>${new Date(b.created * 1000).toLocaleString()}</td><td>${m(b.used)}</td>
+    <td><code>${esc(b.id)}</code></td></tr>`).join("");
+}
+async function load() {
+  const r = await apiFetch("/api/admin/robots");
+  if (r.status === 403) { $("msg").textContent = "This page is for drivesim's admins."; return; }
+  if (!r.ok) { $("msg").textContent = "could not load: HTTP " + r.status; return; }
+  const d = await r.json();
+  robots = d.robots;
+  $("msg").textContent = `${robots.length} robots. Usage is in input-token equivalents; ` +
+    `today's resets at ${new Date(d.resets_at).toLocaleString()}.`;
+  const users = Object.entries(d.users_today);
+  $("users").innerHTML = users.length ? `<div class="card"><b>Usage today</b> (budget ${m(d.budget)} each)<br>` +
+    users.map(([u, v]) => `${esc(u)}: <span class="${v >= d.budget ? "bad" : ""}">${m(v)}</span>`).join(" · ") + `</div>` : "";
+  $("robots").hidden = false;
+  render();
+}
+$("find").oninput = render;
+load();
+</script>
+</body>
+</html>

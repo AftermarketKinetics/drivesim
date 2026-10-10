@@ -6,7 +6,7 @@ This is the evidence it proposes roles from.
 
 ## Interface
 Tool `parts_summary`, with an optional input `contains` (a substring of the
-tree path). It returns `{"source", "frame", "count", "parts": [str]}`.
+tree path). It returns `{"robot_id", "source", "frame", "count", "parts": [str]}`.
 
 Each line holds:
 - the id, instance and product names;
@@ -33,8 +33,12 @@ on how to read the list.
   position.
 - `contains` matches the instance, product or tree path.
 - Before an import exists, it raises `ToolError`.
+- **`robot_id`** is the robot the conversation belongs to, for the user
+  to quote when the prompt sends them to arctic256 on Discord. It lives
+  here, not in the prompt, so the prompt stays byte-stable for caching
+  (2026-10-10, as in combat-robot-analyzer's `show_setup`).
 
 ## Assertions
 - Tested: the fixture's 14 parts, `wheel_L`'s axis and radius, the
   filter, and grouping (five identical screws become one line, last;
-  the wheels stay two lines; the biggest part leads).
+  the wheels stay two lines; the biggest part leads), and `robot_id`.

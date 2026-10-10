@@ -18,6 +18,11 @@ Tests:
 - `slamming_throttle_does_not_flip_it`: full, full reverse, full, 0.5 s
   each: up.z stays above 0.9.
 - `the_opponent_is_a_copy_facing_the_robot`.
+- `the_box_opponent_sits_at_the_copys_spot_as_heavy_as_the_robot`:
+  `OpponentKind::Box`: no copy, the box resting at (1, 0), its mass the
+  robot's total within 0.1%.
+- `driving_into_the_box_shoves_it`: full throttle for 3 s moves it back
+  more than 0.3 m.
 - `a_spinning_weapon_does_not_launch_the_robot_on_open_floor`: disc at
   speed, full throttle for 0.7 s with nothing ahead: rises under 2 cm,
   yaws under 1 rad/s.

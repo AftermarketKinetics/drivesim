@@ -8,6 +8,9 @@ scripted conversation, then the real check, then the bundle served.
 Tests:
 - `test_upload_imports_then_the_conversation_writes_a_checked_robot`
 - `test_robots_are_the_owners_only`
+- `test_admins_read_and_drive_every_robot_but_cannot_change_it`
+- `test_the_admin_dashboard_lists_every_robot_for_admins_only`
+- `test_admins_come_from_a_comma_separated_env_var`
 - `test_only_bundle_files_are_served`
 - `test_a_broken_step_fails_the_robot_not_the_server`
 - `test_oversized_uploads_are_refused`

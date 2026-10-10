@@ -21,6 +21,10 @@ check result.
 - Loads `markdown.js` and renders assistant replies as markdown,
   re-rendering the streaming reply as each chunk arrives. Its raw text is
   kept on the element as `raw`.
+- **Admin view** (user, 2026-10-10): when `GET /api/robots/{id}` says
+  `mine: false` (an admin viewing someone else's robot), the reply box
+  and Delete are hidden, and a line names the owner. The server refuses
+  both anyway.
 - Once the robot is checked, links to the browser sim at
   `sim/?robot={id}` (`make web-build` puts the app in `web/sim/`).
 

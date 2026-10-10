@@ -9,10 +9,13 @@ Combat Robot Analyzer (2026-10-09), plus a development fallback.
 ## Interface
 - `current_user(request, x_authentik_username: str | None = Header(None)) -> str`: FastAPI dependency; returns the username or raises `HTTPException(401, "not signed in")`.
 - Accepted usernames match `^[A-Za-z0-9._@+-]{1,150}$`.
-- Used by `app.py` on every `/api` route, directly or through `owned`.
+- `is_admin(request, user) -> bool`: `user` is in `Settings.admins` (env `DRIVESIM_ADMINS`).
+- `admin_user(request, user=Depends(current_user)) -> str`: FastAPI dependency; the username if an admin, else `HTTPException(403, "admins only")`.
+- Used by `app.py` on every `/api` route, directly or through `owned`/`viewable`, and by `admin.py`.
 
 ## Implementation
 - Caddy strips every client-supplied `X-authentik-*` header and re-adds them only from the outpost's verified response, so a header that arrives is trustworthy *as long as the server is only reachable through Caddy*: it publishes no port.
+- **Admins** (user, 2026-10-10) are just usernames from the settings; there is no role in authentik. An admin is still identified by the same header.
 - **Development fallback** (drivesim's change to the analyzer's version): with `Settings.dev_user` set (env `DRIVESIM_DEV_USER`, which `make server-dev` sets for localhost), a request with no header is that user. A header still wins.
 
 ## Assertions

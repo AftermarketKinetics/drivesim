@@ -11,13 +11,18 @@
   #drivesim { width: 100%; height: 100%; display: block; outline: none; }
   #msg { position: absolute; top: 45%; width: 100%; text-align: center;
          color: #ccc; font: 16px system-ui, sans-serif; }
+  #opponent { position: absolute; top: 12px; right: 12px; padding: 6px 12px;
+              background: rgba(30, 30, 34, 0.85); color: #eee; border: 1px solid #f27314;
+              border-radius: 6px; font: 14px system-ui, sans-serif; cursor: pointer; }
+  #opponent:hover { background: rgba(60, 40, 25, 0.9); }
 </style>
 </head>
 <body>
 <canvas id="drivesim" tabindex="0"></canvas>
 <div id="msg">loading drivesim…</div>
+<button id="opponent" type="button" hidden title="Switch opponent; restarts the round">Opponent: copy</button>
 <script type="module">
-  import init from "./drivesim_web.js";
+  import init, { set_opponent_box } from "./drivesim_web.js";
   const msg = document.getElementById("msg");
   if (!navigator.gpu) {
     msg.textContent = "This browser has no WebGPU. drivesim needs Chrome or Edge.";
@@ -26,7 +31,18 @@
       // winit hands control to the browser by throwing; that one is not an error.
       if (!String(e).includes("Using exceptions for control flow")) { msg.textContent = "drivesim failed: " + e; throw e; }
     });
-    const hide = () => { if (document.querySelector("#drivesim").width > 0) msg.remove(); else setTimeout(hide, 200); };
+    // Opponent: the robot's orange copy (default) or an orange box. Each
+    // switch restarts the round. Focus goes back to the canvas, so the
+    // button never keeps the keyboard.
+    const canvas = document.getElementById("drivesim"), opp = document.getElementById("opponent");
+    let box = false;
+    opp.addEventListener("click", () => {
+      box = !box;
+      set_opponent_box(box);
+      opp.textContent = box ? "Opponent: box" : "Opponent: copy";
+      canvas.focus();
+    });
+    const hide = () => { if (canvas.width > 0) { msg.remove(); opp.hidden = false; } else setTimeout(hide, 200); };
     setTimeout(hide, 500);
   }
 </script>

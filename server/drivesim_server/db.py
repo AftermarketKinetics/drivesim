@@ -88,6 +88,24 @@ class Store:
             ).fetchall()
         return [dict(r) for r in rows]
 
+    def all_robots(self) -> list[dict[str, Any]]:
+        """Every robot, newest first, with its owner and its total weighted
+        usage (for the admin dashboard)."""
+        with self._conn() as c:
+            rows = c.execute(
+                "SELECT r.id, r.username, r.name, r.status, r.error, r.checked, r.created, "
+                "COALESCE((SELECT SUM(u.weighted) FROM usage u WHERE u.robot_id = r.id), 0) AS used "
+                "FROM robots r ORDER BY r.created DESC"
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def used_by_user_since(self, since: float) -> dict[str, float]:
+        """Weighted usage per username since `since` (epoch s)."""
+        with self._conn() as c:
+            rows = c.execute("SELECT username, SUM(weighted) FROM usage WHERE at >= ? "
+                             "GROUP BY username", (since,)).fetchall()
+        return {r[0]: float(r[1]) for r in rows}
+
     def robot(self, robot_id: str) -> dict[str, Any] | None:
         with self._conn() as c:
             row = c.execute("SELECT * FROM robots WHERE id = ?", (robot_id,)).fetchone()

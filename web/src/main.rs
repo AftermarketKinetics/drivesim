@@ -2,8 +2,10 @@
 //! simulate it with drivesim-physics, read the radio through the Gamepad
 //! API, and draw it all from the driver's box.
 //!
-//! `bundle_load` fetches and loads; `radio` reads the pad; `sim_step` runs
-//! the physics in real time; `robot_render` and `arena_render` draw;
+//! `bundle_load` fetches and loads; `round` builds the simulation and its
+//! visuals, again whenever `opponent_toggle` (the page's button) switches
+//! opponent; `radio` reads the pad; `sim_step` runs the physics in real
+//! time; `robot_render`, `target_render` and `arena_render` draw;
 //! `floor_texture` paints the floor; `camera` is the driver's eye; `hud`
 //! is the text overlay.
 
@@ -12,16 +14,18 @@ mod bundle_load;
 mod camera;
 mod floor_texture;
 mod hud;
+mod opponent_toggle;
 mod radio;
 mod robot_render;
+mod round;
 mod sim_step;
+mod target_render;
 mod wall_markings;
 
 use bevy::prelude::*;
 use bundle_load::{Bundle, fetch_bundle, locate};
-use drivesim_physics::Sim;
 use robot_render::SimRoot;
-use sim_step::SimRes;
+use round::{Loaded, RoundVisuals, build_round};
 use std::sync::{Arc, Mutex};
 
 /// Where the async fetch leaves its result for the app to pick up.
@@ -30,10 +34,6 @@ struct LoadSlot(Arc<Mutex<Option<Result<Bundle, String>>>>);
 
 #[derive(Resource)]
 struct Root(Entity);
-
-/// The opponent copy is drawn all orange (user, 2026-10-10), so it can't be
-/// mistaken for the robot being driven.
-const OPPONENT_ORANGE: [f32; 3] = [0.95, 0.45, 0.08];
 
 fn main() {
     App::new()
@@ -54,6 +54,7 @@ fn main() {
             (
                 radio::poll_radio,
                 take_bundle,
+                opponent_toggle::apply_opponent_toggle,
                 sim_step::step_sim,
                 robot_render::sync_bodies,
                 hud::update_hud,
@@ -94,12 +95,13 @@ fn setup(
     }
 }
 
-/// When the fetch finishes: build the simulation and its visuals, or show
-/// why it failed.
+/// When the fetch finishes: build the first round, with the opponent the
+/// page asks for, or show why it failed.
 fn take_bundle(
     mut commands: Commands,
     slot: Res<LoadSlot>,
     root: Res<Root>,
+    old: RoundVisuals,
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
     mut hud: Query<&mut Text, With<hud::HudText>>,
@@ -116,32 +118,16 @@ fn take_bundle(
         Ok(b) => b,
         Err(e) => return fail(&mut hud, e),
     };
-    let sim = match Sim::new(bundle.model.clone(), &|p| bundle.meshes.get(p).cloned()) {
-        Ok(s) => SimRes::new(s),
-        Err(e) => return fail(&mut hud, e.to_string()),
-    };
-    let s = &sim.sim;
-    robot_render::spawn_robot_visuals(
+    if let Err(e) = build_round(
         &mut commands,
         root.0,
         &bundle,
-        &s.model,
-        &s.robot,
-        None,
+        opponent_toggle::wanted(),
+        old.iter(),
         &mut meshes,
         &mut mats,
-    );
-    if let Some(o) = &s.opponent {
-        robot_render::spawn_robot_visuals(
-            &mut commands,
-            root.0,
-            &bundle,
-            &s.model,
-            &o.robot,
-            Some(OPPONENT_ORANGE),
-            &mut meshes,
-            &mut mats,
-        );
+    ) {
+        return fail(&mut hud, e);
     }
-    commands.insert_resource(sim);
+    commands.insert_resource(Loaded(bundle));
 }

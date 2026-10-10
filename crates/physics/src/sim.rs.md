@@ -10,14 +10,18 @@ The fixed-step loop (docs/drivesim.md §6):
 ## Interface
 
 - `PHYSICS_HZ` 4000, `CONTROL_HZ` 1000, `STEPS_PER_TICK` 4, `GRAVITY`.
-- `Sim { world, robot, model, opponent, duties }`:
-  - `Sim::new(model, mesh)`: the arena, the robot at (−1, 0) facing +x,
-    and an opponent copy of the same model at (1, 0) facing it;
+- `OpponentKind { Copy (default), Box }`: what the robot faces.
+- `Sim { world, robot, model, opponent, target, duties }`:
+  - `Sim::new(model, mesh, kind)`: the arena, the robot at (−1, 0)
+    facing +x, and at (1, 0) either an opponent copy of the same model
+    facing it (`opponent`) or the box from `target.rs`, as heavy as the
+    robot (`target`). Exactly one of the two is set;
   - `empty_world(gravity_z)` and `assemble(world, robot, model,
     opponent)`, for tests that build their own scene (with `None`, no
     opponent);
   - `control_tick(frame)`, `physics_step()`;
-  - `rotor_speed(rotor)`, `chassis()`, `opponent_chassis()`.
+  - `rotor_speed(rotor)`, `chassis()`, `opponent_chassis()` (the
+    copy's chassis or the box's body).
 - `Opponent { robot }`, and `OPPONENT_DUTIES`: the opponent is armed
   with its sticks centred, so its wheels brake and its weapon is off.
 
@@ -57,6 +61,11 @@ The fixed-step loop (docs/drivesim.md §6):
   colliders. It holds its ground on braked wheels, like an idle robot,
   rather than rolling away freely. It roughly doubles the physics cost:
   native 2.8× real time alone, 1.9× with it.
+- **The box is the other choice** (user, 2026-10-10: a toggle on the sim
+  page). It is the box the copy replaced, restored as `target.rs`; it has
+  no drivetrain, so `physics_step` only touches it through the world.
+  `assemble` never sets it: `new` adds it after, so tests that build
+  their own scene are unchanged.
 - **Duties update once per control tick** and are held across its four
   physics steps.
 - **Momentum's firmware control (`kind = "momentum-core"`) isn't built
@@ -70,6 +79,7 @@ The fixed-step loop (docs/drivesim.md §6):
   - turning the right way;
   - disarmed robots stay still;
   - the weapon reaches no-load speed and the robot stays upright;
-  - driving shoves the opponent;
+  - driving shoves the opponent, copy or box; the box spawns at (1, 0)
+    with the robot's mass;
   - full turn reaches 2 v / track; wheels roll without ringing; slamming
     the throttle does not flip it.

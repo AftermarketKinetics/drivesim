@@ -2,7 +2,8 @@
 the robot bundle the browser sim loads (docs/drivesim.md §3-4).
 
 Every route is behind authentik (Caddy forward_auth) and scoped to the
-signed-in user's own robots (user, 2026-10-09: owner only for v1). Adapted
+signed-in user's own robots (user, 2026-10-09: owner only for v1), except
+that admins may read and drive every robot (user, 2026-10-10). Adapted
 from the Combat Robot Analyzer's app (2026-10-09). Chat is fire-and-forget:
 POST a message, watch ``/events`` (SSE) for streamed text and tool activity.
 """
@@ -25,7 +26,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.datastructures import Headers
 
-from .auth import current_user
+from . import admin
+from .auth import current_user, is_admin
 from .config import Settings, load_settings
 from .db import Store
 from .events import EventBus
@@ -102,6 +104,16 @@ def owned(robot_id: str, request: Request, user: str = Depends(current_user)) ->
     return robot_id
 
 
+def viewable(robot_id: str, request: Request, user: str = Depends(current_user)) -> str:
+    """Dependency: the robot id, if the caller owns it or is an admin (404
+    otherwise). For reading and driving; changing a robot stays `owned`."""
+    if len(robot_id) != 32 or not (
+            (owner := state(request)["store"].owner(robot_id)) == user
+            or (owner is not None and is_admin(request, user))):
+        raise HTTPException(status_code=404, detail="no such robot")
+    return robot_id
+
+
 def budget(s: dict[str, Any], user: str) -> dict[str, Any]:
     """Today's usage against the daily budget."""
     start, end = day_bounds(datetime.now(UTC), s["settings"].budget_tz)
@@ -128,8 +140,8 @@ def usage(request: Request, user: str = Depends(current_user)) -> dict[str, Any]
 
 
 @app.get("/api/me")
-def me(user: str = Depends(current_user)) -> dict[str, str]:
-    return {"username": user}
+def me(request: Request, user: str = Depends(current_user)) -> dict[str, Any]:
+    return {"username": user, "admin": is_admin(request, user)}
 
 
 @app.get("/api/robots")
@@ -161,9 +173,11 @@ async def upload(file: UploadFile, request: Request, user: str = Depends(current
 
 
 @app.get("/api/robots/{robot_id}")
-def robot(request: Request, robot_id: str = Depends(owned)) -> dict[str, Any]:
+def robot(request: Request, robot_id: str = Depends(viewable),
+          user: str = Depends(current_user)) -> dict[str, Any]:
     r = state(request)["store"].robot(robot_id)
-    return {k: r[k] for k in ("id", "name", "status", "error", "checked", "created")}
+    return {**{k: r[k] for k in ("id", "name", "status", "error", "checked", "created")},
+            "owner": r["username"], "mine": r["username"] == user}
 
 
 @app.delete("/api/robots/{robot_id}", status_code=204)
@@ -174,7 +188,7 @@ def delete(request: Request, robot_id: str = Depends(owned)) -> None:
 
 
 @app.get("/api/robots/{robot_id}/messages")
-def history(request: Request, robot_id: str = Depends(owned)) -> list[dict[str, Any]]:
+def history(request: Request, robot_id: str = Depends(viewable)) -> list[dict[str, Any]]:
     return state(request)["store"].messages(robot_id)
 
 
@@ -192,7 +206,7 @@ async def post_message(msg: Message, request: Request, robot_id: str = Depends(o
 
 
 @app.get("/api/robots/{robot_id}/events")
-async def events(request: Request, robot_id: str = Depends(owned)) -> StreamingResponse:
+async def events(request: Request, robot_id: str = Depends(viewable)) -> StreamingResponse:
     bus: EventBus = state(request)["bus"]
     q = bus.subscribe(robot_id)
 
@@ -216,7 +230,7 @@ async def events(request: Request, robot_id: str = Depends(owned)) -> StreamingR
 
 
 @app.get("/api/robots/{robot_id}/bundle/{rel:path}")
-def bundle_file(rel: str, request: Request, robot_id: str = Depends(owned)) -> FileResponse:
+def bundle_file(rel: str, request: Request, robot_id: str = Depends(viewable)) -> FileResponse:
     """What the browser sim fetches: parts.json, robot.toml and the meshes."""
     if rel not in BUNDLE_FILES and not MESH.match(rel):
         raise HTTPException(status_code=404, detail="no such file")
@@ -265,6 +279,8 @@ class WebFiles(StaticFiles):
         resp.headers.update(headers)
         return resp
 
+
+app.include_router(admin.router)
 
 # The pages, last so every /api route above takes precedence.
 _web = load_settings().web_dir

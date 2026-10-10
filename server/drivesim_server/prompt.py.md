@@ -32,6 +32,13 @@ imported parts into a checked `robot.toml` together with the user.
 - **Tyres:** the `mu` guidance lists soft cast polyurethane at ~1.4, TPU
   and rubber at ~0.8–1.0 and hard plastic at ~0.3, all unmeasured. Steel
   cleats have no number: ask.
+- **Sends users to help:** when something looks broken or a problem
+  can't be resolved, the agent tells them to message `arctic256` on
+  Discord and quote their full robot ID, from `parts_summary`'s
+  `robot_id`. The ID is not in the prompt, keeping it identical for
+  every robot. Added 2026-10-10 at Lily's request, matching
+  combat-robot-analyzer. Tested by
+  `test_the_prompt_points_problems_to_discord_with_the_robot_id`.
 - **Tuned on the first live conversation (2026-10-09),** which named the
   robot "robot", blamed a normal tilt on wheel clearance, and left out
   the arm switch.

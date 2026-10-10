@@ -17,3 +17,6 @@ because that path is public.
 ## Assertions
 - [ ] Its channel table matches the radio model and the `[control]`
   defaults (ch1 turn, ch2 throttle, ch3 weapon, ch5 arm).
+- [ ] Its description of the sim's opponent (an orange copy by default,
+  the "Opponent" button for a box, each switch restarting the round)
+  matches `web/index.html` and `web/src/opponent_toggle.rs`.

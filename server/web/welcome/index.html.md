@@ -23,7 +23,11 @@ fetch by themselves) gets authentik's outpost to set an `authentik_proxy`
 cookie on its way to the login redirect. Caddy's landing matcher then
 sees a cookie and sends `/` to login for the cookie's hour. That was the
 "everything 302s" report of 2026-10-11, seen even in incognito. So the
-page carries an inline `data:` icon.
+page declares its icon explicitly: the shared site icon at
+`https://combat-robot.systems/favicon.svg`, on the public apex host, where
+no outpost cookie can be set (changed 2026-10-10 from an inline `data:`
+icon). Caddy also serves `/favicon.*` publicly on this host now, but the
+explicit link is what the test checks.
 
 **Every path is absolute** (`/welcome/...`): Caddy serves this page at `/`
 by an internal rewrite, so the browser's base is `/` and a relative

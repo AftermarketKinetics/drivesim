@@ -25,6 +25,8 @@ Shows today's Claude usage from `GET /api/usage` above the robot list, and
 says when it's used up: new robots and replies wait until midnight Pacific,
 while set-up robots stay drivable.
 
+When `GET /api/me` says `admin`, shows a link to `admin-dashboard/`.
+
 The guides are `welcome/guide.html`, inserted into `#guide`; every API
 call goes through `session.js`'s `apiFetch`.
 

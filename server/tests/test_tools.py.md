@@ -11,11 +11,16 @@ Tests:
 - `test_show_and_list_motors`
 - `test_write_without_an_import_is_a_tool_error`
 - `test_prompt_materials_load`, run for each material in `prompt.MATERIALS`
+- `test_the_prompt_points_problems_to_discord_with_the_robot_id`
+  (`arctic256` and `robot_id` are in `prompt.SYSTEM`)
 
 ## Implementation
 `test_prompt_materials_load` writes the fixture robot with each material
 the prompt names as the default, through the real Rust checker. That keeps
 the prompt's list and `materials.rs` in step.
+
+`test_parts_summary_lists_parts_with_axes` also checks the summary
+carries the conversation's `robot_id`.
 
 Fixture numbers it pins: 14 parts, wheel radius 31.8 mm, total mass
 5.282 kg. They change with `make_fixture.py`.
