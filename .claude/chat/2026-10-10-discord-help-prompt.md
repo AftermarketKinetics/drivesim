@@ -34,3 +34,8 @@
 **Did:**
 - sidecar-check on changed files: fixed `test_tools.py.md`, rest OK. Committed + pushed drivesim 240bf98 (incl. welcome favicon, verified public); accelerate d80cf4c committed (no remote).
 - `deploy/push.sh` denied by the auto-mode classifier; deploy left for the user.
+
+## 01:30 deploy (run by the user)
+**User:** (ran `deploy/push.sh`, diffed mint's compose, rsync'd compose + `docker compose up -d drivesim` via `!`)
+**Did:**
+- Mint compose diff showed only the DRIVESIM_ADMINS lines; drivesim recreated. Anonymous check: landing 200, /admin-dashboard/ 302 to authentik.
