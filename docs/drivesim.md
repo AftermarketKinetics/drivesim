@@ -215,7 +215,8 @@ its own fixed-tick loop.
 - **Arena:** NHRL's 12 lb cage: 16' × 16' usable, a floor of plywood
   painted with dead-flat paint (not steel), polycarbonate walls on a timber
   skirt, a roof (NHRL wiki, read 2026-10-09). **Target:** a free box,
-  5.44 kg, 300 × 300 × 150 mm.
+  300 × 300 × 150 mm, as heavy as the robot driving it (user,
+  2026-10-10).
 
 **Timestep.** The physics step is sized from the fastest rotor, not the
 control rate. Measured 2026-10-09 (timing spike, lesson

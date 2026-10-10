@@ -8,9 +8,9 @@ box.
 ## Interface
 
 - `ARENA_SIDE_M` 4.877 (16 ft), `WALL_H_M` 2.4 (PROVISIONAL), `FLOOR_MU` 1.0.
-- `BOX_MASS_KG` 5.44, `BOX_HALF_M` [0.15, 0.15, 0.075], `BOX_MU` 0.4.
+- `BOX_HALF_M` [0.15, 0.15, 0.075], `BOX_MU` 0.4.
 - `add_arena(world) -> ColliderHandle` (the floor's, for contact
-  queries); `add_target(world, x, y) -> RigidBodyHandle`.
+  queries); `add_target(world, x, y, mass_kg) -> RigidBodyHandle`.
 
 ## Implementation
 
@@ -26,6 +26,11 @@ The floor's friction is 1.0 and combines by multiplying, so each tyre
 grips with exactly its robot.toml `mu`. Rapier uses the stronger of two
 colliders' combine rules, so every robot and box collider sets Multiply
 too.
+
+The box weighs what the robot does (user, 2026-10-10; `Sim::new` passes
+the model's total mass). Before that it was a fixed 5.44 kg, the 12 lb
+limit. A fixed box would be too heavy for a lighter robot and too light
+for a 30 lb one.
 
 ## Assertions
 

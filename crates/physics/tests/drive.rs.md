@@ -17,6 +17,7 @@ Tests:
   ground speed, none past no-load.
 - `slamming_throttle_does_not_flip_it`: full, full reverse, full, 0.5 s
   each: up.z stays above 0.9.
+- `the_box_weighs_what_the_robot_does`.
 - `disarmed_does_not_move`.
 - `weapon_spins_up_to_no_load_and_the_robot_stays_upright`: within 5%
   after 3 s.

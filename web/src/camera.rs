@@ -8,6 +8,9 @@ use drivesim_physics::arena::ARENA_SIDE_M;
 /// Standing eye height, m, and how far behind the wall the driver stands.
 pub const EYE_HEIGHT_M: f32 = 1.7;
 pub const BEHIND_WALL_M: f32 = 1.0;
+/// Vertical field of view, degrees: 58, widened from 50 so a little more
+/// of the cage is in view (user, 2026-10-10: "zoom out ... a little").
+pub const FOV_DEG: f32 = 58.0;
 
 /// Behind the -x wall, looking at the cage's centre (rapier coordinates).
 pub fn spawn_camera(commands: &mut Commands, root: Entity) {
@@ -16,7 +19,7 @@ pub fn spawn_camera(commands: &mut Commands, root: Entity) {
         .spawn((
             Camera3d::default(),
             Projection::Perspective(PerspectiveProjection {
-                fov: 50f32.to_radians(),
+                fov: FOV_DEG.to_radians(),
                 ..default()
             }),
             Transform::from_xyz(x, 0.0, EYE_HEIGHT_M).looking_at(Vec3::new(0.0, 0.0, 0.1), Vec3::Z),

@@ -17,7 +17,7 @@ the prompt names as the default, through the real Rust checker. That keeps
 the prompt's list and `materials.rs` in step.
 
 Fixture numbers it pins: 14 parts, wheel radius 31.8 mm, total mass
-5.265 kg. They change with `make_fixture.py`.
+5.038 kg. They change with `make_fixture.py`.
 
 ## Assertions
 - The checker binary must be built first (`make test-server` does it).

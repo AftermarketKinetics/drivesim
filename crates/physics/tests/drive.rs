@@ -126,6 +126,13 @@ fn slamming_throttle_does_not_flip_it() {
 }
 
 #[test]
+fn the_box_weighs_what_the_robot_does() {
+    let s = sim();
+    let want = s.model.total_mass() as f32;
+    assert!((s.world.bodies[s.target].mass() - want).abs() < 1e-4 * want);
+}
+
+#[test]
 fn disarmed_does_not_move() {
     let mut s = sim();
     let x0 = s.chassis().translation().x;

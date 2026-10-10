@@ -121,3 +121,16 @@ decision to make the sim a general tool in its own repo) are logged in
 **Did:**
 - Fixture tyres are VytaFlex 40: density 1000 kg/m³, mu 1.4 (provisional: FingerTech's 1.75 on unpainted MDF, discounted for paint); prompt.py tyre guidance lists cast PU ~1.4 and says steel cleats have no number (ask). No sourced cleat figure found.
 - Tests updated (masses 5.265 kg, straight run with the box moved away); stop from 4.45 m/s now 1.09 m in 0.5 s (was 1.48 m / 0.7 s), full turn 27.5 rad/s, slams still flat.
+
+## 2026-10-10 16:20 Commit; tooth; camera
+**User:** commit, driving feels more right now. could you add a big tooth to the vertical spinning disc?
+and also zoom out the camera just a little bit
+**Did:**
+- Committed 8124f24. Found the wheel markings were never applied (a Python replace matched nothing after `cargo fmt`; the committed sidecar described them): applied now; lesson `scripted-edits-must-assert-their-match.md`.
+- Fixture disc: r 70 mm with one tooth to r 90 (30 wide) and a 39.5 mm balance hole at r 40 on the tooth's side (first try put it opposite and doubled the imbalance); centre raised to z 95, battery shortened; 5.04 kg, tip speed 96 m/s. Importer/loader/CLI/server tests reworked (disc checked by balance and bounds; closed-form inertia moved to a wheel).
+- Camera FOV 50 -> 58° (`FOV_DEG`), driver position unchanged. Web rebuilding.
+
+## 2026-10-10 16:40 Box mass; commit
+**User:** make the box mass match that of the bot, then commit
+**Did:**
+- `arena.rs`: `BOX_MASS_KG` removed; `add_target(world, x, y, mass_kg)`, and `Sim::new` passes the model's total mass (5.04 kg for the fixture). Test `the_box_weighs_what_the_robot_does`; sidecars and doc §6 updated; committed with the tooth, camera and wheel-marking work.

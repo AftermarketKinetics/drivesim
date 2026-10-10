@@ -11,7 +11,7 @@ closed form (tests/test_import.py checks them):
   rail_L/_R    box   x -150..130  y  90..100 / -100..-90  z 12..62  ("Rail")
   top_plate    box   x -150..60   y -100..100  z 62..65
   rear_bar     box   x -160..-150 y -100..100  z 12..52
-  battery      box   x  -20..80   y  -20..20   z 12..42
+  battery      box   x  -20..70   y  -20..20   z 12..42
   esc          box   x -130..-80  y  -25..25   z 12..27
   fork_L/_R    prism, side profile (120,2) (200,2) (120,40) in xz,
                y 30..55 / -55..-30                          ("Fork")
@@ -19,10 +19,18 @@ closed form (tests/test_import.py checks them):
                                                             ("Wheel")
   drive_motor_L/_R  cylinder r 14, axis +y, y 30..88 / -88..-30,
                centre line x -30 z 31.75                    ("DriveMotor")
-  weapon       disc r 75 t 10, axis +y, centre (150, 0, 80) ("Weapon")
+  weapon       disc r 70 t 10, axis +y, centre (150, 0, 95), with one
+               tooth (radially 60..90, 30 wide, through the disc's
+               thickness) and a balance hole inboard of it ("Weapon")
 
 The vertical disc runs between the forks; the forks are the wedge and the
-front skids. The axle is 30 mm behind centre and the CoM ~58 mm ahead of
+front skids. The tooth (user, 2026-10-10) would put the disc's CoM
+3 mm off its axis, which shakes a 10,000 rpm weapon apart, so the script
+sizes a through hole at r 40 mm on the tooth's side, between hub and
+tooth, to bring the CoM back onto the axis, as real one-tooth discs are
+lightened. (A hole opposite the tooth doubles the imbalance: removing
+mass there moves the CoM toward the tooth.) The tooth's tip
+corners sweep r 91.2 mm, 3.8 mm above the floor. The axle is 30 mm behind centre and the CoM ~58 mm ahead of
 it, so the robot rests on its wheels and fork tips. Re-run only to change
 the fixture; the .step is checked in so tests never depend on this
 script's output being stable.
@@ -31,7 +39,10 @@ script's output being stable.
 import os
 import sys
 
+from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakePolygon
+from OCC.Core.BRepGProp import brepgprop
+from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRepPrimAPI import (BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder,
                                   BRepPrimAPI_MakePrism)
 from OCC.Core.gp import gp_Ax2, gp_Dir, gp_Pnt, gp_Trsf, gp_Vec
@@ -71,6 +82,32 @@ def fork():
     return BRepPrimAPI_MakePrism(face, gp_Vec(0, 25, 0)).Shape()
 
 
+DISC_R, DISC_T = 70.0, 10.0
+TOOTH_R0, TOOTH_R1, TOOTH_W = 60.0, 90.0, 30.0
+BALANCE_HOLE_R = 40.0  # radius the balance hole is centred on, mm
+
+
+def weapon():
+    """Disc + tooth along +x, balanced by a through hole at +x inboard of
+    the tooth. The disc is in its own xz plane (axis y), centred at the
+    origin."""
+    disc = y_cylinder(DISC_R, -DISC_T / 2, DISC_T / 2)
+    tooth = box(TOOTH_R0, TOOTH_R1, -DISC_T / 2, DISC_T / 2, -TOOTH_W / 2, TOOTH_W / 2)
+    toothed = BRepAlgoAPI_Fuse(disc, tooth).Shape()
+    g = GProp_GProps()
+    brepgprop.VolumeProperties(toothed, g)
+    # First moment about the axis, carried by the tooth: V * x_com. A hole
+    # of volume V_h at x = +R_h takes V_h * R_h of it away.
+    moment = g.Mass() * g.CentreOfMass().X()
+    hole_v = moment / BALANCE_HOLE_R
+    hole_r = (hole_v / (3.141592653589793 * DISC_T)) ** 0.5
+    hole = BRepPrimAPI_MakeCylinder(
+        gp_Ax2(gp_Pnt(BALANCE_HOLE_R, -DISC_T / 2, 0), gp_Dir(0, 1, 0)), hole_r, DISC_T).Shape()
+    print("weapon: tooth moment %.0f mm^4, balance hole d %.2f mm at r %.0f" %
+          (moment, 2 * hole_r, BALANCE_HOLE_R))
+    return BRepAlgoAPI_Cut(toothed, hole).Shape()
+
+
 # Products (one shape each, in its own frame), then where each instance of
 # one is placed.
 PRODUCTS = {
@@ -78,12 +115,12 @@ PRODUCTS = {
     "Rail": lambda: box(-150, 130, 0, 10, 12, 62),
     "TopPlate": lambda: box(-150, 60, -100, 100, 62, 65),
     "RearBar": lambda: box(-160, -150, -100, 100, 12, 52),
-    "Battery": lambda: box(-20, 80, -20, 20, 12, 42),
+    "Battery": lambda: box(-20, 70, -20, 20, 12, 42),
     "ESC": lambda: box(-130, -80, -25, 25, 12, 27),
     "Fork": fork,
     "Wheel": lambda: y_cylinder(31.75, -12.5, 12.5),
     "DriveMotor": lambda: y_cylinder(14, -29, 29),
-    "Weapon": lambda: y_cylinder(75, -5, 5),
+    "Weapon": weapon,
 }
 INSTANCES = (
     ("base_plate", "BasePlate", (0, 0, 0)),
@@ -99,7 +136,7 @@ INSTANCES = (
     ("wheel_R", "Wheel", (-30, -120, 31.75)),
     ("drive_motor_L", "DriveMotor", (-30, 59, 31.75)),
     ("drive_motor_R", "DriveMotor", (-30, -59, 31.75)),
-    ("weapon", "Weapon", (150, 0, 80)),
+    ("weapon", "Weapon", (150, 0, 95)),
 )
 
 

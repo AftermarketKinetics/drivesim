@@ -11,8 +11,8 @@ The fixed-step loop (docs/drivesim.md §6):
 
 - `PHYSICS_HZ` 4000, `CONTROL_HZ` 1000, `STEPS_PER_TICK` 4, `GRAVITY`.
 - `Sim { world, robot, model, target, duties }`:
-  - `Sim::new(model, mesh)`: the arena, the box at (1, 0) and the robot
-    at (−1, 0) facing +x;
+  - `Sim::new(model, mesh)`: the arena, the box (as heavy as the robot)
+    at (1, 0), and the robot at (−1, 0) facing +x;
   - `empty_world(gravity_z)` and `assemble(...)`, for tests that build
     their own scene;
   - `control_tick(frame)`, `physics_step()`;

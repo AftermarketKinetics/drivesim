@@ -30,7 +30,16 @@ fn masses_come_from_densities_and_overrides() {
         by("wheel_left"),
         PI * 0.03175f64.powi(2) * 0.025 * 1000.0
     ));
-    assert!(close(by("disc"), PI * 0.075f64.powi(2) * 0.01 * 7850.0));
+    // The toothed disc has no closed form; its density times the volume
+    // the importer measured (tools/import/tests checks that volume).
+    let disc_v = drivesim_robot::parts::parse_parts(PARTS)
+        .unwrap()
+        .parts
+        .iter()
+        .find(|p| p.instance == "weapon")
+        .unwrap()
+        .volume_m3;
+    assert!(close(by("disc"), disc_v * 7850.0));
     // Everything else is the chassis: aluminium base and rails, a UHMW
     // top, AR500 forks and rear bar, and the overridden electronics.
     let al = (0.25 * 0.2 * 0.006 + 2.0 * 0.28 * 0.01 * 0.05) * 2700.0;
@@ -41,17 +50,24 @@ fn masses_come_from_densities_and_overrides() {
 }
 
 #[test]
-fn the_disc_has_a_discs_inertia() {
+fn the_wheel_has_a_cylinders_inertia() {
     let m = fixture();
-    let d = &m.bodies.iter().find(|b| b.name == "disc").unwrap().mass;
-    let (r, t) = (0.075f64, 0.01f64);
-    assert!(close(d.inertia[1][1], d.mass * r * r / 2.0));
+    let w = &m
+        .bodies
+        .iter()
+        .find(|b| b.name == "wheel_left")
+        .unwrap()
+        .mass;
+    let (r, t) = (0.03175f64, 0.025f64);
+    assert!(close(w.inertia[1][1], w.mass * r * r / 2.0));
     assert!(close(
-        d.inertia[0][0],
-        d.mass * (3.0 * r * r + t * t) / 12.0
+        w.inertia[0][0],
+        w.mass * (3.0 * r * r + t * t) / 12.0
     ));
-    assert!(d.inertia[0][1].abs() < 1e-12);
-    assert!(close(d.com[0], 0.15) && close(d.com[2], 0.08));
+    assert!(w.inertia[0][1].abs() < 1e-12);
+    // The balanced toothed disc's CoM is on its axis.
+    let d = &m.bodies.iter().find(|b| b.name == "disc").unwrap().mass;
+    assert!((d.com[0] - 0.15).abs() < 1e-6 && (d.com[2] - 0.095).abs() < 1e-6);
 }
 
 #[test]
@@ -64,7 +80,7 @@ fn wheels_and_weapon_get_their_axes() {
     assert!(close(l.radius_m, 0.03175) && close(l.axis_point[1], 0.12));
     let w = &m.weapons[0];
     assert_eq!(w.axis_dir, [0.0, 1.0, 0.0]);
-    assert!(close(w.radius_m, 0.075));
+    assert!(close(w.radius_m, 0.09f64.hypot(0.015)));
     assert_eq!(w.mu, None);
 }
 

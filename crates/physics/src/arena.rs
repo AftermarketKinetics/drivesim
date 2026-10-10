@@ -15,8 +15,9 @@ pub const WALL_H_M: f32 = 2.4;
 /// tyre's robot.toml `mu` is its grip on this floor (painted plywood).
 pub const FLOOR_MU: f32 = 1.0;
 
-/// The target: 12 lb, 300 × 300 × 150 mm.
-pub const BOX_MASS_KG: f32 = 5.44;
+/// The target: 300 × 300 × 150 mm, as heavy as the robot driving it
+/// (user, 2026-10-10), so pushing it is like pushing an opponent of the
+/// same weight class.
 pub const BOX_HALF_M: [f32; 3] = [0.15, 0.15, 0.075];
 pub const BOX_MU: f32 = 0.4;
 
@@ -45,15 +46,15 @@ pub fn add_arena(w: &mut PhysicsWorld) -> ColliderHandle {
     floor
 }
 
-/// The free box, resting on the floor at (`x`, `y`).
-pub fn add_target(w: &mut PhysicsWorld, x: f32, y: f32) -> RigidBodyHandle {
+/// The free box of `mass_kg`, resting on the floor at (`x`, `y`).
+pub fn add_target(w: &mut PhysicsWorld, x: f32, y: f32, mass_kg: f32) -> RigidBodyHandle {
     let b = w
         .bodies
         .insert(RigidBodyBuilder::dynamic().translation(Vector::new(x, y, BOX_HALF_M[2])));
     let [hx, hy, hz] = BOX_HALF_M;
     w.colliders.insert_with_parent(
         ColliderBuilder::cuboid(hx, hy, hz)
-            .mass(BOX_MASS_KG)
+            .mass(mass_kg)
             .friction(BOX_MU)
             .friction_combine_rule(CoefficientCombineRule::Multiply),
         b,

@@ -59,7 +59,6 @@ class ImportFixture(unittest.TestCase):
         self.assertAlmostEqual(self.by["base_plate"]["volume_m3"], 0.25 * 0.2 * 0.006, places=12)
         self.assertAlmostEqual(self.by["wheel_L"]["volume_m3"],
                                math.pi * 0.03175**2 * 0.025, places=12)
-        self.assertAlmostEqual(self.by["weapon"]["volume_m3"], math.pi * 0.075**2 * 0.01, places=12)
         # The fork is a right-triangle prism: legs 80 and 38 mm, 25 mm wide.
         self.assertAlmostEqual(self.by["fork_L"]["volume_m3"], 0.5 * 0.08 * 0.038 * 0.025,
                                places=12)
@@ -68,7 +67,8 @@ class ImportFixture(unittest.TestCase):
         for name, com in (("base_plate", (-0.025, 0, 0.009)),
                           ("wheel_L", (-0.03, 0.12, 0.03175)),
                           ("wheel_R", (-0.03, -0.12, 0.03175)),
-                          ("weapon", (0.15, 0, 0.08)),
+                          # Balanced (make_fixture.py sizes its hole).
+                          ("weapon", (0.15, 0, 0.095)),
                           # A triangle's centroid is its vertices' mean.
                           ("fork_L", ((0.12 + 0.2 + 0.12) / 3, 0.0425, (0.002 * 2 + 0.04) / 3)),
                           ("fork_R", ((0.12 + 0.2 + 0.12) / 3, -0.0425, (0.002 * 2 + 0.04) / 3))):
@@ -76,25 +76,41 @@ class ImportFixture(unittest.TestCase):
                 self.assertAlmostEqual(got, want, places=9, msg=name)
 
     def test_inertia_is_about_the_centre_at_unit_density(self):
-        disc = self.by["weapon"]
-        v, r, t = disc["volume_m3"], 0.075, 0.01
+        wheel = self.by["wheel_L"]
+        v, r, t = wheel["volume_m3"], 0.03175, 0.025
         i_axis = v * r * r / 2
         i_across = v * (3 * r * r + t * t) / 12
-        i = disc["inertia_m5"]
+        i = wheel["inertia_m5"]
         self.assertAlmostEqual(i[1][1] / i_axis, 1.0, places=9)
         self.assertAlmostEqual(i[0][0] / i_across, 1.0, places=9)
         self.assertAlmostEqual(i[0][1], 0.0, places=15)
 
     def test_wheels_and_weapon_report_their_axes(self):
+        # The weapon's radius is its tooth's tip corner, not the disc's rim.
         for name, d, r, w in (("wheel_L", (0, 1, 0), 0.03175, 0.025),
-                              ("weapon", (0, 1, 0), 0.075, 0.01)):
+                              ("weapon", (0, 1, 0), math.hypot(0.09, 0.015), 0.01)):
             ax = self.by[name]["rotation_axis"]
             self.assertEqual([round(x, 9) for x in ax["dir"]], list(d), name)
-            self.assertAlmostEqual(ax["curved_fraction"] + ax["cap_fraction"], 1.0, places=6)
+            # Only a pure solid of revolution is all curved faces and caps;
+            # the tooth's sides are flat but not square to the axis.
+            if name == "wheel_L":
+                self.assertAlmostEqual(ax["curved_fraction"] + ax["cap_fraction"], 1.0, places=6)
+            else:
+                self.assertLess(ax["curved_fraction"] + ax["cap_fraction"], 1.0)
             self.assertAlmostEqual(ax["com_offset_m"], 0.0, places=9)
             # The mesh's outer radius sits on the true circle (chords lie inside).
             self.assertAlmostEqual(ax["radius_m"], r, delta=1e-6)
             self.assertAlmostEqual(ax["width_m"], w, delta=1e-6)
+
+    def test_the_toothed_disc_is_balanced_and_holed(self):
+        w = self.by["weapon"]
+        self.assertLess(w["rotation_axis"]["com_offset_m"], 1e-6)
+        # Disc plus the tooth's outboard part, less the balance hole: it
+        # lies between the bare disc less a 40 mm hole and the disc plus
+        # the whole tooth box.
+        disc = math.pi * 0.07**2 * 0.01
+        self.assertGreater(w["volume_m3"], disc - math.pi * 0.02**2 * 0.01)
+        self.assertLess(w["volume_m3"], disc + 0.03 * 0.03 * 0.01)
 
     def test_boxes_and_prisms_have_no_axis(self):
         for name in ("base_plate", "rail_L", "fork_L", "battery"):

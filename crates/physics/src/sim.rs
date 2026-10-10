@@ -40,7 +40,7 @@ impl Sim {
     ) -> Result<Sim, SpawnError> {
         let mut world = Self::empty_world(-GRAVITY);
         let _floor = add_arena(&mut world);
-        let target = add_target(&mut world, 1.0, 0.0);
+        let target = add_target(&mut world, 1.0, 0.0, model.total_mass() as f32);
         let robot = spawn_robot(&mut world, &model, mesh, -1.0, 0.0, 0.0)?;
         Ok(Self::assemble(world, robot, model, target))
     }
