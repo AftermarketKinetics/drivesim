@@ -175,9 +175,12 @@ turn = 1
 - A part's mass is its volume times its material's density, unless
   overridden; `total_mass_kg` then scales every part together, keeping
   the CoM where the CAD puts it.
-- **The motor library** (`data/motors.toml`): kv, winding resistance,
-  current limit, pole pairs, rotor inertia for common combat motors.
-  Every field can be overridden by number.
+- **The motor library** (`data/motors.toml`): kind (brushless or
+  brushed), kv, winding resistance, current limit, pole pairs, rotor
+  inertia for common combat motors, 1 lb to 30 lb (43 motors, filled
+  from NHRL Discord and vendor pages, 2026-10-10). Both kinds use the
+  same DC motor model; a brushed gearmotor's kv is the bare motor's, its
+  gearbox going in `ratio`. Every number can be overridden.
 - **Momentum's hook:** its printed parts must not use solid volume ×
   density (its repo rule: sliced masses only), so its robot file fills
   `mass_overrides` from `make masses`, generated on the Momentum side.
@@ -276,7 +279,8 @@ web/                    Bevy app, its own workspace, wasm32 only
 server/                 FastAPI: uploads, jobs, role chat, bundles, static app
 broker/                 starts gVisor import sandboxes; holds the Docker socket
 tools/import/           STEP importer (Python, pythonocc)
-deploy/                 nix-built images, push to accelerate
+nix/                    the shared nixpkgs pin and the importer's Python
+deploy/                 nix-built images (import sandbox), smoke test
 data/motors.toml
 shell.nix               pinned nixpkgs: Rust (+ wasm32 std), lld, wasm-bindgen,
                         binaryen, Python with pythonocc, uv, docker CLI
@@ -353,8 +357,17 @@ Host tests, run before any driving is trusted:
 4. `server/` and `broker/`: upload, sandboxed import, role conversation,
    per-user storage. **Done 2026-10-09** (local: 38 server tests with a
    scripted model, 5 broker tests without Docker, and one live Claude
-   conversation that wrote a checked robot.toml; the gVisor path is
-   untested).
+   conversation that wrote a checked robot.toml). **Import sandbox checked
+   2026-10-10:**
+   - `deploy/import-image.nix` builds `drivesim-import:latest`;
+   - the importer under gVisor (`runsc do`, rootless) writes output
+     byte-identical to the fixture bundle;
+   - the broker's exact docker command imports the fixture (3 s) and
+     Seraphs V1 (349 parts, 41 s) on runc (`deploy/smoke.sh`);
+   - the server in broker mode imports through the real broker process.
+
+   accelerate already runs the analyzer's sandboxes on runsc, so Docker
+   plus runsc with this image is first exercised there.
 5. `web/`: load a bundle, drive, hit the opponent copy. **Renders in the user's
    Chrome 2026-10-10** (the fixture bundle from `make web-dev`); the HUD
    shows physics headroom (× real time) so build changes can be checked

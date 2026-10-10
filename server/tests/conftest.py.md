@@ -14,8 +14,9 @@ Shared server test setup:
 - **Helpers:** `wait_for(pred, timeout)`, `occ_python()`.
 - **Constants:** `FIXTURE_STEP`, `FIXTURE_BUNDLE`.
 - **`ScriptedModel`:**
-  - `queue(*content_lists)` adds turns: one containing `tool_use` blocks
-    stops for `tool_use`, otherwise `end_turn`;
+  - `queue(*content_lists, usage=None)` adds turns: one containing
+    `tool_use` blocks stops for `tool_use`, otherwise `end_turn`. `usage`
+    is reported for each queued turn (default `{}`);
   - `calls` records the messages each turn was sent.
 
 ## Implementation

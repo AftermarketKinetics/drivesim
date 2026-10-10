@@ -36,6 +36,10 @@ class Settings:
     import_timeout_s: int
     #: Static pages served at / (server/web).
     web_dir: Path
+    #: Daily budget per user, in input-token equivalents (usage.py), and the
+    #: time zone whose midnight resets it.
+    daily_budget: float
+    budget_tz: str
     #: Development only: the username used when no authentik header is
     #: present. Never set in a deployed image.
     dev_user: str | None
@@ -60,5 +64,9 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         max_upload_bytes=int(e.get("DRIVESIM_MAX_UPLOAD_BYTES", str(95 * 1024 * 1024))),
         import_timeout_s=int(e.get("DRIVESIM_IMPORT_TIMEOUT_S", "600")),
         web_dir=Path(e.get("DRIVESIM_WEB_DIR", repo / "server" / "web")),
+        # 3 M tokens/day, counted like the bill (user, 2026-10-10;
+        # provisional until recorded setups show real costs).
+        daily_budget=float(e.get("DRIVESIM_DAILY_BUDGET", "3000000")),
+        budget_tz=e.get("DRIVESIM_BUDGET_TZ", "America/Los_Angeles"),
         dev_user=e.get("DRIVESIM_DEV_USER") or None,
     )

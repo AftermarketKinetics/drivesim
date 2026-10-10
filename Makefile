@@ -4,6 +4,8 @@
 #   make fixtures re-import fixtures/simple_bot from the fixture STEP
 #   make server-dev  the server on localhost:8420 (dev user, local import)
 #   make web-build   the browser app into server/web/sim/
+#   make import-image  the STEP import sandbox image, loaded into Docker
+#   make smoke-import  one STEP through the broker's sandbox command (RUNTIME=runsc|runc)
 
 .PHONY: test test-import test-rust
 
@@ -56,3 +58,13 @@ web-build:
 	wasm-opt -Os --strip-debug --strip-producers --enable-bulk-memory --enable-nontrapping-float-to-int \
 	  server/web/sim/drivesim_web_bg.wasm -o server/web/sim/drivesim_web_bg.wasm
 	cp web/index.html server/web/sim/index.html
+
+# The import sandbox (deploy/): build and load the image; run the fixture
+# through the broker's exact docker command. RUNTIME=runc where the local
+# Docker has no runsc registered.
+.PHONY: import-image smoke-import
+import-image:
+	docker load < $$(nix-build --no-out-link deploy/import-image.nix)
+RUNTIME ?= runsc
+smoke-import:
+	mkdir -p out && deploy/smoke.sh $(RUNTIME)

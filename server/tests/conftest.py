@@ -38,10 +38,11 @@ class ScriptedModel:
         self.turns: list[Turn] = []
         self.calls: list[list[dict[str, Any]]] = []
 
-    def queue(self, *content_lists: list[dict[str, Any]]) -> None:
+    def queue(self, *content_lists: list[dict[str, Any]], usage: dict[str, Any] | None = None) -> None:
         for content in content_lists:
             uses_tool = any(b["type"] == "tool_use" for b in content)
-            self.turns.append(Turn(content=content, stop_reason="tool_use" if uses_tool else "end_turn", usage={}))
+            self.turns.append(Turn(content=content, stop_reason="tool_use" if uses_tool else "end_turn",
+                                   usage=usage or {}))
 
     async def turn(self, *, system, tools, messages, on_text) -> Turn:
         self.calls.append([dict(m) for m in messages])

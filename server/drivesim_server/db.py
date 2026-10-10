@@ -39,6 +39,17 @@ CREATE TABLE IF NOT EXISTS messages (
     created REAL NOT NULL,
     PRIMARY KEY (robot_id, seq)
 );
+-- One row per model turn, for the daily budget. No reference to robots:
+-- deleting a robot must not hand its usage back.
+CREATE TABLE IF NOT EXISTS usage (
+    username TEXT NOT NULL,
+    robot_id TEXT NOT NULL,
+    at REAL NOT NULL,
+    model TEXT NOT NULL,
+    usage TEXT NOT NULL,
+    weighted REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS usage_by_user ON usage(username, at);
 """
 
 
@@ -113,6 +124,20 @@ class Store:
                 "SELECT role, content FROM messages WHERE robot_id = ? ORDER BY seq", (robot_id,)
             ).fetchall()
         return [{"role": r["role"], "content": json.loads(r["content"])} for r in rows]
+
+    def record_usage(self, username: str, robot_id: str, model: str,
+                     usage: dict[str, Any], weighted: float) -> None:
+        with self._conn() as c:
+            c.execute("INSERT INTO usage (username, robot_id, at, model, usage, weighted) "
+                      "VALUES (?, ?, ?, ?, ?, ?)",
+                      (username, robot_id, time.time(), model, json.dumps(usage), weighted))
+
+    def used_since(self, username: str, since: float) -> float:
+        """Weighted usage (input-token equivalents) since `since` (epoch s)."""
+        with self._conn() as c:
+            row = c.execute("SELECT COALESCE(SUM(weighted), 0) FROM usage "
+                            "WHERE username = ? AND at >= ?", (username, since)).fetchone()
+        return float(row[0])
 
     def delete_robot(self, robot_id: str) -> None:
         with self._conn() as c:

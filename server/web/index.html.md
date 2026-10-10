@@ -21,6 +21,10 @@ Uploads a `.step`/`.stp` with `POST /api/robots`, then opens
 
 Links to `radio/accelerate-elrs-pocket.yml` with `download`.
 
+Shows today's Claude usage from `GET /api/usage` above the robot list, and
+says when it's used up: new robots and replies wait until midnight Pacific,
+while set-up robots stay drivable.
+
 ## Implementation
 The two guides are collapsed `<details>` cards above the list, so a
 returning user sees their robots first. Robot names are HTML-escaped and

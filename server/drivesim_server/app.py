@@ -14,6 +14,7 @@ import json
 import re
 import shutil
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,7 @@ from .events import EventBus
 from .importer import BUNDLE, STEP_NAME, run_import
 from .llm import AnthropicClient, ModelClient
 from .loop import Agent
+from .usage import day_bounds
 
 #: Bundle files the browser may fetch: these exact names, and meshes/NNN.stl.
 BUNDLE_FILES = {"parts.json", "robot.toml"}
@@ -98,6 +100,31 @@ def owned(robot_id: str, request: Request, user: str = Depends(current_user)) ->
     return robot_id
 
 
+def budget(s: dict[str, Any], user: str) -> dict[str, Any]:
+    """Today's usage against the daily budget."""
+    start, end = day_bounds(datetime.now(UTC), s["settings"].budget_tz)
+    used = s["store"].used_since(user, start.timestamp())
+    return {"used": round(used), "budget": round(s["settings"].daily_budget),
+            "resets_at": end.isoformat(), "tz": s["settings"].budget_tz}
+
+
+def require_budget(s: dict[str, Any], user: str) -> None:
+    """Refuse new conversation work once today's budget is spent. Checked
+    before a message or upload only: a reply in progress finishes."""
+    b = budget(s, user)
+    if b["used"] >= b["budget"]:
+        raise HTTPException(
+            status_code=429,
+            detail=(f"Today's budget is used up ({b['used'] / 1e6:.1f} M of "
+                    f"{b['budget'] / 1e6:.1f} M tokens). It resets at midnight Pacific. "
+                    "Robots that are already set up can still be driven."))
+
+
+@app.get("/api/usage")
+def usage(request: Request, user: str = Depends(current_user)) -> dict[str, Any]:
+    return budget(state(request), user)
+
+
 @app.get("/api/me")
 def me(user: str = Depends(current_user)) -> dict[str, str]:
     return {"username": user}
@@ -112,6 +139,7 @@ def list_robots(request: Request, user: str = Depends(current_user)) -> list[dic
 async def upload(file: UploadFile, request: Request, user: str = Depends(current_user)) -> dict[str, Any]:
     """A new robot from a STEP upload; the import starts at once."""
     s = state(request)
+    require_budget(s, user)  # the import starts a conversation
     name = Path(file.filename or "robot").stem
     rid = s["store"].create_robot(user, name)
     target = s["agent"].robot_dir(rid) / STEP_NAME
@@ -156,6 +184,7 @@ class Message(BaseModel):
 async def post_message(msg: Message, request: Request, robot_id: str = Depends(owned)) -> dict[str, bool]:
     if state(request)["store"].robot(robot_id)["status"] != "ready":
         raise HTTPException(status_code=409, detail="the robot is not imported yet")
+    require_budget(state(request), state(request)["store"].owner(robot_id))
     spawn(state(request), state(request)["agent"].run(robot_id, msg.text))
     return {"accepted": True}
 

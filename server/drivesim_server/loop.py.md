@@ -14,6 +14,10 @@ solve queue and sandbox removed.
 - `async run(robot_id, user_text)`: one turn sequence. Exceptions become
   `error` events, and an `idle` event always follows.
 - `MAX_STEPS` 40, `MAX_MALFORMED` 2, `MAX_RESULT_CHARS` 30,000.
+- Each model turn's usage is recorded against the robot owner's daily
+  budget (`Store.record_usage`, weighted by `usage.weighted` for
+  `settings.model`). The budget is enforced in `app.py`, before a
+  message, never mid-reply.
 
 ## Implementation
 - **The history is append-only,** stored and replayed exactly as the API

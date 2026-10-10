@@ -22,6 +22,7 @@ from .llm import MalformedToolInput, ModelClient
 from .prompt import SYSTEM
 from .tools import TOOLS, ToolError, validate
 from .tools.base import Ctx
+from .usage import weighted
 
 MAX_STEPS = 40
 MAX_MALFORMED = 2
@@ -86,6 +87,7 @@ class Agent:
 
             self.store.append(robot_id, "assistant", turn.content)
             messages.append({"role": "assistant", "content": turn.content})
+            self._record(robot_id, turn.usage)
             await emit({"type": "turn_end", "stop_reason": turn.stop_reason, "usage": turn.usage})
 
             if turn.stop_reason == "pause_turn":
@@ -101,6 +103,13 @@ class Agent:
             messages.append({"role": "user", "content": results})
 
         await emit({"type": "error", "message": f"stopped after {MAX_STEPS} steps"})
+
+    def _record(self, robot_id: str, usage: dict) -> None:
+        """Count this turn against the robot owner's daily budget."""
+        owner = self.store.owner(robot_id)
+        if owner and usage:
+            model = self.settings.model
+            self.store.record_usage(owner, robot_id, model, usage, weighted(usage, model))
 
     def _close_dangling(self, robot_id: str) -> None:
         """Answer tool calls left unanswered when the service stopped mid-tool.

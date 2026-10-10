@@ -12,6 +12,7 @@ dependencies = [
   "anthropic>=1",
   "httpx",
   "python-multipart",
+  "tzdata>=2026.5",
 ]
 
 [dependency-groups]

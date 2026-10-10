@@ -61,6 +61,7 @@ Classic USB joystick mode.</p>
 </details>
 
 <h2>Your robots</h2>
+<p id="usage" class="muted"></p>
 <p class="muted">Upload a robot as a STEP assembly. It is imported, then Claude asks you a few
 questions (which parts are wheels and weapon, materials, motors) and writes its robot file.</p>
 <div class="card">
@@ -83,6 +84,17 @@ async function load() {
       <span class="muted"> · ${new Date(b.created * 1000).toLocaleString()} · </span>${state}</div>`;
   }).join("") : `<p class="muted">No robots yet.</p>`;
 }
+// Today's Claude usage against the daily budget (driving costs nothing).
+async function usage() {
+  const r = await fetch("/api/usage");
+  if (!r.ok) return;
+  const u = await r.json();
+  const m = n => (n / 1e6).toFixed(1) + " M";
+  const out = u.used >= u.budget;
+  $("usage").innerHTML = `Claude usage today: ${m(u.used)} of ${m(u.budget)} tokens, ` +
+    `resets at midnight Pacific.` + (out ? ` <span class="bad">Used up: new robots and replies ` +
+    `wait until then; set-up robots can still be driven.</span>` : "");
+}
 $("file").onchange = () => { $("go").disabled = !$("file").files.length; };
 $("go").onclick = async () => {
   const fd = new FormData();
@@ -94,6 +106,7 @@ $("go").onclick = async () => {
   location.href = "robot.html?id=" + (await r.json()).id;
 };
 load();
+usage();
 </script>
 </body>
 </html>

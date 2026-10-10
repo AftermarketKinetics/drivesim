@@ -20,6 +20,8 @@ variables, with development defaults (repo-relative):
 | `max_upload_bytes` | `MAX_UPLOAD_BYTES` | 95 MB |
 | `import_timeout_s` | `IMPORT_TIMEOUT_S` | 600 |
 | `web_dir` | `WEB_DIR` | `server/web` |
+| `daily_budget` | `DAILY_BUDGET` | 3,000,000 input-token equivalents (user, 2026-10-10; provisional) |
+| `budget_tz` | `BUDGET_TZ` | `America/Los_Angeles` (midnight Pacific resets it) |
 | `dev_user` | `DEV_USER` | unset |
 
 ## Implementation

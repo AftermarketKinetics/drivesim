@@ -12,19 +12,28 @@ robot is a 404.
 | Route | Does |
 |---|---|
 | `GET /api/me` | `{"username"}` |
+| `GET /api/usage` | today's `{"used", "budget", "resets_at", "tz"}`, in input-token equivalents |
 | `GET /api/robots` | the caller's robots, newest first |
-| `POST /api/robots` (multipart `file`) | 201 `{"id", "bytes"}`; starts the import; 413 over the cap |
+| `POST /api/robots` (multipart `file`) | 201 `{"id", "bytes"}`; starts the import; 413 over the cap; 429 when today's budget is spent |
 | `GET /api/robots/{id}` | `id, name, status, error, checked, created` |
 | `DELETE /api/robots/{id}` | 204; deletes the files and history |
 | `GET /api/robots/{id}/messages` | the stored history |
-| `POST /api/robots/{id}/messages` `{"text"}` | 202, runs the agent; 409 until imported |
+| `POST /api/robots/{id}/messages` `{"text"}` | 202, runs the agent; 409 until imported; 429 when the owner's budget is spent |
 | `GET /api/robots/{id}/events` | SSE: see `events.py.md` |
 | `GET /api/robots/{id}/bundle/{rel}` | only `parts.json`, `robot.toml`, `meshes/NNN.stl` |
 | `GET /api/motors.toml` | the motor library |
 | `/` | `server/web` pages, mounted last |
 
 Also `build_state(settings=None, model=None)`, so tests can inject their own
-settings and a scripted model.
+settings and a scripted model, and `budget(s, user)` and
+`require_budget(s, user)`.
+
+**The daily budget** (user, 2026-10-10): uploads and messages are refused
+with 429 once the user's weighted usage since midnight Pacific reaches
+`daily_budget`. The detail names the usage, the reset and that set-up
+robots can still be driven. It is checked before work starts, so a reply
+already running finishes and can overshoot. Driving and bundle fetches
+cost nothing and are never limited.
 
 ## Implementation
 - **Upload:** a new robot gets its own directory, the STEP is streamed to

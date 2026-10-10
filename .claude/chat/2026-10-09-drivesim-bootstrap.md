@@ -206,3 +206,27 @@ and also zoom out the camera just a little bit
 **User:** commit, what work is next?
 **Did:**
 - Committed the generic radio model and homepage; listed the remaining work.
+
+## 2026-10-10 21:20 Stale thinking blocks
+**User:** start with 1
+**Did:**
+- `llm.py` sends `thinking={"type":"adaptive","block_binding":{"prefix_mismatch_behavior":"drop_block"}}` with beta `thinking-binding-controls-2026-08-01`, and logs each `thinking_dropped` entry from `input_transformations`; prompt/tool changes no longer 400 open conversations.
+- New `tests/test_llm.py` (fake SDK: request shape, drop logging); real API accepted the shape via free `count_tokens`. 42 server tests pass; sidecars updated; server restarted.
+
+## 2026-10-10 22:00 Import sandbox
+**User:** move onto item 2
+**Did:**
+- WSL Docker has runc only; accelerate already runs runsc for the analyzer. Pin moved to `nix/pkgs.nix`, importer Python to `nix/import-python.nix`, gvisor added to shell; new `deploy/import-image.nix` (drivesim-import:latest, 1.1 GB, nobody, no tools) and `deploy/smoke.sh`; make `import-image`, `smoke-import`.
+- Checked: importer under `runsc do` (rootless) byte-identical to the fixture bundle (needed `do --force-overlay=false` and output outside /tmp: lesson); broker command on runc: fixture 3 s, Seraphs V1 349 parts 41 s, files host-deletable; server broker mode → real broker → bundle OK. Sidecars, doc §8/§11 updated.
+
+## 2026-10-10 22:40 Usage limits
+**User:** ask me questions on usage limits
+**Asked:** Who signs in → "Invited people only"; limit kinds → "Tokens per user per day"; at the limit → "Same, plus a usage readout"; exemptions → "No, same limits for everyone". Then: budget size → "3 M tokens/day (Recommended)"; counting → "Weighted like the bill (Recommended)"; reset → "Midnight Pacific"; mid-reply → "Finish it, then block (Recommended)".
+**Did:**
+- New `usage.py` (Sonnet 5.5 weights 1/1.25/0.1/5 from the claude-api price list; Pacific day bounds), `usage` table (survives robot deletion), loop records each turn, app refuses uploads/messages with 429 once spent, `GET /api/usage`, front-page readout; `tzdata` dependency.
+- New `tests/test_usage.py` (weights, Pacific/DST day, record → refuse → delete keeps usage); 45 server tests pass; sidecars updated; server restarted.
+
+## 2026-10-10 22:50 Commit; plan the deploy
+**User:** commit, then plan the deploy
+**Did:**
+- Committed items 1-3 (stale thinking drop, import sandbox image + smoke test, daily budget). Planning the accelerate deploy next.
