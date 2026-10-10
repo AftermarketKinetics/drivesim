@@ -13,6 +13,11 @@ check result.
   - `status` (refreshes the status line);
   - `robot` (shows the check report).
 - Sends replies with `POST /messages`.
+- **Delete this robot** (user, 2026-10-11): after a `confirm()` naming
+  the robot, `DELETE /api/robots/{id}`, then back to the list. The
+  upload, robot file and conversation go; the day's usage stays counted.
+- Loads `session.js`; every API call goes through `apiFetch`, so an
+  expired login reloads the page instead of failing.
 - Loads `markdown.js` and renders assistant replies as markdown,
   re-rendering the streaming reply as each chunk arrives. Its raw text is
   kept on the element as `raw`.

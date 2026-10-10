@@ -25,6 +25,9 @@ Shows today's Claude usage from `GET /api/usage` above the robot list, and
 says when it's used up: new robots and replies wait until midnight Pacific,
 while set-up robots stay drivable.
 
+The guides are `welcome/guide.html`, inserted into `#guide`; every API
+call goes through `session.js`'s `apiFetch`.
+
 ## Implementation
 The two guides are collapsed `<details>` cards above the list, so a
 returning user sees their robots first. Robot names are HTML-escaped and

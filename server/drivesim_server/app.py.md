@@ -28,6 +28,11 @@ Also `build_state(settings=None, model=None)`, so tests can inject their own
 settings and a scripted model, and `budget(s, user)` and
 `require_budget(s, user)`.
 
+**Static files** (`WebFiles`) are served `no-cache` with an ETag from each
+file's content, hashed once and kept. Nix images give every file a 1970
+mtime, so Starlette's default left pages cached for years and same-size
+rebuilds came back 304 (the analyzer's lesson, 2026-10-08).
+
 **The daily budget** (user, 2026-10-10): uploads and messages are refused
 with 429 once the user's weighted usage since midnight Pacific reaches
 `daily_budget`. The detail names the usage, the reset and that set-up

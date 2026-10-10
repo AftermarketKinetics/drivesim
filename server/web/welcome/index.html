@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- The public landing page: what an anonymous visitor to drivesim sees.
+     Caddy serves only /, /welcome/* and /radio/* without login and rewrites
+     / to /welcome/ when there is no authentik cookie, so this page must
+     need nothing else: its styles are inline and it calls no API. -->
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drivesim</title>
+<style>
+  :root { --bg: #f7f7f5; --fg: #1b1b1b; --muted: #666; --card: #fff; --line: #ddd; --accent: #2f6fdb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151515; --fg: #eaeaea; --muted: #9a9a9a; --card: #1f1f1f; --line: #333; --accent: #6aa0ff; }
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif;
+         margin: 0 auto; padding: 16px; max-width: 860px; }
+  a { color: var(--accent); }
+  .muted { color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+  .demo { display: block; width: 100%; height: auto; border-radius: 8px; margin: 8px 0 4px; background: #000; }
+  .signin { display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+            border-radius: 6px; padding: 8px 18px; margin: 8px 0 16px; }
+  details summary { cursor: pointer; }
+  details ol { padding-left: 1.4em; } details li { margin: 0.35em 0; }
+  table { border-collapse: collapse; margin: 0.5em 0; }
+  th, td { text-align: left; padding: 3px 12px 3px 0; border-bottom: 1px solid var(--line); }
+  code { font: 13px ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<h1>drivesim</h1>
+<p>Practise driving your combat robot before it exists: upload its CAD, answer a few questions,
+and drive it in NHRL's 16 ft cage, from the driver's box, with your own radio. Physics include
+the drive motors, tyre grip and your weapon's gyroscopic effect.</p>
+<p class="muted">drivesim is invite-only and uses your combat-robot.systems account. No account
+yet? See <a href="https://wiki.combat-robot.systems/">wiki.combat-robot.systems</a> for how to get
+one.</p>
+<video class="demo" src="bigwheels.mp4" autoplay muted loop playsinline controls
+       aria-label="Driving a big-wheeled robot in drivesim"></video>
+<a class="signin" href="/outpost.goauthentik.io/start?rd=/">Sign in</a>
+<div id="guide"></div>
+<script>
+fetch("/welcome/guide.html").then(r => r.ok ? r.text() : "").then(t => {
+  document.getElementById("guide").innerHTML = t;
+});
+</script>
+</body>
+</html>

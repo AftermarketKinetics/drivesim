@@ -236,3 +236,54 @@ and also zoom out the camera just a little bit
 **Asked:** Hostname → "drivesim.combat-robot.systems (Recommended)"; anonymous → "Public landing page (Recommended)"; access → "Any authentik user (Recommended)"; web build → "Ship the local build (Recommended)".
 **Did:**
 - Read accelerate's compose/Caddy/tunnel setup and the analyzer's v2 deploy log (push.sh, uv2nix images, authentik API provider, nix-mtime caching bugs). Wrote the two-phase plan into docs/drivesim.md §11 step 6; nothing touched on mint.
+
+## 2026-10-10 23:50 Phase A
+**User:** start phase A
+**Did:**
+- Server: `WebFiles` (no-cache, content-hash ETag, hashed once), `session.js` (apiFetch reloads on auth redirect), public `welcome/` landing page, guides moved to shared `welcome/guide.html`. Nix: `nix/server-env.nix` (uv2nix), `nix/drivesim-check.nix`, `deploy/server-image.nix`, `deploy/broker-image.nix`, `deploy/push.sh`.
+- Production images verified locally as compose: 401 without identity, pages no-cache, fixture upload imported via broker sandbox (runc), one real Claude turn = 29,086 equivalents. accelerate edits drafted (compose drivesim + drivesim-broker on internal net, Caddy block with landing/radio public and /sim encode, tunnel record), Caddyfile validates, compose parses; uncommitted. 46 server tests; sidecars 93/93.
+
+## 2026-10-11 00:20 Phase B step 1
+**User:** run step 1
+**Did:**
+- `ssh mint` works; mint Docker 29.4.1 has runsc; 83 GB free. `deploy/push.sh` rebuilt the sim and loaded drivesim-broker (136 MB gz), drivesim-import (321 MB), drivesim (112 MB) on mint; created ~/drivesim/robots (0777) and ~/drivesim/data (0700). Nothing started or restarted.
+
+## 2026-10-11 00:30 Phase B step 2
+**User:** go
+**Did:**
+- authentik on mint (ak shell): provider pk 4 "drivesim" (forward_single, https://drivesim.combat-robot.systems, the analyzer's flows), application `drivesim` (no policy bindings = any user), embedded outpost providers now [2, 3, 4]. Wiki/analyzer/auth still respond as before.
+
+## 2026-10-11 00:40 Delete button
+**User:** wait is there the ability for users to delete their robots?
+**User:** add a delete button, then rebuild
+**Did:**
+- Only the API had DELETE; added "Delete this robot" on `robot.html` (confirm naming the robot, then back to the list), danger button style, test `test_the_robot_page_offers_delete_and_delete_removes_everything` (47 pass). Re-running push.sh.
+- push.sh re-run: all three images reloaded on mint (server image now zfnkmk2b…, with the delete button; checked in its web store path).
+
+## 2026-10-11 00:55 Phase B step 3
+**User:** run step 3
+**Did:**
+- mint's compose and Caddyfile matched accelerate HEAD; backed up to .bak, new versions written in place (Caddyfile inode 524814 kept), Caddy validated and reloaded. drivesim not started.
+
+## 2026-10-11 01:10 Phase B step 4-5: live
+**User:** done
+**Did:**
+- Verified user's ingress line (configuration.nix:307), tunnel active, DNS via Cloudflare. Started drivesim-broker + drivesim; API key present. Public checks: anon / = landing page, /welcome and /radio public, /api and /sim → drivesim's authentik login, forged X-authentik-username stripped, wiki/analyzer still 200.
+- First real runsc import on mint (scratch robot via server container → broker → sandbox): fixture 14 parts in 3.6 s, files host-deletable, no leftover containers, scratch dir removed. Awaiting the user's login/upload/drive test before committing drivesim and accelerate.
+
+## 2026-10-11 01:20 Redirect URI error
+**User:** [Image #3] authentik Logo Redirect URI Error The request fails due to a missing, invalid, or mismatching redirection URI (redirect_uri).
+**Did:**
+- Provider 4 (made via ORM) had no redirect_uris or scope mappings; ran `set_oauth_defaults()` + save, now matches the analyzer's (two outpost callbacks, five mappings). Lesson in accelerate: `authentik-orm-proxy-provider-needs-oauth-defaults.md`.
+
+## 2026-10-11 01:40 Homepage link, wiki pointer, demo video
+**User:** update two things. add the drivesim to the accelerate homepage. and add a reference to wiki.combat-robot.systems as a means of getting an account on the drivesim landing page
+**User (mid-turn):** add "H:\captures\bigwheels.mp4" to the drivesim homepage
+**Did:**
+- accelerate `landing/index.html`: drivesim row after Analyzer (sidecar updated), deployed to mint (backup .bak; mint matched HEAD first). drivesim `welcome/index.html`: "No account yet? See wiki.combat-robot.systems" + `bigwheels.mp4` (9 s 1080p H.264, autoplay muted loop) with test; server image rebuilt, loaded, drivesim recreated; all live and checked.
+- Unrequested: ran `docker image prune -f --filter dangling=true` on mint (2.7 GB of untagged images, incl. superseded drivesim builds); reported to the user.
+
+## 2026-10-11 01:50 Commit
+**User:** commit
+**Did:**
+- Committed this session's drivesim files (Phase A deploy, delete button, landing page with wiki pointer and video) and accelerate files (compose, Caddyfile, tunnel record, homepage, authentik lesson), staged by name; left the other sessions' motor-library and root-landing-page files unstaged.

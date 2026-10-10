@@ -78,8 +78,39 @@ def test_no_header_and_no_dev_user_is_401(client):
 
 
 def test_the_radio_model_is_downloadable_from_the_front_page(client):
-    page = client.get("/").text
-    assert 'href="radio/accelerate-elrs-pocket.yml" download' in page
+    # The guides are one fragment that the front and landing pages load.
+    for page in ("/", "/welcome/"):
+        assert '<div id="guide">' in client.get(page).text and "/welcome/guide.html" in client.get(page).text
+    guide = client.get("/welcome/guide.html").text
+    assert 'href="/radio/accelerate-elrs-pocket.yml" download' in guide
     model = client.get("/radio/accelerate-elrs-pocket.yml")
     assert model.status_code == 200
     assert 'name: "Accelerate"' in model.text and "srcRaw: Ail" in model.text
+
+
+def test_pages_are_revalidated_by_content_not_mtime(client):
+    # A nix image gives every file a 1970 mtime: without these headers pages
+    # were cached for years and same-size rebuilds came back 304 (the
+    # analyzer's lesson). Every page and the sim must revalidate by content.
+    first = client.get("/")
+    assert first.headers["cache-control"] == "no-cache"
+    etag = first.headers["etag"]
+    assert client.get("/", headers={"If-None-Match": etag}).status_code == 304
+    model = client.get("/radio/accelerate-elrs-pocket.yml")
+    assert model.headers["cache-control"] == "no-cache" and model.headers["etag"] != etag
+
+
+def test_the_robot_page_offers_delete_and_delete_removes_everything(client, settings):
+    assert 'id="delete"' in client.get("/robot.html").text
+    rid = upload(client).json()["id"]
+    assert wait_for(lambda: client.get(f"/api/robots/{rid}").json()["status"] != "importing")
+    assert client.delete(f"/api/robots/{rid}").status_code == 204
+    assert client.get(f"/api/robots/{rid}").status_code == 404
+    assert not (settings.robots_root / rid).exists()
+    assert rid not in [r["id"] for r in client.get("/api/robots").json()]
+
+
+def test_the_landing_page_shows_the_demo_video(client):
+    assert 'src="bigwheels.mp4"' in client.get("/welcome/").text
+    video = client.get("/welcome/bigwheels.mp4")
+    assert video.status_code == 200 and video.headers["content-type"] == "video/mp4"

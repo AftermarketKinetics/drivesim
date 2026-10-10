@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>drivesim robot</title>
 <link rel="stylesheet" href="style.css">
+<script src="session.js"></script>
 <script src="markdown.js"></script>
 </head>
 <body>
@@ -16,6 +17,7 @@
   <textarea id="text" rows="3" placeholder="Reply…"></textarea>
   <button id="send">Send</button> <span id="busy" class="muted"></span>
 </div>
+<p><button id="delete" class="danger">Delete this robot</button></p>
 <script>
 const $ = id => document.getElementById(id);
 const rid = new URLSearchParams(location.search).get("id");
@@ -43,7 +45,7 @@ function showCheck(r) {
     <div class="muted">${r.weapons.map(w => `${w.name}: ${w.no_load_rpm} rpm no-load, tip ${w.no_load_tip_speed_m_s} m/s`).join(" · ")}</div>`;
 }
 async function status() {
-  const b = await (await fetch(api(""))).json();
+  const b = await (await apiFetch(api(""))).json();
   $("name").textContent = b.name || "Robot";
   $("status").innerHTML = b.status === "failed" ? `<span class="bad">Import failed:</span> <pre>${esc(b.error)}</pre>`
     : b.status === "importing" ? "Importing the STEP…" : b.checked ? `<span class="good">Ready to drive.</span> <a href="sim/?robot=${encodeURIComponent(rid)}">Drive it →</a>` : "Imported. Setting up roles…";
@@ -56,7 +58,7 @@ function history(msgs) {
 }
 async function start() {
   await status();
-  history(await (await fetch(api("/messages"))).json());
+  history(await (await apiFetch(api("/messages"))).json());
   const es = new EventSource(api("/events"));
   es.onmessage = e => {
     const ev = JSON.parse(e.data);
@@ -79,9 +81,18 @@ $("send").onclick = async () => {
   add("user", text);
   $("text").value = "";
   $("busy").textContent = "thinking…";
-  const r = await fetch(api("/messages"), { method: "POST", headers: {"Content-Type": "application/json"},
+  const r = await apiFetch(api("/messages"), { method: "POST", headers: {"Content-Type": "application/json"},
                                             body: JSON.stringify({ text }) });
   if (!r.ok) $("busy").textContent = (await r.json()).detail;
+};
+// Deleting removes the upload, the robot file and the conversation; the
+// day's usage stays counted. Asks first: it cannot be undone.
+$("delete").onclick = async () => {
+  const name = $("name").textContent || "this robot";
+  if (!confirm(`Delete ${name}? This removes its upload, robot file and conversation, and cannot be undone.`)) return;
+  const r = await apiFetch(api(""), { method: "DELETE" });
+  if (r.ok) location.href = "./";
+  else $("busy").textContent = "could not delete: HTTP " + r.status;
 };
 start();
 </script>

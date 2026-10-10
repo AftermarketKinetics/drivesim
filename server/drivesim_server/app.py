@@ -10,6 +10,7 @@ POST a message, watch ``/events`` (SSE) for streamed text and tool activity.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import re
 import shutil
@@ -19,9 +20,10 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.datastructures import Headers
 
 from .auth import current_user
 from .config import Settings, load_settings
@@ -229,7 +231,42 @@ def motors(request: Request, user: str = Depends(current_user)) -> FileResponse:
     return FileResponse(state(request)["settings"].motors_toml, media_type="text/plain")
 
 
+class WebFiles(StaticFiles):
+    """The pages and the sim, with explicit caching.
+
+    Files in a nix image carry a 1970 mtime, and Starlette derives
+    Last-Modified and the ETag from mtime + size. With no Cache-Control a
+    page is cached for years, so a refresh skips Caddy's login check. Even
+    revalidated, a rebuilt file of the same size gets the same ETag and a
+    304, and browsers keep the old release (the analyzer's lesson,
+    2026-10-08). So every file is `no-cache` with an ETag from its content.
+    drivesim's names are fixed (drivesim_web.js, drivesim_web_bg.wasm), so
+    nothing can be marked immutable. The hash is taken once per file and
+    kept: image files never change, and the wasm is 30 MB.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._etags: dict[tuple[str, int, float], str] = {}
+
+    def file_response(self, full_path, stat_result, scope, status_code=200):
+        key = (str(full_path), stat_result.st_size, stat_result.st_mtime)
+        etag = self._etags.get(key)
+        if etag is None:
+            h = hashlib.sha256()
+            with open(full_path, "rb") as f:
+                for block in iter(lambda: f.read(1 << 20), b""):
+                    h.update(block)
+            etag = self._etags[key] = '"%s"' % h.hexdigest()[:32]
+        headers = {"Cache-Control": "no-cache", "ETag": etag}
+        if etag in (Headers(scope=scope).get("if-none-match") or ""):
+            return Response(status_code=304, headers=headers)
+        resp = super().file_response(full_path, stat_result, scope, status_code)
+        resp.headers.update(headers)
+        return resp
+
+
 # The pages, last so every /api route above takes precedence.
 _web = load_settings().web_dir
 if _web.is_dir():
-    app.mount("/", StaticFiles(directory=_web, html=True), name="web")
+    app.mount("/", WebFiles(directory=_web, html=True), name="web")
