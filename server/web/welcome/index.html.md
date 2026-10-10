@@ -12,7 +12,7 @@ drivesim is, has a Sign in button, and shows the two guides.
 - Points visitors without an account to `https://wiki.combat-robot.systems/`,
   which explains how to get one (user, 2026-10-11).
 - Inserts `/welcome/guide.html`.
-- Shows `bigwheels.mp4`, a 9 s 1080p H.264 clip of driving in the sim
+- Shows `bigwheels.mp4`, a 9 s 1920×944 H.264 clip (cropped of browser and taskbar chrome) of driving in the sim
   (user, 2026-10-11), above Sign in: autoplay, muted, looping, with
   controls. Browsers only autoplay muted video.
 
