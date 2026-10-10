@@ -231,3 +231,8 @@ and also zoom out the camera just a little bit
 **Did:**
 - Committed items 1-3 (stale thinking drop, import sandbox image + smoke test, daily budget). Planning the accelerate deploy next.
 - Mistake: `git add -A` swept another session's uncommitted motor-library work (9 files) into that commit; took them back out (reset --soft, restore --staged, commit -C ORIG_HEAD), files on disk unchanged (md5 checked); now 598c965. Lesson `stage-only-your-own-files.md`.
+
+## 2026-10-10 23:10 Deploy plan
+**Asked:** Hostname → "drivesim.combat-robot.systems (Recommended)"; anonymous → "Public landing page (Recommended)"; access → "Any authentik user (Recommended)"; web build → "Ship the local build (Recommended)".
+**Did:**
+- Read accelerate's compose/Caddy/tunnel setup and the analyzer's v2 deploy log (push.sh, uv2nix images, authentik API provider, nix-mtime caching bugs). Wrote the two-phase plan into docs/drivesim.md §11 step 6; nothing touched on mint.

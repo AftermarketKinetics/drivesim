@@ -373,3 +373,32 @@ Host tests, run before any driving is trusted:
    shows physics headroom (× real time) so build changes can be checked
    in the browser.
 6. Deploy on accelerate (asks the user first: it changes the live site).
+   Plan (user, 2026-10-10), modelled on the analyzer's v2 deploy:
+   - **Where:** `drivesim.combat-robot.systems`; anonymous visitors get a
+     public landing page (what drivesim is, the radio guide, sign in);
+     any authentik user may use it, each under the daily budget.
+   - **Phase A, local:**
+     - images: `deploy/server-image.nix` (uv2nix service, `drivesim-check`,
+       motor library, web pages plus the locally built sim, which
+       `push.sh` rebuilds every time), `deploy/broker-image.nix`, and the
+       import image;
+     - `deploy/push.sh`: streams the images into `docker load` on mint and
+       creates `~/drivesim/robots` (0777) and `~/drivesim/data` (0700);
+     - the analyzer's caching fixes (no-cache HTML, content-hash ETags)
+       and response compression;
+     - the production images verified locally, with one real Claude turn;
+     - accelerate edits: compose services `drivesim` and
+       `drivesim-broker` on an internal network, a Caddy block copied from
+       the analyzer's, and the tunnel record.
+   - **Phase B, live, each command approved:**
+     - push the images;
+     - an authentik forward-auth provider and application, added to the
+       embedded outpost;
+     - compose and Caddyfile to mint, then reload Caddy (wiki and analyzer
+       still 200);
+     - the user: DNS, the tunnel ingress in mint's `configuration.nix`,
+       then `nixos-rebuild` (runsc already registered; API key from the
+       analyzer's `.env`);
+     - start the services, then `deploy/smoke.sh runsc` on mint and a
+       login, upload and drive;
+     - commit both repos.
