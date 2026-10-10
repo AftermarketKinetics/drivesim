@@ -297,3 +297,9 @@ and also zoom out the camera just a little bit
 **User:** write a simple readme for the drivesim repo
 **Did:**
 - New `README.md` (what it is, live URL and accounts via the wiki, how it works, layout, develop commands, deploy, conventions); doc status line updated to "live 2026-10-11". Committed.
+
+## 2026-10-11 02:30 Everything 302s
+**User:** everything 302s now [pasted: GET / → 302]
+**User:** no something isnt working, in a new incognito tab the analyzer subdomain lands but the drivesim subdomain 302s
+**Did:**
+- Cause: any anonymous request to a protected path (Chrome's own /favicon.ico; the old relative /bigwheels.mp4) makes the outpost set an authentik_proxy cookie (1 h), and Caddy's @landing matcher treats any such cookie as signed in. Landing page now has an inline data: icon; test enforces it (49 pass); deployed. Lesson in accelerate: `landing-page-must-not-touch-protected-paths.md`. Sturdier Caddy fallback still proposed.

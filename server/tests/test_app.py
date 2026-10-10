@@ -125,8 +125,12 @@ def test_the_landing_page_uses_only_absolute_public_paths():
     for name in ("index.html", "guide.html"):
         page = (REPO / "server/web/welcome" / name).read_text()
         for attr, url in re.findall(r'\b(src|href)="([^"]+)"', page):
-            if url.startswith(("https://", "#")):
+            if url.startswith(("https://", "#", "data:")):
                 continue
             assert url.startswith(("/welcome/", "/radio/", "/outpost.goauthentik.io/")), (name, url)
         for url in re.findall(r'fetch\("([^"]+)"', page):
             assert url.startswith("/welcome/"), (name, url)
+    # Without an icon of its own the browser fetches /favicon.ico, which is
+    # behind the login and leaves an authentik_proxy cookie behind.
+    index = (REPO / "server/web/welcome/index.html").read_text()
+    assert re.search(r'<link rel="icon" href="data:', index)

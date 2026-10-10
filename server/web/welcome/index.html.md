@@ -17,6 +17,14 @@ drivesim is, has a Sign in button, and shows the two guides.
   controls. Browsers only autoplay muted video.
 
 ## Implementation
+**It must never make the browser fetch a protected path.** Any anonymous
+request outside the public paths (`/favicon.ico` included, which browsers
+fetch by themselves) gets authentik's outpost to set an `authentik_proxy`
+cookie on its way to the login redirect. Caddy's landing matcher then
+sees a cookie and sends `/` to login for the cookie's hour. That was the
+"everything 302s" report of 2026-10-11, seen even in incognito. So the
+page carries an inline `data:` icon.
+
 **Every path is absolute** (`/welcome/...`): Caddy serves this page at `/`
 by an internal rewrite, so the browser's base is `/` and a relative
 `bigwheels.mp4` resolved to `/bigwheels.mp4`, behind login (user report,
