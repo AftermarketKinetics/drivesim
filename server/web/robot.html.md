@@ -13,6 +13,8 @@ check result.
   - `status` (refreshes the status line);
   - `robot` (shows the check report).
 - Sends replies with `POST /messages`.
+- Once the robot is checked, links to the browser sim at
+  `sim/?robot={id}` (`make web-build` puts the app in `web/sim/`).
 
 ## Implementation
 - Automated notices (`[Automated notice …]`) are hidden from the replayed

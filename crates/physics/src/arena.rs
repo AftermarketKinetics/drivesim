@@ -1,14 +1,18 @@
-//! The arena: a steel floor, four walls and the free target box
-//! (docs/drivesim.md §6).
+//! The arena: NHRL's 12 lb cage (also its 30 lb cage), four walls and the
+//! free target box (docs/drivesim.md §6). Source: the NHRL wiki, "NHRL
+//! Facilities" and "Cage Design" (both last edited 2025-08), read
+//! 2026-10-09: 16' x 16' usable floor of plywood painted with dead-flat
+//! paint, double-walled polycarbonate walls on a 6x6 timber skirt, a roof.
 
 use rapier3d::prelude::*;
 
-/// Inside width of the square arena, m. PROVISIONAL: 16 ft, Momentum's
-/// placeholder; the NHRL 12 lb cage size is an open question (§10).
-pub const ARENA_SIDE_M: f32 = 4.88;
-pub const WALL_H_M: f32 = 0.6;
-/// Floor friction; colliders combine friction by multiplying, so a tyre's
-/// `mu` against this floor is exactly its robot.toml value.
+/// Inside width of the square arena, m: 16 ft (NHRL wiki).
+pub const ARENA_SIDE_M: f32 = 16.0 * 0.3048;
+/// The wiki gives no wall height; the cage is roofed, so the walls only
+/// need to be taller than any robot can climb. PROVISIONAL.
+pub const WALL_H_M: f32 = 2.4;
+/// Floor friction factor; colliders combine friction by multiplying, so a
+/// tyre's robot.toml `mu` is its grip on this floor (painted plywood).
 pub const FLOOR_MU: f32 = 1.0;
 
 /// The target: 12 lb, 300 × 300 × 150 mm.

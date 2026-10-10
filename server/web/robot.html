@@ -41,7 +41,7 @@ async function status() {
   const b = await (await fetch(api(""))).json();
   $("name").textContent = b.name || "Robot";
   $("status").innerHTML = b.status === "failed" ? `<span class="bad">Import failed:</span> <pre>${esc(b.error)}</pre>`
-    : b.status === "importing" ? "Importing the STEP…" : b.checked ? `<span class="good">Ready to drive.</span>` : "Imported. Setting up roles…";
+    : b.status === "importing" ? "Importing the STEP…" : b.checked ? `<span class="good">Ready to drive.</span> <a href="sim/?robot=${encodeURIComponent(rid)}">Drive it →</a>` : "Imported. Setting up roles…";
 }
 function history(msgs) {
   for (const m of msgs) for (const b of m.content) {

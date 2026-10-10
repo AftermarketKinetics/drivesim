@@ -3,7 +3,8 @@
     "tools",
     "crates",
     "server",
-    "broker"
+    "broker",
+    "web"
   ],
   "extensions": [
     ".py",
@@ -17,7 +18,8 @@
     "**/__pycache__/**",
     "**/fixtures/**",
     "**/.venv/**",
-    "**/var/**"
+    "**/var/**",
+    "server/web/sim/**"
   ],
   "sidecar_suffix": ".md"
 }

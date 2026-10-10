@@ -4,3 +4,5 @@ __pycache__/
 server/.venv/
 server/var/
 .pytest_cache/
+server/web/sim/
+web/target/

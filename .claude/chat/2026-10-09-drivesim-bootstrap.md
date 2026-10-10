@@ -41,3 +41,33 @@ decision to make the sim a general tool in its own repo) are logged in
 **Did:**
 - Committed d14fef7. Ran one real conversation (sonnet-5-5 via the ant profile) on the fixture through server-dev: correct roles from geometry, one batched question set, checked robot.toml in two turns.
 - Tuned from it: notice carries the upload name, tilt on an edge is normal, arm = 5 by default. 38 tests pass.
+
+## 10:20 Web app plan questions
+**Asked:** Arena? Keep the placeholder / I'll give the size / Look it up → "Look it up". Camera? Driver's eye only / Driver's eye + chase toggle / Driver's eye + overhead → "Driver's eye only".
+**Did:**
+- NHRL wiki (Facilities, Cage Design; edited 2025-08): 12/30 lb cage 16'x16', painted plywood floor (not steel), double-walled polycarbonate on a timber skirt, roofed. arena.rs/doc/prompt updated; wall height 2.4 m provisional.
+- Started web/ (Bevy 0.20, own workspace, minimal features: no gilrs/multithread/audio, webgpu); cold wasm build of a cube spike running.
+
+## 11:00 Web app first build
+**Did:**
+- web/ app: radio (Gamepad API by EdgeTX ID), bundle_load (fetch + same loader), sim_step (real time, 50 ms catch-up cap), robot_render (per-part meshes, z-up root), arena_render (16 ft cage, box), camera (driver's eye), hud; page shell; `make web-build` -> server/web/sim (48 MB wasm after wasm-opt).
+- Bevy 0.20 builds for wasm32 with the nix toolchain (deps 6.5 min cold); two API renames fixed. Not yet run in a browser: asked the user to open the fixture in Chrome.
+
+## 2026-10-10 02:10 Web app renders; sidecars, wasm size
+**User:** it renders fine, continue building
+**Did:**
+- Sidecars for every `web/` file; `web` added to `.claude/sidecar.json` roots (build output `server/web/sim/` ignored).
+- HUD shows physics headroom (× real time, `performance.now()` around stepping) so build changes can be judged in the browser.
+- Wasm 48.5 MB (43.5 MB code, 11.6 MB gzipped): trying opt-level "s" + fat LTO with the physics stack at opt 3; the opt-3 build kept at `out/sim-o3/` to compare.
+
+## 2026-10-10 02:35 Size build done
+**Did:**
+- opt "s" + fat LTO (physics stack at opt 3) + `wasm-opt -Os`: 48.5 → 30.0 MB (11.6 → 8.6 MB gzipped); release build now ~13 min.
+- `server/web/robot.html` links checked robots to `sim/?robot=<id>`.
+- Asked the user to compare physics headroom between `out/sim-o3/` and `server/web/sim/`.
+
+## 2026-10-10 02:50 First drive: turning too fast
+**User:** can push the box, controls work, SA arms, weapon spins up. main issue is that the friction/turning is way undetuned, you turn way too fast. forward acceleration is good
+**Did:**
+- Probe (temporary test, deleted): full-stick spin reaches 160 rad/s, 95–97% of the ideal 2v/track at every stick level, so friction is not losing anything; the fixture's invented gearing gives 16.9 m/s top speed (Momentum's target is 4.47 m/s on a 240 mm track, so ~37 rad/s).
+- Asking the user how to fix it (fixture gearing, turn shaping, scrub model) before changing anything.

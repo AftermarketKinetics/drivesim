@@ -1,0 +1,38 @@
+# robot_render.rs
+
+## Function
+
+Draws the robot's parts, and anything else linked to a rapier body, where
+the physics puts them.
+
+## Interface
+
+- `SimRoot`: a component marking the entity that turns rapier's z-up world
+  into Bevy's y-up one.
+- `BodyLink(RigidBodyHandle)`: a component drawing an entity at that
+  body's pose. `arena_render` uses it for the target box too.
+- `spawn_robot_visuals(commands, root, bundle, sim, meshes, mats)`: one
+  entity per body, with one mesh child per part.
+- `sync_bodies`: a system copying each linked body's pose into its
+  `Transform`.
+
+## Implementation
+
+- **Mesh vertices are body-local without any per-body offset.** Every
+  body is created at the robot frame's pose (physics `spawn.rs`), so STEP
+  vertices turned by `model.step_to_robot` are already in each body's
+  frame.
+- **Flat shading:** each triangle gets its own three vertices and its face
+  normal, so faceted CAD tessellation reads as crisp edges. Faces are
+  drawn double-sided, so a part with inward-wound faces still shows.
+- A part's colour is its CAD colour, or grey when the STEP has none.
+- A part whose STL won't parse is skipped rather than failing the load.
+  The physics already loaded it, so this can't happen for a checked
+  bundle.
+
+## Assertions
+
+- `sync_bodies` copies poses unchanged; the rotation lives only on
+  `SimRoot`.
+- The bodies of `model.bodies` and `sim.robot.bodies` correspond by
+  index.

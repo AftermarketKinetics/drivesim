@@ -3,6 +3,7 @@
 #   make web-dev  serve the repo on localhost:8417 (pad test, web builds)
 #   make fixtures re-import fixtures/simple_bot from the fixture STEP
 #   make server-dev  the server on localhost:8420 (dev user, local import)
+#   make web-build   the browser app into server/web/sim/
 
 .PHONY: test test-import test-rust
 
@@ -42,3 +43,16 @@ server-dev:
 	cargo build -q --release -p drivesim-cli
 	cd server && DRIVESIM_DEV_USER=dev DRIVESIM_IMPORT_PYTHON=$$(command -v python3) \
 	  uv run uvicorn drivesim_server.app:app --host 127.0.0.1 --port 8420
+
+# The browser app -> server/web/sim/ (served by the server at /sim/, and by
+# web-dev at /server/web/sim/). The test robot without a server:
+#   http://localhost:8417/server/web/sim/?bundle=/fixtures/simple_bot/&motors=/data/motors.toml
+.PHONY: web-build
+web-build:
+	cd web && cargo build --release --target wasm32-unknown-unknown
+	rm -rf server/web/sim && mkdir -p server/web/sim
+	wasm-bindgen --target web --no-typescript --out-name drivesim_web --out-dir server/web/sim \
+	  web/target/wasm32-unknown-unknown/release/drivesim-web.wasm
+	wasm-opt -Os --strip-debug --strip-producers --enable-bulk-memory --enable-nontrapping-float-to-int \
+	  server/web/sim/drivesim_web_bg.wasm -o server/web/sim/drivesim_web_bg.wasm
+	cp web/index.html server/web/sim/index.html

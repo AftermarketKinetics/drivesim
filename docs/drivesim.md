@@ -197,8 +197,10 @@ its own fixed-tick loop.
   the motor model's torque goes onto the rotor about its axis and the
   opposite onto the chassis, so reaction torque is real. (Rapier's
   velocity motors never moved the spike robot.)
-- **Arena:** floor and four walls; NHRL cage size TBD (§10). **Target:** a
-  free box, 5.44 kg, 300 × 300 × 150 mm.
+- **Arena:** NHRL's 12 lb cage: 16' × 16' usable, a floor of plywood
+  painted with dead-flat paint (not steel), polycarbonate walls on a timber
+  skirt, a roof (NHRL wiki, read 2026-10-09). **Target:** a free box,
+  5.44 kg, 300 × 300 × 150 mm.
 
 **Timestep.** The physics step is sized from the fastest rotor, not the
 control rate. Measured 2026-10-09 (timing spike, lesson
@@ -299,7 +301,8 @@ Host tests, run before any driving is trusted:
 - **Weapon hits are approximate.** CCD handles linear motion well and
   fast rotation poorly. Fine for driving feel and hit timing, not for
   damage numbers (Momentum's OpenRadioss workflow covers those).
-- **Arena dimensions:** NHRL's 12 lb cage size, floor and wall materials.
+- **Floor grip:** tyre `mu` values are for painted plywood; there are no
+  measured numbers yet.
 - **Momentum's assembly STEP:** a whole-robot export from Fusion does not
   exist yet.
 - **`momentum-core` in the server build:** a path dependency works
@@ -320,7 +323,11 @@ Host tests, run before any driving is trusted:
 3. `crates/robot`, then `crates/physics` with the §9 tests.
 4. `server/` and `broker/`: upload, sandboxed import, role conversation,
    per-user storage. **Done 2026-10-09** (local: 38 server tests with a
-   scripted model, 5 broker tests without Docker; the gVisor path and a
-   live Claude conversation are untested).
-5. `web/`: load a bundle, drive, hit the box.
+   scripted model, 5 broker tests without Docker, and one live Claude
+   conversation that wrote a checked robot.toml; the gVisor path is
+   untested).
+5. `web/`: load a bundle, drive, hit the box. **Renders in the user's
+   Chrome 2026-10-10** (the fixture bundle from `make web-dev`); the HUD
+   shows physics headroom (× real time) so build changes can be checked
+   in the browser.
 6. Deploy on accelerate (asks the user first: it changes the live site).

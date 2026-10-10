@@ -1,0 +1,50 @@
+# The browser app (docs/drivesim.md §8): Bevy draws, drivesim-physics
+# simulates. Its own workspace so host `cargo test` never builds Bevy;
+# wasm32-unknown-unknown only (`make web-build`).
+[workspace]
+
+[package]
+name = "drivesim-web"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# No bevy_gilrs (its guessed pad layout flips axes; radio.rs reads the
+# Gamepad API itself), no multi_threaded (wasm is single-threaded here),
+# no audio, no gltf scenes beyond what 3d_bevy_render pulls in.
+bevy = { version = "0.20", default-features = false, features = [
+  "default_app", "std", "bevy_winit", "default_font", "webgpu",
+  "3d_bevy_render", "ui_api", "ui_bevy_render",
+] }
+drivesim-physics = { path = "../crates/physics" }
+drivesim-robot = { path = "../crates/robot" }
+drivesim-input = { path = "../crates/input" }
+rapier3d = "0.36"
+# Must equal the wasm-bindgen CLI in shell.nix exactly.
+wasm-bindgen = "=0.2.127"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+  "Window", "Navigator", "Gamepad", "Location", "UrlSearchParams", "Response",
+  "Performance",
+] }
+
+# Size for everything (the download), speed for the physics stack (4 kHz
+# stepping has to stay several times faster than real time).
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+strip = "debuginfo"
+
+[profile.release.package.drivesim-physics]
+opt-level = 3
+[profile.release.package.rapier3d]
+opt-level = 3
+[profile.release.package.parry3d]
+opt-level = 3
+[profile.release.package.glam]
+opt-level = 3
+
+[profile.dev.package."*"]
+opt-level = 3
