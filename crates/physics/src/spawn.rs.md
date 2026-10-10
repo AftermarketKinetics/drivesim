@@ -37,7 +37,8 @@ Turns a `RobotModel` into rapier bodies, colliders and revolute joints
 - **Wheel colliders:** a cylinder at the measured radius and width,
   rotated from rapier's y axis onto the wheel's axis. A tessellated rim
   would bump.
-- **Other bodies:** one `part_shape` per part. The weapon gets CCD.
+- **Other bodies:** `body_shapes`, the convex hulls of the body's 12
+  biggest parts (`shapes.rs`). The weapon gets CCD.
 - **Joints:** revolute, with contacts off between the jointed pair.
 - **Placement:** rests the lowest mesh vertex or wheel rim on the floor,
   with 0.5 mm clearance. The rim calculation assumes a horizontal axle.

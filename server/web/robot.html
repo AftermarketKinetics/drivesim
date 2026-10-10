@@ -4,6 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>drivesim robot</title>
 <link rel="stylesheet" href="style.css">
+<script src="markdown.js"></script>
 </head>
 <body>
 <p><a href="./">← all robots</a></p>
@@ -22,10 +23,14 @@ const api = p => `/api/robots/${rid}${p}`;
 let live = null; // the assistant message being streamed
 
 function esc(s) { return s.replace(/[&<>]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c])); }
+// Assistant replies are markdown (markdown.js escapes before it marks up);
+// everything else is shown as typed.
 function add(cls, text) {
   const d = document.createElement("div");
   d.className = "msg " + cls;
-  d.innerHTML = esc(text);
+  d.raw = text;
+  if (cls === "assistant") d.innerHTML = renderMarkdown(text);
+  else d.innerHTML = esc(text);
   $("chat").appendChild(d);
   return d;
 }
@@ -55,7 +60,11 @@ async function start() {
   const es = new EventSource(api("/events"));
   es.onmessage = e => {
     const ev = JSON.parse(e.data);
-    if (ev.type === "text") { live = live || add("assistant", ""); live.textContent += ev.text; }
+    if (ev.type === "text") {
+      live = live || add("assistant", "");
+      live.raw += ev.text;
+      live.innerHTML = renderMarkdown(live.raw);
+    }
     else if (ev.type === "turn_end") live = null;
     else if (ev.type === "tool_start") add("tool", `→ ${ev.name}`);
     else if (ev.type === "robot") { showCheck(ev.report); status(); }

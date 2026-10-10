@@ -190,10 +190,13 @@ its own fixed-tick loop.
 **Bodies:**
 
 - **Chassis:** one body for every part without another role. Collider:
-  one convex hull per part, or parry's V-HACD decomposition for a part
-  its hull overfills by more than 1.5× (brackets, rings); *proposal,
-  2026-10-09*: cheaper than decomposing everything, and most robot parts
-  are near-convex. Mass, CoM and inertia are set from the importer's
+  the convex hulls of the body's 12 biggest parts by volume. Small parts
+  (fasteners, magnets, internals) collide not at all but keep their mass.
+  The first scheme (2026-10-09) gave every part a hull, or a V-HACD
+  decomposition where the hull overfilled it. On the first real robot
+  (Seraphs V1, 349 parts, 2026-10-10) that made 695 colliders across it
+  and its opponent copy, took 46 s to build and ran at 0.01× real time;
+  twelve hulls per body build in 0.1 s and run at 3.6×. Mass, CoM and inertia are set from the importer's
   exact numbers, not the colliders.
 - **Wheels:** a body per wheel group on a revolute joint, axis from the
   importer, cylinder collider at the measured radius and width. Torque
@@ -314,9 +317,11 @@ Host tests, run before any driving is trusted:
 
 ## 10. Open questions
 
-- **WASM speed with real colliders.** The spike's 6.6× margin is with
-  boxes and cylinders; V-HACD compounds of a real robot cost more. To be
-  re-measured with Momentum's imported geometry.
+- **WASM speed with real robots.** Seraphs V1 runs at 3.6× real time
+  natively with twelve hulls per body; the browser is slower. A robot
+  whose outline depends on small parts (a thin wedge tip, a skid) may
+  need those parts to get a shape; no robot file setting exists for that
+  yet.
 - **Wheel friction feel.** Rapier's contact friction is Coulomb, with no
   slip curve; driving may feel too grippy. A contact-modification hook
   could shape friction by slip if needed.

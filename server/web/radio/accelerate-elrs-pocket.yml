@@ -1,0 +1,103 @@
+# accelerate: an ELRS RadioMaster Pocket model for drivesim (EdgeTX 2.10
+# schema, 128x64 B&W). A copy of Momentum's radio/edgetx/momentum.yml
+# (2026-10-10) with only this header and the model name changed, so a robot
+# driven in the sim and the real one share the same sticks and switches:
+#   CH1 turn (right stick X)   CH2 throttle (right stick Y)
+#   CH3 weapon (left stick Y)  CH4 lifter (left stick X)
+#   CH5 arm (SA down)          CH6 assist (SD)  CH7 strike (SE)  CH8 invert (SB)
+# Install: copy to the radio's SD card as MODELS/modelNN.yml in a FREE slot
+# NN (copying onto an existing number replaces that model).
+semver: 2.10.0
+header:
+  name: "Accelerate"
+# Inputs: the four sticks, no radio-side expo or rates (the board applies
+# expo, docs/drive-assist.md §2). Sticks are named by role, the form the
+# Pocket's 2.10.0 writes and reads (it rewrote 2.12's RH/LV/RV/LH as NONE,
+# 2026-10-09); in Mode 2: Ail = right X, Ele = right Y, Thr = left Y
+# (non-centring), Rud = left X.
+expoData:
+  - srcRaw: Ail
+    chn: 0
+    mode: 3
+    weight: 100
+  - srcRaw: Ele
+    chn: 1
+    mode: 3
+    weight: 100
+  - srcRaw: Thr
+    chn: 2
+    mode: 3
+    weight: 100
+  - srcRaw: Rud
+    chn: 3
+    mode: 3
+    weight: 100
+inputNames:
+  0:
+    val: "Trn"
+  1:
+    val: "Thr"
+  2:
+    val: "Wpn"
+  3:
+    val: "Lft"
+# Mixes: destCh is 0-based (0 = CH1). Switches send -100 up, +100 down;
+# the core reads a switch as on above +50%, so every function is on in the
+# DOWN position (SB: down only).
+mixData:
+  - destCh: 0
+    srcRaw: "I0"
+    weight: 100
+  - destCh: 1
+    srcRaw: "I1"
+    weight: 100
+  - destCh: 2
+    srcRaw: "I2"
+    weight: 100
+  - destCh: 3
+    srcRaw: "I3"
+    weight: 100
+  - destCh: 4
+    srcRaw: "SA"
+    weight: 100
+  - destCh: 5
+    srcRaw: "SD"
+    weight: 100
+  - destCh: 6
+    srcRaw: "SE"
+    weight: 100
+  - destCh: 7
+    srcRaw: "SB"
+    weight: 100
+limitData:
+  0:
+    name: "Turn"
+  1:
+    name: "Thr"
+  2:
+    name: "Wpn"
+  3:
+    name: "Lift"
+  4:
+    name: "Arm"
+  5:
+    name: "Asst"
+  6:
+    name: "Strk"
+  7:
+    name: "Inv"
+# Loading the model refuses to start until the arm switch is off (up) and
+# the weapon stick is low (throttle warning, on by default).
+# 2.10 form: switch letter + u/-/d, only the switches listed are checked.
+switchWarningState: Au
+# Internal ELRS module: CRSF, 16 channels. ELRS arms from CH5 (AUX1) on its
+# own; 2.10 has no crsfArmingMode setting.
+moduleData:
+  0:
+    type: TYPE_CROSSFIRE
+    subType: 0
+    channelsStart: 0
+    channelsCount: 16
+    failsafeMode: NOT_SET
+  1:
+    type: TYPE_NONE

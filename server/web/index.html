@@ -2,11 +2,65 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>drivesim robots</title>
+<title>drivesim</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Your robots</h1>
+<h1>drivesim</h1>
+<p class="muted">Drive your combat robot in NHRL's 16 ft cage, from its CAD, with your own radio.</p>
+
+<details class="card">
+<summary><b>How it works</b></summary>
+<ol>
+  <li><b>Export the whole robot as a STEP assembly</b> from your CAD (not one part), with part
+    names kept. Fasteners and electronics can stay in.</li>
+  <li><b>Upload it below.</b> A big assembly takes a minute or two to import.</li>
+  <li><b>Answer Claude's questions.</b> From the CAD alone it can't tell which parts are wheels
+    and weapon, which way the weapon spins, what things are made of, or which motors and gear
+    ratios you use. It asks in one message; answer what you know, and it writes and checks the
+    robot file.</li>
+  <li><b>When the page says "Ready to drive", click "Drive it".</b> The sim runs in Chrome or Edge
+    (it needs WebGPU). Your robot starts facing an orange copy of itself, which sits armed with
+    its sticks centred.</li>
+  <li><b>Plug in your radio</b> (below) and move a stick so the browser sees it. Arm with SA.</li>
+</ol>
+<p class="muted">The top-left readout shows the radio, arming, speed, weapon rpm, tilt and
+"physics N× real time": below 1× the sim can't keep up and runs slow.</p>
+</details>
+
+<details class="card">
+<summary><b>Set up your radio (EdgeTX + ELRS)</b></summary>
+<p><a href="radio/accelerate-elrs-pocket.yml" download>Download accelerate-elrs-pocket.yml</a>:
+a model for the RadioMaster Pocket on EdgeTX 2.10. It is the same layout as a real ELRS robot,
+so what you practise is what you drive.</p>
+<table>
+  <tr><th>Channel</th><th>Control</th><th>Does</th></tr>
+  <tr><td>CH1</td><td>right stick left/right</td><td>turn</td></tr>
+  <tr><td>CH2</td><td>right stick up/down</td><td>drive</td></tr>
+  <tr><td>CH3</td><td>left stick up/down</td><td>weapon (stick down = off)</td></tr>
+  <tr><td>CH5</td><td>SA</td><td>arm (down = armed)</td></tr>
+</table>
+<p class="muted">CH4 and CH6–8 (lifter, assist, strike, invert) are for Momentum and do nothing
+in the sim.</p>
+<ol>
+  <li><b>Copy the model onto the radio.</b> Plug the radio in by USB and choose
+    <i>USB Storage</i> (or put its SD card in a reader). Open <code>MODELS/</code> and copy the
+    file in as <code>modelNN.yml</code>, using a number that isn't there yet: copying onto an
+    existing number replaces that model.</li>
+  <li><b>Select it:</b> eject, press MDL and pick <i>Accelerate</i>. Zero any trims. On load,
+    the radio wants SA up and the weapon stick down.</li>
+  <li><b>For the sim:</b> plug in by USB and choose <i>USB Joystick (HID)</i>. Leave the joystick
+    mode on <i>Classic</i>, the default. Open the drive page and move a stick; the readout
+    changes from "NO RADIO" to "radio connected".</li>
+  <li><b>For a real robot:</b> the Pocket's internal ELRS module sends the same channels. Bind
+    your receiver as usual; ELRS arms from CH5.</li>
+</ol>
+<p class="muted">Another EdgeTX radio works too: give it a model with the four channels above
+(CH1 aileron, CH2 elevator, CH3 throttle, CH5 a two-position switch), no expo or rates, and
+Classic USB joystick mode.</p>
+</details>
+
+<h2>Your robots</h2>
 <p class="muted">Upload a robot as a STEP assembly. It is imported, then Claude asks you a few
 questions (which parts are wheels and weapon, materials, motors) and writes its robot file.</p>
 <div class="card">
@@ -17,6 +71,7 @@ questions (which parts are wheels and weapon, materials, motors) and writes its 
 <div id="list"></div>
 <script>
 const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 async function load() {
   const r = await fetch("/api/robots");
   const robots = r.ok ? await r.json() : [];
@@ -24,7 +79,7 @@ async function load() {
     const state = b.status === "failed" ? `<span class="bad">import failed</span>`
       : b.status === "importing" ? "importing…"
       : b.checked ? `<span class="good">ready to drive</span>` : "needs setting up";
-    return `<div class="card"><a href="robot.html?id=${b.id}">${b.name || "robot"}</a>
+    return `<div class="card"><a href="robot.html?id=${encodeURIComponent(b.id)}">${esc(b.name || "robot")}</a>
       <span class="muted"> · ${new Date(b.created * 1000).toLocaleString()} · </span>${state}</div>`;
   }).join("") : `<p class="muted">No robots yet.</p>`;
 }

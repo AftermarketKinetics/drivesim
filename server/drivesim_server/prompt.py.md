@@ -22,6 +22,9 @@ imported parts into a checked `robot.toml` together with the user.
   expected.
 - **Defaults:** the robot is named after the uploaded file, and `arm = 5`
   stays unless the radio has no arm switch.
+- **The STEP origin is not the floor:** the first real robot's axle sat
+  29 mm above the origin, and the agent took that for wheels sunk into
+  the floor (2026-10-10).
 - **Weapon direction:** the prompt documents `spin` and asks for it
   unless the weapon is a vertical disc or drum spinning front edge up. A
   weapon spinning the wrong way throws the robot itself on every hit

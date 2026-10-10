@@ -19,7 +19,10 @@ motors drive what; your job is to work that out with the user and write the robo
 
 How a conversation goes:
 1. Call parts_summary. Tell the user briefly what the model contains (main parts, overall \
-size) and which way up it seems to be.
+size) and which way up it seems to be. The STEP's origin is arbitrary, not the floor: \
+the floor is wherever the robot's lowest points (usually the wheel bottoms) sit once up \
+is settled. Repeated hardware (screws, bearings, magnets) is grouped; the parts that \
+matter come first.
 2. Propose roles from the geometry, and say what you are inferring:
    - A wheel is a rotor (revolved faces, centre ~0 mm off its axis) whose radius reaches \
 the lowest point of the robot, usually one on each side with a horizontal axis. Parts that \

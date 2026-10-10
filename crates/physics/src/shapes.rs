@@ -1,25 +1,32 @@
-//! Collision shapes from a part's mesh (robot-frame triangles).
+//! Collision shapes for a body, from its parts' meshes (robot-frame
+//! triangles).
 
 use drivesim_robot::stl::Tri;
 use rapier3d::prelude::*;
-use std::collections::HashMap;
 
-/// A hull more than this many times the part's own volume is too poor a
-/// fit (an L-bracket, a ring), and the part is decomposed instead.
-pub const HULL_SLACK: f32 = 1.5;
+/// A body collides as the convex hulls of at most this many of its parts,
+/// the biggest by volume. The first real robot (Seraphs V1, 2026-10-10)
+/// had 349 parts: a shape per part, with V-HACD for the concave ones, made
+/// 695 colliders (3,619 convex pieces) across it and its opponent copy,
+/// 46 s to build and 0.01x real time. Twelve hulls per body ran it at 6.3x.
+/// Small parts (fasteners, magnets, internals) get no shape; their mass
+/// still counts, from the model.
+pub const MAX_HULLS_PER_BODY: usize = 12;
 
-/// Convex hull of the part, or a V-HACD decomposition when the hull
-/// overfills it by more than `HULL_SLACK`. `None` for a degenerate mesh.
-pub fn part_shape(tris: &[Tri]) -> Option<SharedShape> {
-    let (verts, idx) = indexed(tris);
-    let hull = SharedShape::convex_hull(&verts)?;
-    let volume = mesh_volume(tris);
-    let hull_volume = hull.mass_properties(1.0).mass();
-    if volume > 0.0 && hull_volume > HULL_SLACK * volume {
-        Some(SharedShape::convex_decomposition(&verts, &idx))
-    } else {
-        Some(hull)
-    }
+/// The convex hulls of the body's `MAX_HULLS_PER_BODY` biggest parts.
+/// Degenerate meshes (no hull) are skipped.
+pub fn body_shapes(parts: &[Vec<Tri>]) -> Vec<SharedShape> {
+    let mut by_size: Vec<(f32, &Vec<Tri>)> =
+        parts.iter().map(|t| (mesh_volume(t).abs(), t)).collect();
+    by_size.sort_by(|a, b| b.0.total_cmp(&a.0));
+    by_size
+        .into_iter()
+        .take(MAX_HULLS_PER_BODY)
+        .filter_map(|(_, t)| {
+            let pts: Vec<Vector> = t.iter().flatten().map(|p| Vector::from(*p)).collect();
+            SharedShape::convex_hull(&pts)
+        })
+        .collect()
 }
 
 /// Enclosed volume of a closed, outward-wound mesh (divergence theorem).
@@ -27,26 +34,6 @@ pub fn mesh_volume(tris: &[Tri]) -> f32 {
     tris.iter()
         .map(|[a, b, c]| Vector::from(*a).dot(Vector::from(*b).cross(Vector::from(*c))) / 6.0)
         .sum()
-}
-
-/// STL triangles share no vertices; V-HACD wants an indexed mesh. Vertices
-/// within a micrometre are merged.
-fn indexed(tris: &[Tri]) -> (Vec<Vector>, Vec<[u32; 3]>) {
-    let mut map: HashMap<[i64; 3], u32> = HashMap::new();
-    let mut verts = Vec::new();
-    let idx = tris
-        .iter()
-        .map(|t| {
-            t.map(|p| {
-                let key = p.map(|x| (x as f64 * 1e6).round() as i64);
-                *map.entry(key).or_insert_with(|| {
-                    verts.push(Vector::from(p));
-                    (verts.len() - 1) as u32
-                })
-            })
-        })
-        .collect();
-    (verts, idx)
 }
 
 #[cfg(test)]
@@ -81,17 +68,29 @@ mod tests {
     fn a_box_is_its_own_hull() {
         let t = box_tris([0.0; 3], [0.2, 0.1, 0.05]);
         assert!((mesh_volume(&t) - 0.001).abs() < 1e-9);
-        let s = part_shape(&t).unwrap();
-        assert!(s.as_convex_polyhedron().is_some());
+        let s = body_shapes(&[t]);
+        assert_eq!(s.len(), 1);
+        assert!(s[0].as_convex_polyhedron().is_some());
     }
 
     #[test]
-    fn an_l_shape_is_decomposed() {
-        let mut t = box_tris([0.0; 3], [0.2, 0.02, 0.02]);
-        t.extend(box_tris([0.0, 0.0, 0.02], [0.02, 0.02, 0.2]));
-        // Two boxes touching on a face: not one closed mesh, but the volume
-        // still sums, and the hull (a big triangle prism) overfills it.
-        let s = part_shape(&t).unwrap();
-        assert!(s.as_compound().is_some());
+    fn only_the_biggest_parts_get_shapes() {
+        // 20 cubes of growing size: the 12 biggest get hulls.
+        let parts: Vec<Vec<Tri>> = (1..=20)
+            .map(|i| {
+                let a = i as f32 * 0.01;
+                box_tris([i as f32, 0.0, 0.0], [i as f32 + a, a, a])
+            })
+            .collect();
+        let s = body_shapes(&parts);
+        assert_eq!(s.len(), MAX_HULLS_PER_BODY);
+        let smallest = s
+            .iter()
+            .map(|sh| sh.mass_properties(1.0).mass())
+            .fold(f32::INFINITY, f32::min);
+        assert!(
+            (smallest - 0.09f32.powi(3)).abs() < 1e-6,
+            "smallest hull {smallest}"
+        );
     }
 }

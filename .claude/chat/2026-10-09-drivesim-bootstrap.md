@@ -159,3 +159,40 @@ and also zoom out the camera just a little bit
 **User:** commit
 **Did:**
 - Committed the wide fixture, the orange opponent copy, wall markings, camera move and weapon `spin`.
+
+## 2026-10-10 18:40 What next
+**User:** everything looks good, whats next?
+**Did:**
+- Laid out the remaining build order and asked the user to pick.
+**Asked:** Next → "Real path, locally (Recommended)".
+**Did:**
+- Started `make server-dev` (localhost:8420, user "dev", local import, credentials from `ant auth login`); pages, /sim/ and the wasm served with the right types. One old robot from the 2026-10-09 live test is listed. Handed the user the upload → conversation → drive steps.
+
+## 2026-10-10 19:10 Markdown; truncated parts list
+**User:** the markdown rendering is broken [Image #2]
+**Did:**
+- New `server/web/markdown.js` (escape-first renderer: paragraphs, headings, lists, code, bold/italic); `robot.html` renders assistant replies with it, live while streaming; `.js` added to sidecar scope.
+- First real robot (Seraphs V1, 349 parts): import was right (16 in wheels around a 342 mm body; blade is "Symmetric v10"), but `parts_summary` overflowed the 30 k result cap (~42 k chars) so the agent never saw the blade. It now groups >2 identical instances and sorts biggest first (17 k chars, 89 lines) and returns the robot bbox; prompt says the STEP origin is not the floor. New test; server restarted.
+
+## 2026-10-10 19:25 Thinking-block 400; start over
+**User:** BadRequestError: Error code: 400 - {... 'messages.1.content.6: Invalid `signature` in `thinking` block. The block is bound to a different conversation. ... The `system` prompt and the `tools` list both differ from when this block was created.'} (request_id req_011CftzXcHLFz1gBDQDr9y3F)
+**User:** delete the request and ill start over
+**Did:**
+- Cause: my mid-conversation prompt and tool-description changes invalidated the stored thinking blocks (preserved-thinking check). Deleted robot Seraphs V1 (c813e428…) and its conversation via the API; the old test robot remains.
+
+## 2026-10-10 20:00 Seraphs V1 too slow
+**User:** speed has gone down to 0.3 with seraphs v1 and its impossible to do anything
+**Did:**
+- Measured: 695 colliders (214 parts V-HACD'd into 3,619 pieces), 46 s to build, 0.01x real time native. Compared: hull per part 0.03x; one hull per body 8.2x; 12 biggest parts' hulls 6.3x (chosen: keeps real-part outline).
+- `shapes.rs` now `body_shapes` (hulls of the 12 biggest parts per body, no V-HACD); Seraphs V1 builds in 0.1 s and runs at 3.6x native with the weapon on. Tests, sidecars and doc §6/§10 updated; wasm rebuilding.
+
+## 2026-10-10 20:30 Radio model download; guide
+**User:** headroom is good, 1.9, drives good and is smooth. copy over the momentum elrs yml and call it "accelerate-elrs-pocket.yml" and make it downloadable on the main page. also add a quick guide on how to use the site and set up an elrs tx for it
+**Did:**
+- `server/web/radio/accelerate-elrs-pocket.yml`: Momentum's `momentum.yml` with a new header and model name "Accelerate" (otherwise identical), with sidecar.
+- `index.html`: "How it works" and "Set up your radio (EdgeTX + ELRS)" guides (download link, channel table, install into a free MODELS slot, USB Joystick Classic for the sim, ELRS for a real robot); robot names now escaped. Test `test_the_radio_model_is_downloadable_from_the_front_page`; 40 server tests pass.
+
+## 2026-10-10 20:40 Commit
+**User:** commit
+**Did:**
+- Committed markdown rendering, grouped parts summary, 12-hull collision shapes, radio model download and the front-page guides.

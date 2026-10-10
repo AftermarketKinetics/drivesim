@@ -6,6 +6,7 @@ The role conversation's tools on the fixture bundle, with the real checker.
 ## Interface
 Tests:
 - `test_parts_summary_lists_parts_with_axes`
+- `test_parts_summary_groups_repeats_and_puts_big_parts_first`
 - `test_write_checks_and_marks_the_robot`
 - `test_show_and_list_motors`
 - `test_write_without_an_import_is_a_tool_error`

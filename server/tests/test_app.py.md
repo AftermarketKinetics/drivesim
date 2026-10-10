@@ -12,6 +12,7 @@ Tests:
 - `test_a_broken_step_fails_the_robot_not_the_server`
 - `test_oversized_uploads_are_refused`
 - `test_no_header_and_no_dev_user_is_401`
+- `test_the_radio_model_is_downloadable_from_the_front_page`
 
 ## Implementation
 **Traversal cases are percent-encoded**: the HTTP client normalises a

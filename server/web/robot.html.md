@@ -13,6 +13,9 @@ check result.
   - `status` (refreshes the status line);
   - `robot` (shows the check report).
 - Sends replies with `POST /messages`.
+- Loads `markdown.js` and renders assistant replies as markdown,
+  re-rendering the streaming reply as each chunk arrives. Its raw text is
+  kept on the element as `raw`.
 - Once the robot is checked, links to the browser sim at
   `sim/?robot={id}` (`make web-build` puts the app in `web/sim/`).
 
@@ -20,7 +23,11 @@ check result.
 - Automated notices (`[Automated notice …]`) are hidden from the replayed
   history; the user didn't write them.
 - Tool calls show as `→ name` lines.
-- All text is HTML-escaped before display.
+- All text is HTML-escaped before display. Assistant text goes through
+  `renderMarkdown`, which escapes first; user text is escaped and shown
+  with its line breaks (`white-space: pre-wrap`). Before 2026-10-10,
+  replies were escaped into one block, so newlines collapsed and
+  `**bold**` showed raw (user report).
 
 ## Assertions
 - Never inserts model or user text as HTML unescaped.

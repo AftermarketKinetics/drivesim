@@ -11,7 +11,8 @@
     ".rs",
     ".nix",
     ".sh",
-    ".html"
+    ".html",
+    ".js"
   ],
   "ignore": [
     "**/target/**",

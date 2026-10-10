@@ -75,3 +75,11 @@ def test_no_header_and_no_dev_user_is_401(client):
     s["settings"] = replace(s["settings"], dev_user=None)
     assert client.get("/api/me").status_code == 401
     assert client.get("/api/me", headers=BOB).json() == {"username": "bob"}
+
+
+def test_the_radio_model_is_downloadable_from_the_front_page(client):
+    page = client.get("/").text
+    assert 'href="radio/accelerate-elrs-pocket.yml" download' in page
+    model = client.get("/radio/accelerate-elrs-pocket.yml")
+    assert model.status_code == 200
+    assert 'name: "Accelerate"' in model.text and "srcRaw: Ail" in model.text

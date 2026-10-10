@@ -6,7 +6,7 @@
 //! from the model (the importer's exact B-rep numbers) plus each rotor's
 //! motor inertia reflected through its gearing; colliders carry no mass.
 
-use crate::shapes::part_shape;
+use crate::shapes::body_shapes;
 use drivesim_robot::math::mat_vec;
 use drivesim_robot::stl::{Tri, parse_stl};
 use drivesim_robot::{RobotModel, Side};
@@ -144,17 +144,15 @@ pub fn spawn_robot(
                 &mut w.bodies,
             );
         } else {
-            for t in &tris[i] {
-                if let Some(shape) = part_shape(t) {
-                    w.colliders.insert_with_parent(
-                        ColliderBuilder::new(shape)
-                            .density(0.0)
-                            .friction(BODY_MU)
-                            .friction_combine_rule(CoefficientCombineRule::Multiply),
-                        handle,
-                        &mut w.bodies,
-                    );
-                }
+            for shape in body_shapes(&tris[i]) {
+                w.colliders.insert_with_parent(
+                    ColliderBuilder::new(shape)
+                        .density(0.0)
+                        .friction(BODY_MU)
+                        .friction_combine_rule(CoefficientCombineRule::Multiply),
+                    handle,
+                    &mut w.bodies,
+                );
             }
         }
         bodies.push(handle);

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from conftest import FIXTURE_BUNDLE
@@ -30,6 +32,24 @@ async def test_parts_summary_lists_parts_with_axes(ctx):
     wheel = next(line for line in out["parts"] if "wheel_L" in line)
     assert "axis (0.00,1.00,0.00) r 31.8 mm" in wheel
     assert (await TOOLS["parts_summary"].run(ctx, {"contains": "weapon"}))["count"] == 1
+
+
+async def test_parts_summary_groups_repeats_and_puts_big_parts_first(ctx):
+    path = ctx.bundle / "parts.json"
+    doc = json.loads(path.read_text())
+    screw = dict(doc["parts"][0], product="M3 screw", volume_m3=1e-8)
+    doc["parts"] += [dict(screw, id=100 + i, instance=f"M3 screw:{i}") for i in range(5)]
+    path.write_text(json.dumps(doc))
+    out = await TOOLS["parts_summary"].run(ctx, {})
+    assert out["count"] == 19
+    screws = [line for line in out["parts"] if "M3 screw" in line]
+    assert len(screws) == 1 and screws[0].startswith("5 x product 'M3 screw'")
+    # Pairs stay apart; the biggest part (the 300 cm3 base plate) leads,
+    # and the five screws, 0.05 cm3 together, come last.
+    assert sum("wheel_" in line for line in out["parts"]) == 2
+    assert "'base_plate'" in out["parts"][0]
+    assert out["parts"][-1] == screws[0]
+    assert out["robot_bbox"].endswith(" mm")
 
 
 async def test_write_checks_and_marks_the_robot(ctx):
