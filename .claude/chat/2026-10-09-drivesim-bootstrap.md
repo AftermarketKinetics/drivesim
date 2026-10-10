@@ -196,3 +196,13 @@ and also zoom out the camera just a little bit
 **User:** commit
 **Did:**
 - Committed markdown rendering, grouped parts summary, 12-hull collision shapes, radio model download and the front-page guides.
+
+## 2026-10-10 20:50 Remove Momentum references
+**User:** remove the momentum specific references from the homepage and from the yml in drivesim
+**Did:**
+- `accelerate-elrs-pocket.yml`: header and comments made generic; CH4/CH6-8 and input 4 renamed from Momentum's Lift/Asst/Strk/Inv to their controls (Rud/SD/SE/SB); mixes, warnings and module unchanged. `index.html`: spare-channel note no longer names Momentum. Sidecar updated; 40 server tests pass.
+
+## 2026-10-10 21:00 Commit; next
+**User:** commit, what work is next?
+**Did:**
+- Committed the generic radio model and homepage; listed the remaining work.

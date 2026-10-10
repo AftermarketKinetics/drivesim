@@ -14,19 +14,27 @@ sticks and switches.
 | 1 | right stick X (`Ail`) | turn |
 | 2 | right stick Y (`Ele`) | throttle |
 | 3 | left stick Y (`Thr`) | weapon |
-| 4 | left stick X (`Rud`) | — (Momentum's lifter) |
+| 4 | left stick X (`Rud`), named "Rud" | spare |
 | 5 | SA, down | arm |
-| 6–8 | SD, SE, SB | — (Momentum's assist, strike, invert) |
+| 6–8 | SD, SE, SB, named after their switches | spare |
 
 Served as a static file at `/radio/accelerate-elrs-pocket.yml`.
 
 ## Implementation
 
-- **A copy of Momentum's `radio/edgetx/momentum.yml`** (2026-10-10). Only
-  the header comment and the model name ("Accelerate") differ: below the
-  header, `diff` shows just the name line. Its sidecar there holds the
-  why of every field: role-name stick sources for 2.10, `Au` switch
-  warning, no expo, and so on.
+- **Derived from Momentum's `radio/edgetx/momentum.yml`** (2026-10-10),
+  with the Momentum-specific parts removed (user, same day). Mixes,
+  inputs, switch warning and module settings are identical. What differs:
+  - the header and comments;
+  - the model name ("Accelerate");
+  - the names of CH4 and CH6–8 and of input 4, which were Momentum's
+    functions (Lift, Asst, Strk, Inv) and are now named after their
+    controls (Rud, SD, SE, SB).
+
+  Momentum's sidecar holds the why of every field: role-name stick
+  sources for 2.10, the `Au` switch warning, no expo.
+- **Nothing on the page or in the file names Momentum.** The spare
+  channels are for any robot that uses them.
 - **The copy does not follow changes to Momentum's file.** If that model
   changes and the change should reach site users, copy it again and keep
   the name.
