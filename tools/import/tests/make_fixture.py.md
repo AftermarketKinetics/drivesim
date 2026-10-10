@@ -9,7 +9,9 @@ like one (user, 2026-10-10):
   and an ESC;
 - two steel forks (a triangular prism, the wedge and front skids);
 - two inline drive motors and two `Wheel` instances, 30 mm behind
-  centre;
+  centre, on a 440 mm track (the chassis is 400 mm wide since
+  2026-10-10, user: "twice as wide"; the base plate went to 3 mm and the
+  rear bar to 6 mm to stay inside 12 lb);
 - a vertical `Weapon` disc between the forks, with one big tooth
   (user, 2026-10-10) and a balance hole.
 

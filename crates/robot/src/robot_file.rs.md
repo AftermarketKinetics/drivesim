@@ -16,7 +16,8 @@ The `robot.toml` schema: everything a STEP cannot say
 - `[mass_overrides]`: pattern → kg.
 - `[[wheel]]` / `[[weapon]]`: `name`, `parts`, optional `axis_part`,
   `motor`, optional `[motor_override]`, `ratio`, `efficiency` (default
-  1), wheels also `mu` and optional `side`.
+  1), wheels also `mu` and optional `side`, weapons optional `spin`
+  (`spin.rs`).
 - `[control]`: `kind = "mixer"` with 1-based `throttle`, `turn`,
   optional `weapon` and `arm`, `reverse_turn`; or
   `kind = "momentum-core"`.

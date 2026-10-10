@@ -22,7 +22,9 @@ spinner on a tail. The tool is general: Momentum is a robot like any
 other, plus one optional hook (its firmware core in the loop, §6).
 
 **v1:** upload a STEP, set its roles, drive it around a walled arena with
-a full-speed weapon, and hit a free box. No opponent.
+a full-speed weapon, and hit an undriven opponent: a copy of the same
+robot, drawn orange, on braked wheels (user, 2026-10-10; it replaced a
+free box).
 
 **Not in v1:** a second robot or AI opponent; damage and part failure;
 tagging parts by clicking in the 3D view; telemetry replay; arena
@@ -156,7 +158,8 @@ mu = 0.8
 parts = ["Blade*", "Hub*"]
 motor = "<library id>"
 ratio = 1.0
-channel = 3
+spin = "front-up"            # cross axis: front-up | front-down;
+                             # upright axis: ccw | cw seen from above
 
 [control]
 kind = "mixer"               # or "momentum-core" (§6)
@@ -164,6 +167,11 @@ throttle = 2
 turn = 1
 ```
 
+- **A weapon's `spin`** picks its direction. The importer's axis sign is
+  arbitrary, and the fixture's vertical disc first spun front edge down.
+  That made the robot fly on every hit, and under full throttle it
+  launched itself (user report and probe, 2026-10-10). Defaults:
+  front-up on a cross axis, ccw from above on an upright one.
 - A part's mass is its volume times its material's density, unless
   overridden; `total_mass_kg` then scales every part together, keeping
   the CoM where the CAD puts it.
@@ -214,9 +222,9 @@ its own fixed-tick loop.
   place.
 - **Arena:** NHRL's 12 lb cage: 16' × 16' usable, a floor of plywood
   painted with dead-flat paint (not steel), polycarbonate walls on a timber
-  skirt, a roof (NHRL wiki, read 2026-10-09). **Target:** a free box,
-  300 × 300 × 150 mm, as heavy as the robot driving it (user,
-  2026-10-10).
+  skirt, a roof (NHRL wiki, read 2026-10-09). **Opponent:** an undriven copy of the robot, drawn orange,
+  armed with sticks centred so it brakes (user, 2026-10-10; it replaced
+  a free target box).
 
 **Timestep.** The physics step is sized from the fastest rotor, not the
 control rate. Measured 2026-10-09 (timing spike, lesson
@@ -296,7 +304,7 @@ Host tests, run before any driving is trusted:
 - **Wheels** (passing): 10% throttle reaches 97.6% of the motor
   model's no-load speed, straight; turning goes the right way; disarmed
   stays put; the weapon spins up to no-load with the robot upright; the
-  robot pushes the box.
+  robot shoves its braked opponent copy.
 - **Import** (passing): the fixture STEP imports to known masses, axes
   and names; the loader turns it into analytic masses and inertia.
 - **Momentum:** with `momentum-core`, a strike run end to end flicks the
@@ -342,7 +350,7 @@ Host tests, run before any driving is trusted:
    scripted model, 5 broker tests without Docker, and one live Claude
    conversation that wrote a checked robot.toml; the gVisor path is
    untested).
-5. `web/`: load a bundle, drive, hit the box. **Renders in the user's
+5. `web/`: load a bundle, drive, hit the opponent copy. **Renders in the user's
    Chrome 2026-10-10** (the fixture bundle from `make web-dev`); the HUD
    shows physics headroom (× real time) so build changes can be checked
    in the browser.

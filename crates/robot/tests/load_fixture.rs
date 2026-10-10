@@ -42,9 +42,9 @@ fn masses_come_from_densities_and_overrides() {
     assert!(close(by("disc"), disc_v * 7850.0));
     // Everything else is the chassis: aluminium base and rails, a UHMW
     // top, AR500 forks and rear bar, and the overridden electronics.
-    let al = (0.25 * 0.2 * 0.006 + 2.0 * 0.28 * 0.01 * 0.05) * 2700.0;
-    let uhmw = 0.21 * 0.2 * 0.003 * 940.0;
-    let ar500 = (2.0 * 0.5 * 0.08 * 0.038 * 0.025 + 0.01 * 0.2 * 0.04) * 7850.0;
+    let al = (0.25 * 0.4 * 0.003 + 2.0 * 0.28 * 0.01 * 0.05) * 2700.0;
+    let uhmw = 0.21 * 0.4 * 0.003 * 940.0;
+    let ar500 = (2.0 * 0.5 * 0.08 * 0.038 * 0.025 + 0.006 * 0.4 * 0.04) * 7850.0;
     let overridden = 0.35 + 0.12 + 2.0 * 0.17;
     assert!(close(by("chassis"), al + uhmw + ar500 + overridden));
 }
@@ -77,9 +77,10 @@ fn wheels_and_weapon_get_their_axes() {
     assert_eq!(l.side, Some(Side::Left));
     assert_eq!(m.wheels[1].side, Some(Side::Right));
     assert_eq!(l.axis_dir, [0.0, 1.0, 0.0]);
-    assert!(close(l.radius_m, 0.03175) && close(l.axis_point[1], 0.12));
+    assert!(close(l.radius_m, 0.03175) && close(l.axis_point[1], 0.22));
     let w = &m.weapons[0];
-    assert_eq!(w.axis_dir, [0.0, 1.0, 0.0]);
+    // spin = "front-up": the front edge rises, so the axis points -y.
+    assert_eq!(w.axis_dir, [0.0, -1.0, 0.0]);
     assert!(close(w.radius_m, 0.09f64.hypot(0.015)));
     assert_eq!(w.mu, None);
 }
@@ -107,8 +108,14 @@ fn mass_override_replaces_density() {
 #[test]
 fn a_y_up_step_is_turned_upright() {
     // Claiming the fixture is Y-up puts its +y (wheel_L's side) on top.
-    let m = edited("up = \"+z\"", "up = \"+y\"").unwrap();
-    assert!(close(m.wheels[0].axis_point[2], 0.12));
+    // Its disc axis then stands upright, where "front-up" means nothing, so
+    // the spin line goes too.
+    let text =
+        ROBOT
+            .replacen("up = \"+z\"", "up = \"+y\"", 1)
+            .replacen("spin = \"front-up\"", "", 1);
+    let m = load(PARTS, &text, MOTORS).unwrap();
+    assert!(close(m.wheels[0].axis_point[2], 0.22));
 }
 
 #[test]
@@ -139,6 +146,14 @@ fn mistakes_are_named_errors() {
         Err(BadSide { .. })
     ));
     assert!(matches!(edited("arm = 5", "arm = 17"), Err(BadChannel(17))));
+    assert!(matches!(
+        edited("spin = \"front-up\"", "spin = \"cw\""),
+        Err(BadSpin { .. })
+    ));
+    assert!(matches!(
+        edited("mu = 1.4", "spin = \"ccw\"\nmu = 1.4"),
+        Err(BadSpin { .. })
+    ));
     assert!(matches!(
         edited("up = \"+z\"", "up = \"+x\""),
         Err(Frame { .. })

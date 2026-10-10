@@ -9,7 +9,7 @@ physics builds bodies from (docs/drivesim.md §5).
 ## Interface
 
 Modules `frame`, `glob`, `load`, `mass`, `materials`, `math`, `model`,
-`motors`, `parts`, `robot_file`, `stl`; re-exports `load`, `LoadError`,
+`motors`, `parts`, `robot_file`, `spin`, `stl`; re-exports `load`, `LoadError`,
 `RobotModel`, `Body`, `Rotor`, `Side`.
 
 ## Implementation

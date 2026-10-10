@@ -22,7 +22,7 @@ fn the_fixture_reports_its_numbers() {
     assert_eq!(code, 0, "{r}");
     assert_eq!(r["name"], "simple_bot");
     assert!(
-        (r["total_mass_kg"].as_f64().unwrap() - 5.038).abs() < 0.01,
+        (r["total_mass_kg"].as_f64().unwrap() - 5.282).abs() < 0.01,
         "{}",
         r["total_mass_kg"]
     );

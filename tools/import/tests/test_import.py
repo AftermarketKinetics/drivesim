@@ -56,7 +56,7 @@ class ImportFixture(unittest.TestCase):
         self.assertEqual(self.by["wheel_R"]["path"], "simple_bot/wheel_R")
 
     def test_volumes_are_exact(self):
-        self.assertAlmostEqual(self.by["base_plate"]["volume_m3"], 0.25 * 0.2 * 0.006, places=12)
+        self.assertAlmostEqual(self.by["base_plate"]["volume_m3"], 0.25 * 0.4 * 0.003, places=12)
         self.assertAlmostEqual(self.by["wheel_L"]["volume_m3"],
                                math.pi * 0.03175**2 * 0.025, places=12)
         # The fork is a right-triangle prism: legs 80 and 38 mm, 25 mm wide.
@@ -64,9 +64,9 @@ class ImportFixture(unittest.TestCase):
                                places=12)
 
     def test_instances_are_placed(self):
-        for name, com in (("base_plate", (-0.025, 0, 0.009)),
-                          ("wheel_L", (-0.03, 0.12, 0.03175)),
-                          ("wheel_R", (-0.03, -0.12, 0.03175)),
+        for name, com in (("base_plate", (-0.025, 0, 0.0105)),
+                          ("wheel_L", (-0.03, 0.22, 0.03175)),
+                          ("wheel_R", (-0.03, -0.22, 0.03175)),
                           # Balanced (make_fixture.py sizes its hole).
                           ("weapon", (0.15, 0, 0.095)),
                           # A triangle's centroid is its vertices' mean.

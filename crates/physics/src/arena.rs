@@ -1,5 +1,5 @@
-//! The arena: NHRL's 12 lb cage (also its 30 lb cage), four walls and the
-//! free target box (docs/drivesim.md §6). Source: the NHRL wiki, "NHRL
+//! The arena: NHRL's 12 lb cage (also its 30 lb cage) and its four walls
+//! (docs/drivesim.md §6). Source: the NHRL wiki, "NHRL
 //! Facilities" and "Cage Design" (both last edited 2025-08), read
 //! 2026-10-09: 16' x 16' usable floor of plywood painted with dead-flat
 //! paint, double-walled polycarbonate walls on a 6x6 timber skirt, a roof.
@@ -14,12 +14,6 @@ pub const WALL_H_M: f32 = 2.4;
 /// Floor friction factor; colliders combine friction by multiplying, so a
 /// tyre's robot.toml `mu` is its grip on this floor (painted plywood).
 pub const FLOOR_MU: f32 = 1.0;
-
-/// The target: 300 × 300 × 150 mm, as heavy as the robot driving it
-/// (user, 2026-10-10), so pushing it is like pushing an opponent of the
-/// same weight class.
-pub const BOX_HALF_M: [f32; 3] = [0.15, 0.15, 0.075];
-pub const BOX_MU: f32 = 0.4;
 
 /// Returns the floor's collider, for contact queries.
 pub fn add_arena(w: &mut PhysicsWorld) -> ColliderHandle {
@@ -44,21 +38,4 @@ pub fn add_arena(w: &mut PhysicsWorld) -> ColliderHandle {
         );
     }
     floor
-}
-
-/// The free box of `mass_kg`, resting on the floor at (`x`, `y`).
-pub fn add_target(w: &mut PhysicsWorld, x: f32, y: f32, mass_kg: f32) -> RigidBodyHandle {
-    let b = w
-        .bodies
-        .insert(RigidBodyBuilder::dynamic().translation(Vector::new(x, y, BOX_HALF_M[2])));
-    let [hx, hy, hz] = BOX_HALF_M;
-    w.colliders.insert_with_parent(
-        ColliderBuilder::cuboid(hx, hy, hz)
-            .mass(mass_kg)
-            .friction(BOX_MU)
-            .friction_combine_rule(CoefficientCombineRule::Multiply),
-        b,
-        &mut w.bodies,
-    );
-    b
 }

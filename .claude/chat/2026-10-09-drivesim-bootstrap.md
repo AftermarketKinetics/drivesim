@@ -134,3 +134,28 @@ and also zoom out the camera just a little bit
 **User:** make the box mass match that of the bot, then commit
 **Did:**
 - `arena.rs`: `BOX_MASS_KG` removed; `add_target(world, x, y, mass_kg)`, and `Sim::new` passes the model's total mass (5.04 kg for the fixture). Test `the_box_weighs_what_the_robot_does`; sidecars and doc §6 updated; committed with the tooth, camera and wheel-marking work.
+
+## 2026-10-10 17:00 Wall markings; camera back
+**User:** add rulers and black/whtie squares on the wall to denote meters. also pull the camera back a little bit, when dr iving close to the camera it disappears from view
+**Did:**
+- New `web/src/wall_markings.rs`: 1 m black/white squares (one row) on the far and side walls, and red ruler ticks every 0.1 m (longer at 0.5 m and 1 m) on all four, counted from each wall's left corner; the near wall gets ticks only so it doesn't block the view.
+- Camera `BEHIND_WALL_M` 1.0 -> 1.8 m: the bottom of the view now meets the floor outside the near wall (it was 0.24 m inside). Sidecars updated.
+- Stopped two stale wasm builds and rebuilt once; `pkill -f` killed its own shell again, so I wrote lesson `pkill-f-matches-its-own-shell.md`.
+
+## 2026-10-10 17:30 Wider bot; opponent copy
+**User:** 1. make the simple-bot wider 2. replace the box with a copy of simple bot in orange
+**User (interrupting):** make the bot twice as wide, 200mm to 400mm
+**Did:**
+- Fixture 400 mm wide, 440 mm track (base plate 3 mm, rear bar 6 mm to stay inside 12 lb): 5.28 kg, yaw inertia 0.14 kg m². The roll test now predicts from inertia instead of a fixed 0.05 rad.
+- Box removed; `Sim` spawns an opponent copy at (1, 0) facing the robot, armed with sticks centred (`OPPONENT_DUTIES`: brakes, weapon off); motor stepping split into `crates/physics/src/drivetrain.rs` (one per robot). Web draws it orange. Tests: opponent faces the robot; full throttle shoves it 1.28 m in 3 s. Native physics 2.8x real time alone, 1.9x with the opponent.
+
+## 2026-10-10 18:10 Flying on hits
+**User:** 1.2x at minimum, wider robot feels great, braking is fine. the physics seem off, when i hit the opposing bot my bot tends to go flying, why is that?
+**Did:**
+- Probes (temporary): weapon off, the robot stays flat in every case. Weapon on, it launches even on open floor (yaw → gyroscopic roll → wheel load loop), under every solver setting, with or without the gyroscopic term or the tooth's lopsided inertia. Cause: the disc spun front edge DOWN (importer's arbitrary axis sign), so hits threw our robot instead of the opponent. Flipped: open floor flat (yaw 0.3 rad/s), hit throws the opponent 1.88 m and the robot recoils 0.32 m.
+- New `crates/robot/src/spin.rs` + robot.toml `[[weapon]] spin` ("front-up"/"front-down", "ccw"/"cw"; defaults front-up / ccw), `LoadError::BadSpin`; fixture sets front-up; prompt documents and asks for it; doc §5 (also fixed its stale `channel = 3` example). Tests: `a_spinning_weapon_does_not_launch_the_robot_on_open_floor`, `a_hit_throws_the_opponent_up_not_the_robot`; all suites pass.
+
+## 2026-10-10 18:20 Commit
+**User:** commit
+**Did:**
+- Committed the wide fixture, the orange opponent copy, wall markings, camera move and weapon `spin`.

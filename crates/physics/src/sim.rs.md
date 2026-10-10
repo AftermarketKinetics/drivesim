@@ -10,13 +10,16 @@ The fixed-step loop (docs/drivesim.md §6):
 ## Interface
 
 - `PHYSICS_HZ` 4000, `CONTROL_HZ` 1000, `STEPS_PER_TICK` 4, `GRAVITY`.
-- `Sim { world, robot, model, target, duties }`:
-  - `Sim::new(model, mesh)`: the arena, the box (as heavy as the robot)
-    at (1, 0), and the robot at (−1, 0) facing +x;
-  - `empty_world(gravity_z)` and `assemble(...)`, for tests that build
-    their own scene;
+- `Sim { world, robot, model, opponent, duties }`:
+  - `Sim::new(model, mesh)`: the arena, the robot at (−1, 0) facing +x,
+    and an opponent copy of the same model at (1, 0) facing it;
+  - `empty_world(gravity_z)` and `assemble(world, robot, model,
+    opponent)`, for tests that build their own scene (with `None`, no
+    opponent);
   - `control_tick(frame)`, `physics_step()`;
-  - `rotor_speed(rotor)`, `chassis()`.
+  - `rotor_speed(rotor)`, `chassis()`, `opponent_chassis()`.
+- `Opponent { robot }`, and `OPPONENT_DUTIES`: the opponent is armed
+  with its sticks centred, so its wheels brake and its weapon is off.
 
 ## Implementation
 
@@ -45,11 +48,15 @@ The fixed-step loop (docs/drivesim.md §6):
   reaction torque (a robot twisting as its weapon spins up) is real. In
   the timing spike, rapier velocity motors on the wheels never moved the
   robot.
-- **Gear coupling:** each step also adds `gear_coupling`'s torques,
-  computed from the accelerations over the previous step (kept in
-  `axis_w` / `axis_alpha`, per rotor: wheels, then weapons). Without
-  them, the reflected inertia `spawn.rs` lumps onto each rotor would put
-  ~r times too much reaction on the chassis.
+- **Each robot has its own `Drivetrain`** (`drivetrain.rs`), which
+  applies its motor and gear-coupling torques before each world step and
+  records its accelerations after. The opponent's runs with
+  `OPPONENT_DUTIES`.
+- **The opponent copy** replaced the target box (user, 2026-10-10). It
+  shares the driven robot's model, and so its mass, gearing and
+  colliders. It holds its ground on braked wheels, like an idle robot,
+  rather than rolling away freely. It roughly doubles the physics cost:
+  native 2.8× real time alone, 1.9× with it.
 - **Duties update once per control tick** and are held across its four
   physics steps.
 - **Momentum's firmware control (`kind = "momentum-core"`) isn't built
@@ -63,6 +70,6 @@ The fixed-step loop (docs/drivesim.md §6):
   - turning the right way;
   - disarmed robots stay still;
   - the weapon reaches no-load speed and the robot stays upright;
-  - driving pushes the box;
+  - driving shoves the opponent;
   - full turn reaches 2 v / track; wheels roll without ringing; slamming
     the throttle does not flip it.

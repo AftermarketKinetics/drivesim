@@ -15,6 +15,7 @@ mod hud;
 mod radio;
 mod robot_render;
 mod sim_step;
+mod wall_markings;
 
 use bevy::prelude::*;
 use bundle_load::{Bundle, fetch_bundle, locate};
@@ -29,6 +30,10 @@ struct LoadSlot(Arc<Mutex<Option<Result<Bundle, String>>>>);
 
 #[derive(Resource)]
 struct Root(Entity);
+
+/// The opponent copy is drawn all orange (user, 2026-10-10), so it can't be
+/// mistaken for the robot being driven.
+const OPPONENT_ORANGE: [f32; 3] = [0.95, 0.45, 0.08];
 
 fn main() {
     App::new()
@@ -115,13 +120,28 @@ fn take_bundle(
         Ok(s) => SimRes::new(s),
         Err(e) => return fail(&mut hud, e.to_string()),
     };
-    robot_render::spawn_robot_visuals(&mut commands, root.0, &bundle, &sim, &mut meshes, &mut mats);
-    arena_render::spawn_target(
+    let s = &sim.sim;
+    robot_render::spawn_robot_visuals(
         &mut commands,
         root.0,
-        sim.sim.target,
+        &bundle,
+        &s.model,
+        &s.robot,
+        None,
         &mut meshes,
         &mut mats,
     );
+    if let Some(o) = &s.opponent {
+        robot_render::spawn_robot_visuals(
+            &mut commands,
+            root.0,
+            &bundle,
+            &s.model,
+            &o.robot,
+            Some(OPPONENT_ORANGE),
+            &mut meshes,
+            &mut mats,
+        );
+    }
     commands.insert_resource(sim);
 }

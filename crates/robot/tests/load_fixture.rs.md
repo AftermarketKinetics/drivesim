@@ -27,6 +27,11 @@ hole (2026-10-10), it has no closed form either: its mass is checked as
 density × the importer's measured volume, and the closed-form inertia
 check moved to a wheel.
 
+The weapon's axis is checked as −y: the fixture says `spin =
+"front-up"`. `a_y_up_step_is_turned_upright` drops that line, because
+the Y-up reading stands the disc axis upright, where front-up has no
+meaning.
+
 ## Assertions
 
 - Expected numbers come from the fixture geometry (make_fixture.py) and

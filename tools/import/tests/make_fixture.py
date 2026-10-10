@@ -7,21 +7,25 @@ Frame: x forward, y left, z up, floor at z = 0, mm. Every part is a box,
 a cylinder or a straight prism, so each one's volume and centroid have a
 closed form (tests/test_import.py checks them):
 
-  base_plate   box   x -150..100  y -100..100  z  6..12
-  rail_L/_R    box   x -150..130  y  90..100 / -100..-90  z 12..62  ("Rail")
-  top_plate    box   x -150..60   y -100..100  z 62..65
-  rear_bar     box   x -160..-150 y -100..100  z 12..52
+  base_plate   box   x -150..100  y -200..200  z  9..12
+  rail_L/_R    box   x -150..130  y 190..200 / -200..-190  z 12..62 ("Rail")
+  top_plate    box   x -150..60   y -200..200  z 62..65
+  rear_bar     box   x -156..-150 y -200..200  z 12..52
   battery      box   x  -20..70   y  -20..20   z 12..42
   esc          box   x -130..-80  y  -25..25   z 12..27
   fork_L/_R    prism, side profile (120,2) (200,2) (120,40) in xz,
                y 30..55 / -55..-30                          ("Fork")
-  wheel_L/_R   cylinder r 31.75 w 25, axis +y, centre (-30, +-120, 31.75)
+  wheel_L/_R   cylinder r 31.75 w 25, axis +y, centre (-30, +-220, 31.75)
                                                             ("Wheel")
-  drive_motor_L/_R  cylinder r 14, axis +y, y 30..88 / -88..-30,
+  drive_motor_L/_R  cylinder r 14, axis +y, y 130..188 / -188..-130,
                centre line x -30 z 31.75                    ("DriveMotor")
   weapon       disc r 70 t 10, axis +y, centre (150, 0, 95), with one
                tooth (radially 60..90, 30 wide, through the disc's
                thickness) and a balance hole inboard of it ("Weapon")
+
+The chassis is 400 mm wide (user, 2026-10-10: "twice as wide, 200mm to
+400mm"), with the wheels on a 440 mm track. To stay inside 12 lb the
+base plate is 3 mm and the rear bar 6 mm.
 
 The vertical disc runs between the forks; the forks are the wedge and the
 front skids. The tooth (user, 2026-10-10) would put the disc's CoM
@@ -111,10 +115,10 @@ def weapon():
 # Products (one shape each, in its own frame), then where each instance of
 # one is placed.
 PRODUCTS = {
-    "BasePlate": lambda: box(-150, 100, -100, 100, 6, 12),
+    "BasePlate": lambda: box(-150, 100, -200, 200, 9, 12),
     "Rail": lambda: box(-150, 130, 0, 10, 12, 62),
-    "TopPlate": lambda: box(-150, 60, -100, 100, 62, 65),
-    "RearBar": lambda: box(-160, -150, -100, 100, 12, 52),
+    "TopPlate": lambda: box(-150, 60, -200, 200, 62, 65),
+    "RearBar": lambda: box(-156, -150, -200, 200, 12, 52),
     "Battery": lambda: box(-20, 70, -20, 20, 12, 42),
     "ESC": lambda: box(-130, -80, -25, 25, 12, 27),
     "Fork": fork,
@@ -124,18 +128,18 @@ PRODUCTS = {
 }
 INSTANCES = (
     ("base_plate", "BasePlate", (0, 0, 0)),
-    ("rail_L", "Rail", (0, 90, 0)),
-    ("rail_R", "Rail", (0, -100, 0)),
+    ("rail_L", "Rail", (0, 190, 0)),
+    ("rail_R", "Rail", (0, -200, 0)),
     ("top_plate", "TopPlate", (0, 0, 0)),
     ("rear_bar", "RearBar", (0, 0, 0)),
     ("battery", "Battery", (0, 0, 0)),
     ("esc", "ESC", (0, 0, 0)),
     ("fork_L", "Fork", (0, 30, 0)),
     ("fork_R", "Fork", (0, -55, 0)),
-    ("wheel_L", "Wheel", (-30, 120, 31.75)),
-    ("wheel_R", "Wheel", (-30, -120, 31.75)),
-    ("drive_motor_L", "DriveMotor", (-30, 59, 31.75)),
-    ("drive_motor_R", "DriveMotor", (-30, -59, 31.75)),
+    ("wheel_L", "Wheel", (-30, 220, 31.75)),
+    ("wheel_R", "Wheel", (-30, -220, 31.75)),
+    ("drive_motor_L", "DriveMotor", (-30, 159, 31.75)),
+    ("drive_motor_R", "DriveMotor", (-30, -159, 31.75)),
     ("weapon", "Weapon", (150, 0, 95)),
 )
 

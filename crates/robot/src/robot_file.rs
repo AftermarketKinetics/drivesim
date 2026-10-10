@@ -70,6 +70,10 @@ pub struct RotorSection {
     pub mu: Option<f64>,
     /// Wheels only: "left" or "right"; default from the axle's y.
     pub side: Option<String>,
+    /// Weapons only: which way it spins (`spin.rs`): "front-up" or
+    /// "front-down" on a cross axis, "cw" or "ccw" seen from above on an
+    /// upright one. Default front-up / ccw.
+    pub spin: Option<String>,
 }
 
 fn one() -> f64 {

@@ -1,4 +1,4 @@
-//! Draws the robot and the target box where the physics puts them.
+//! Draws the robot and its opponent copy where the physics puts them.
 //!
 //! Every sim entity is a child of `SimRoot`, which turns rapier's z-up
 //! world into Bevy's y-up one, so each body's Transform is its rapier pose
@@ -10,6 +10,7 @@ use crate::sim_step::SimRes;
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
+use drivesim_physics::spawn::RobotHandles;
 use drivesim_robot::math::mat_vec;
 use drivesim_robot::stl::parse_stl;
 use rapier3d::prelude::RigidBodyHandle;
@@ -61,7 +62,11 @@ fn part_mesh(bytes: &[u8], r: &drivesim_robot::math::M3, marked: Option<&Axis>) 
             let d = (a + b + c) / 3.0 - axis.point;
             let angle = d.dot(w).atan2(d.dot(u)).rem_euclid(std::f32::consts::TAU);
             let sector = (angle / std::f32::consts::TAU * WHEEL_SECTORS as f32) as usize;
-            let [r, g, b] = if sector.is_multiple_of(2) { TYRE } else { STRIPE };
+            let [r, g, b] = if sector.is_multiple_of(2) {
+                TYRE
+            } else {
+                STRIPE
+            };
             col.extend([[r, g, b, 1.0]; 3]);
         }
     }
@@ -79,16 +84,21 @@ fn part_mesh(bytes: &[u8], r: &drivesim_robot::math::M3, marked: Option<&Axis>) 
     Some(mesh)
 }
 
+/// One robot's visuals: `robot` is either the driven robot or the
+/// opponent copy, both of `model`. With `tint`, every part but the marked
+/// wheels takes that colour instead of its CAD colour.
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_robot_visuals(
     commands: &mut Commands,
     root: Entity,
     bundle: &Bundle,
-    sim: &SimRes,
+    model: &drivesim_robot::RobotModel,
+    robot: &RobotHandles,
+    tint: Option<[f32; 3]>,
     meshes: &mut Assets<Mesh>,
     mats: &mut Assets<StandardMaterial>,
 ) {
-    let model = &sim.sim.model;
-    for (i, (body, handle)) in model.bodies.iter().zip(&sim.sim.robot.bodies).enumerate() {
+    for (i, (body, handle)) in model.bodies.iter().zip(&robot.bodies).enumerate() {
         let e = commands
             .spawn((
                 BodyLink(*handle),
@@ -112,6 +122,8 @@ pub fn spawn_robot_visuals(
             // A marked wheel takes its colours from the mesh alone.
             let [r, g, b] = if wheel.is_some() {
                 [1.0; 3]
+            } else if let Some(t) = tint {
+                t
             } else {
                 bundle
                     .part_colors

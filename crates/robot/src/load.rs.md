@@ -11,7 +11,7 @@ library text → `RobotModel` (docs/drivesim.md §5).
 LoadError>`. `LoadError` names each mistake: `Parse`, `Frame`,
 `UnknownMaterial`, `UnknownMotor`, `NoParts`, `TwoRoles`,
 `TwoOverrides`, `NoAxis`, `NoChassis`, `MissingMu`, `BadSide`,
-`BadChannel`, `BadMass`; its `Display` is written for the role
+`BadChannel`, `BadMass`, `BadSpin`; its `Display` is written for the role
 conversation to show a user.
 
 ## Implementation
@@ -25,9 +25,13 @@ conversation to show a user.
    an error; the rest is the chassis.
 4. Each rotor's axis comes from `axis_part` or the first claimed part
    with one; a wheel's side defaults to the sign of its axle centre's y.
+5. A weapon's axis is then signed by its `spin` (`spin.rs`), so that
+   positive duty turns it the way robot.toml says. A wheel with `spin` is
+   an error.
 
 ## Assertions
 
 - Tested on `fixtures/simple_bot` (crates/robot/tests/load_fixture.rs):
-  analytic masses and box inertia, axes and sides, mass scaling keeping
-  the CoM, overrides, a Y-up frame, and nine error cases.
+  analytic masses and a wheel's cylinder inertia, axes and sides (the
+  weapon's signed front-up), mass scaling keeping the CoM, overrides, a
+  Y-up frame, and the error cases, `BadSpin` included.

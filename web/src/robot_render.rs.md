@@ -11,9 +11,12 @@ the physics puts them.
   into Bevy's y-up one.
 - `Axis { point, dir }`: a rotor axis in the robot frame, for marking.
 - `BodyLink(RigidBodyHandle)`: a component drawing an entity at that
-  body's pose. `arena_render` uses it for the target box too.
-- `spawn_robot_visuals(commands, root, bundle, sim, meshes, mats)`: one
-  entity per body, with one mesh child per part.
+  body's pose.
+- `spawn_robot_visuals(commands, root, bundle, model, robot, tint,
+  meshes, mats)`: one entity per body of `robot` (the driven robot's
+  handles or the opponent's), with one mesh child per part. With `tint`,
+  every part except the marked wheels takes that colour; the opponent is
+  drawn orange that way.
 - `sync_bodies`: a system copying each linked body's pose into its
   `Transform`.
 

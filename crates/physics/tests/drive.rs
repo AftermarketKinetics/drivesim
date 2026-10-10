@@ -12,11 +12,17 @@ fn sim() -> Sim {
     Sim::new(common::fixture_model(), &common::fixture_mesh).unwrap()
 }
 
-/// The fixture with the box moved far out of its way.
+/// The fixture on its own: the opponent copy moved far out of its way.
 fn sim_alone() -> Sim {
     let mut s = sim();
-    let t = s.target;
-    s.world.bodies[t].set_translation(rapier3d::prelude::Vector::new(20.0, 20.0, 0.1), true);
+    let bodies = s.opponent.as_ref().unwrap().robot.bodies.clone();
+    for h in bodies {
+        let p = s.world.bodies[h].translation();
+        s.world.bodies[h].set_translation(
+            rapier3d::prelude::Vector::new(p.x + 20.0, p.y + 20.0, p.z),
+            true,
+        );
+    }
     s
 }
 
@@ -126,10 +132,52 @@ fn slamming_throttle_does_not_flip_it() {
 }
 
 #[test]
-fn the_box_weighs_what_the_robot_does() {
+fn the_opponent_is_a_copy_facing_the_robot() {
     let s = sim();
-    let want = s.model.total_mass() as f32;
-    assert!((s.world.bodies[s.target].mass() - want).abs() < 1e-4 * want);
+    let o = s.opponent.as_ref().unwrap();
+    assert_eq!(o.robot.bodies.len(), s.robot.bodies.len());
+    let x = *s.opponent_chassis().unwrap().rotation() * rapier3d::prelude::Vector::X;
+    assert!(x.x < -0.99, "opponent faces {x:?}");
+}
+
+/// The weapon spun up to full speed in place, 2.5 s.
+fn spun_up(mut s: Sim) -> Sim {
+    run(&mut s, radio(0.0, 0.0, 1.0, true), 2.5);
+    s
+}
+
+#[test]
+fn a_spinning_weapon_does_not_launch_the_robot_on_open_floor() {
+    // Full throttle with the disc at speed and nothing in front. Spinning
+    // front edge down (the importer's arbitrary axis sign, before robot.toml
+    // had `spin`) the robot yawed itself up to 5 rad/s and pitched 22°
+    // within 0.7 s; front edge up it stays flat.
+    let mut s = spun_up(sim_alone());
+    let (mut top, mut yaw) = (0.0f32, 0.0f32);
+    for _ in 0..700 {
+        s.control_tick(Some(&radio(0.0, 1.0, 1.0, true)));
+        top = top.max(s.chassis().translation().z);
+        yaw = yaw.max(s.chassis().angvel().z.abs());
+    }
+    assert!(top < 0.02 && yaw < 1.0, "rose {top} m, yawed {yaw} rad/s");
+}
+
+#[test]
+fn a_hit_throws_the_opponent_up_not_the_robot() {
+    // Front edge up: the hit throws the opponent (measured 1.88 m) and the
+    // robot only recoils (0.32 m). Front edge down it was the other way
+    // round: the opponent stayed down and the robot flew.
+    let mut s = spun_up(sim());
+    let (mut robot_top, mut opponent_top) = (0.0f32, 0.0f32);
+    for _ in 0..1500 {
+        s.control_tick(Some(&radio(0.0, 1.0, 1.0, true)));
+        robot_top = robot_top.max(s.chassis().translation().z);
+        opponent_top = opponent_top.max(s.opponent_chassis().unwrap().translation().z);
+    }
+    assert!(
+        opponent_top > 0.5 && opponent_top > 2.0 * robot_top,
+        "opponent rose {opponent_top} m, robot {robot_top} m"
+    );
 }
 
 #[test]
@@ -157,12 +205,15 @@ fn weapon_spins_up_to_no_load_and_the_robot_stays_upright() {
 }
 
 #[test]
-fn driving_into_the_box_pushes_it() {
+fn driving_into_the_opponent_shoves_it() {
+    // Full throttle into the braked copy for 3 s: it is shoved back
+    // (measured 1.28 m, 2026-10-10). At half throttle it deflected 2 m
+    // sideways off the forks instead, so the check is full throttle.
     let mut s = sim();
-    let box0 = s.world.bodies[s.target].translation().x;
-    run(&mut s, radio(0.0, 0.5, -1.0, true), 3.0);
-    let moved = s.world.bodies[s.target].translation().x - box0;
-    assert!(moved > 0.05, "box moved {moved} m");
+    let o0 = s.opponent_chassis().unwrap().translation();
+    run(&mut s, radio(0.0, 1.0, -1.0, true), 3.0);
+    let moved = s.opponent_chassis().unwrap().translation() - o0;
+    assert!(moved.x > 0.3, "opponent moved {moved:?}");
 }
 
 #[test]

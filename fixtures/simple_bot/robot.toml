@@ -5,7 +5,8 @@
 # from it and from tools/import/tests/make_fixture.py's geometry.
 #
 # Drive gearing is Momentum-like: 24:1 on 63.5 mm wheels gives 4.5 m/s
-# no-load (Momentum targets 4.47 m/s) on Momentum's 240 mm track.
+# no-load (Momentum targets 4.47 m/s). The chassis is 400 mm wide and the
+# track 440 mm (user, 2026-10-10: "twice as wide").
 #
 # Tyre grip of 1.4 is provisional, unmeasured. FingerTech's urethane
 # sumo wheel spec (pasted by the user, 2026-10-10) quotes μ 1.75
@@ -60,6 +61,9 @@ name = "disc"
 parts = ["weapon"]
 motor = "badass-2820-1820kv"
 ratio = 4.0
+# Front edge up, as a vertical spinner runs: hits throw the opponent up.
+# The other way threw this robot into the air on every hit (2026-10-10).
+spin = "front-up"
 
 [control]
 kind = "mixer"

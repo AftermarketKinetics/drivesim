@@ -17,10 +17,9 @@ fn floating(spin: f32) -> Sim {
     let model = common::fixture_model();
     let mut world = Sim::empty_world(0.0);
     let robot = spawn_robot(&mut world, &model, &common::fixture_mesh, 0.0, 0.0, 0.0).unwrap();
-    let target = world.bodies.insert(RigidBodyBuilder::fixed());
     let weapon = robot.bodies[model.weapons[0].body];
     world.bodies[weapon].set_angvel(spin_axis(&model) * spin, true);
-    Sim::assemble(world, robot, model, target)
+    Sim::assemble(world, robot, model, None)
 }
 
 /// The weapon's axis; the robot spawns unrotated, so robot frame = world.
@@ -73,17 +72,22 @@ fn torque_across_the_spin_precesses_at_tau_over_l() {
 
 #[test]
 fn without_spin_the_same_torque_just_tips_it() {
+    // The whole robot rolls as one rigid body: θ = τ t² / (2 I_xx), with
+    // I_xx the combined inertia about the system CoM.
     let mut sim = floating(0.0);
+    let (tau, t) = (0.5f32, 0.1f32);
     let chassis = sim.robot.bodies[0];
-    for _ in 0..drivesim_physics::PHYSICS_HZ as usize / 10 {
+    for _ in 0..(t * drivesim_physics::PHYSICS_HZ as f32) as usize {
         sim.world.bodies[chassis].reset_torques(false);
-        sim.world.bodies[chassis].add_torque(Vector::new(0.5, 0.0, 0.0), true);
+        sim.world.bodies[chassis].add_torque(Vector::new(tau, 0.0, 0.0), true);
         sim.world.step();
     }
     let axis = *sim.chassis().rotation() * Vector::Z;
+    let rolled = (-axis.y).atan2(axis.z);
+    let want = tau * t * t / (2.0 * sim.model.combined().inertia[0][0] as f32);
     assert!(
-        (-axis.y).atan2(axis.z) > 0.05,
-        "a non-spinning robot should roll about x"
+        (rolled / want - 1.0).abs() < 0.15,
+        "rolled {rolled} rad, a rigid robot would roll {want}"
     );
     assert!(axis.x.abs() < 1e-3);
 }

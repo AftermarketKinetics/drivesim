@@ -7,7 +7,7 @@ fixture bundle and on a broken one.
 
 ## Interface
 
-Tests: `the_fixture_reports_its_numbers` (5.038 kg; settled; the disc
+Tests: `the_fixture_reports_its_numbers` (5.282 kg; settled; the disc
 off the floor),
 `a_bad_bundle_is_a_json_error_not_a_crash`.
 

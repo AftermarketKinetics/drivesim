@@ -7,7 +7,10 @@ use drivesim_physics::arena::ARENA_SIDE_M;
 
 /// Standing eye height, m, and how far behind the wall the driver stands.
 pub const EYE_HEIGHT_M: f32 = 1.7;
-pub const BEHIND_WALL_M: f32 = 1.0;
+/// 1.8 m, moved back from 1.0 (user, 2026-10-10): at 1.0 the bottom of the
+/// view met the floor 0.24 m inside the near wall, so a robot driven up to
+/// it dropped out of sight. At 1.8 the whole floor is in view.
+pub const BEHIND_WALL_M: f32 = 1.8;
 /// Vertical field of view, degrees: 58, widened from 50 so a little more
 /// of the cage is in view (user, 2026-10-10: "zoom out ... a little").
 pub const FOV_DEG: f32 = 58.0;

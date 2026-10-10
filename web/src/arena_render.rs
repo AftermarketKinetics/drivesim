@@ -1,12 +1,10 @@
 //! Draws NHRL's 12 lb cage (physics `arena.rs`): the painted plywood
-//! floor, polycarbonate walls, overhead lights, and the target box
-//! (synced like a body).
+//! floor, polycarbonate walls with distance markings, and overhead lights.
 
 use crate::floor_texture::floor_image;
-use crate::robot_render::BodyLink;
+use crate::wall_markings::spawn_wall_markings;
 use bevy::prelude::*;
-use drivesim_physics::arena::{ARENA_SIDE_M, BOX_HALF_M, WALL_H_M};
-use rapier3d::prelude::RigidBodyHandle;
+use drivesim_physics::arena::{ARENA_SIDE_M, WALL_H_M};
 
 /// Floor, walls and overhead lights, under `root` (rapier coordinates, z up).
 pub fn spawn_arena(
@@ -53,6 +51,7 @@ pub fn spawn_arena(
         commands.entity(root).add_child(w);
     }
     spawn_overhead_lights(commands, root, meshes, mats);
+    spawn_wall_markings(commands, root, meshes, mats);
 }
 
 /// Overhead lights height above the floor, m: over the cage roof.
@@ -122,23 +121,4 @@ fn spawn_overhead_lights(
             commands.entity(root).add_child(lamp);
         }
     }
-}
-
-pub fn spawn_target(
-    commands: &mut Commands,
-    root: Entity,
-    handle: RigidBodyHandle,
-    meshes: &mut Assets<Mesh>,
-    mats: &mut Assets<StandardMaterial>,
-) {
-    let [hx, hy, hz] = BOX_HALF_M;
-    let e = commands
-        .spawn((
-            BodyLink(handle),
-            Mesh3d(meshes.add(Cuboid::new(2.0 * hx, 2.0 * hy, 2.0 * hz))),
-            MeshMaterial3d(mats.add(Color::srgb(0.85, 0.55, 0.15))),
-            Transform::default(),
-        ))
-        .id();
-    commands.entity(root).add_child(e);
 }

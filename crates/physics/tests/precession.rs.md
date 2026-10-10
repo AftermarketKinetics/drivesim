@@ -12,7 +12,11 @@ Tests:
   across the spin, on the chassis, with the weapon at 1,000 rad/s about
   its own axis. After 1 s the spin axis has swung toward x by τ/L·t,
   within 10%, and tipped about x by less than 20% of that.
-- `without_spin_the_same_torque_just_tips_it`: the contrast case.
+- `without_spin_the_same_torque_just_tips_it`: the contrast case. With
+  the weapon still, 0.5 N m for 0.1 s rolls the robot by τt²/(2 I_xx),
+  within 15%, about the combined inertia. It used to check a fixed
+  0.05 rad, which the fixture stopped reaching when it got twice as wide
+  (2026-10-10).
 - `nothing_driven_conserves_angular_momentum`: the chassis tumbling and
   the weapon spinning; total angular momentum about the system CoM
   stays within 1% over 1 s.

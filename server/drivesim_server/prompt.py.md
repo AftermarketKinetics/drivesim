@@ -22,6 +22,13 @@ imported parts into a checked `robot.toml` together with the user.
   expected.
 - **Defaults:** the robot is named after the uploaded file, and `arm = 5`
   stays unless the radio has no arm switch.
+- **Weapon direction:** the prompt documents `spin` and asks for it
+  unless the weapon is a vertical disc or drum spinning front edge up. A
+  weapon spinning the wrong way throws the robot itself on every hit
+  (2026-10-10).
+- **Tyres:** the `mu` guidance lists soft cast polyurethane at ~1.4, TPU
+  and rubber at ~0.8–1.0 and hard plastic at ~0.3, all unmeasured. Steel
+  cleats have no number: ask.
 - **Tuned on the first live conversation (2026-10-09),** which named the
   robot "robot", blamed a normal tilt on wheel clearance, and left out
   the arm switch.

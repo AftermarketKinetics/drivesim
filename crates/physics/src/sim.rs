@@ -2,14 +2,13 @@
 //! (docs/drivesim.md §6: sized from the fastest rotor; a 10,000 rpm
 //! weapon is unstable on a rapier joint at 1 ms and stable from 2 kHz).
 
-use crate::arena::{add_arena, add_target};
-use crate::gear_coupling::gear_coupling;
+use crate::arena::add_arena;
+use crate::drivetrain::{Drivetrain, rotor_speed};
 use crate::mixer::{Duties, MixerConfig, mix};
-use crate::motor::rotor_torque;
-use crate::spawn::{RobotHandles, SpawnError, forward_sign, side_of, spawn_robot, v};
+use crate::spawn::{RobotHandles, SpawnError, spawn_robot};
 use drivesim_input::Frame;
 use drivesim_robot::robot_file::Control;
-use drivesim_robot::{RobotModel, Rotor, Side};
+use drivesim_robot::{RobotModel, Rotor};
 use rapier3d::prelude::*;
 
 pub const PHYSICS_HZ: u32 = 4000;
@@ -17,32 +16,44 @@ pub const CONTROL_HZ: u32 = 1000;
 pub const STEPS_PER_TICK: u32 = PHYSICS_HZ / CONTROL_HZ;
 pub const GRAVITY: f32 = 9.81;
 
+/// What the opponent's ESCs get: armed with its sticks centred, so its
+/// wheels brake and its weapon is off. It holds its ground like an idle
+/// robot rather than rolling away on free wheels.
+pub const OPPONENT_DUTIES: Duties = Duties {
+    left: Some(0.0),
+    right: Some(0.0),
+    weapon: Some(0.0),
+};
+
+/// An undriven copy of the robot (user, 2026-10-10: "replace the box with
+/// a copy of simple bot"), sharing the driven robot's model.
+pub struct Opponent {
+    pub robot: RobotHandles,
+    drive: Drivetrain,
+}
+
 pub struct Sim {
     pub world: PhysicsWorld,
     pub robot: RobotHandles,
     pub model: RobotModel,
-    pub target: RigidBodyHandle,
+    pub opponent: Option<Opponent>,
     mixer: Option<MixerConfig>,
     pub duties: Duties,
-    /// Per rotor (wheels, then weapons): (rotor, chassis) absolute angular
-    /// velocity about the rotor's axis after the last step, and the
-    /// accelerations over it, for `gear_coupling`.
-    axis_w: Vec<(f32, f32)>,
-    axis_alpha: Vec<(f32, f32)>,
+    drive: Drivetrain,
 }
 
 impl Sim {
-    /// The arena, the target box at (1, 0) and the robot at (−1, 0) facing
-    /// it.
+    /// The arena, the robot at (−1, 0) facing +x, and its opponent copy at
+    /// (1, 0) facing it.
     pub fn new(
         model: RobotModel,
         mesh: &dyn Fn(&str) -> Option<Vec<u8>>,
     ) -> Result<Sim, SpawnError> {
         let mut world = Self::empty_world(-GRAVITY);
         let _floor = add_arena(&mut world);
-        let target = add_target(&mut world, 1.0, 0.0, model.total_mass() as f32);
         let robot = spawn_robot(&mut world, &model, mesh, -1.0, 0.0, 0.0)?;
-        Ok(Self::assemble(world, robot, model, target))
+        let opponent = spawn_robot(&mut world, &model, mesh, 1.0, 0.0, std::f32::consts::PI)?;
+        Ok(Self::assemble(world, robot, model, Some(opponent)))
     }
 
     /// A world with nothing in it, for tests that build their own scene.
@@ -71,7 +82,7 @@ impl Sim {
         world: PhysicsWorld,
         robot: RobotHandles,
         model: RobotModel,
-        target: RigidBodyHandle,
+        opponent: Option<RobotHandles>,
     ) -> Sim {
         let mixer = match model.control {
             Control::Mixer {
@@ -94,28 +105,14 @@ impl Sim {
             world,
             robot,
             model,
-            target,
+            opponent: opponent.map(|robot| Opponent {
+                robot,
+                drive: Drivetrain::default(),
+            }),
             mixer,
             duties: Duties::default(),
-            axis_w: Vec::new(),
-            axis_alpha: Vec::new(),
+            drive: Drivetrain::default(),
         }
-    }
-
-    fn rotors(&self) -> impl Iterator<Item = &Rotor> {
-        self.model.wheels.iter().chain(&self.model.weapons)
-    }
-
-    /// (rotor, chassis) absolute angular velocity about each rotor's axis.
-    fn axis_speeds(&self) -> Vec<(f32, f32)> {
-        let c = &self.world.bodies[self.robot.bodies[0]];
-        self.rotors()
-            .map(|r| {
-                let a = *c.rotation() * v(r.axis_dir).normalize();
-                let b = &self.world.bodies[self.robot.bodies[r.body]];
-                (b.angvel().dot(a), c.angvel().dot(a))
-            })
-            .collect()
     }
 
     /// One control tick: decide duties from the radio frame (`None` = no
@@ -130,77 +127,35 @@ impl Sim {
         }
     }
 
-    /// One physics step with the current duties: motor torques from each
-    /// rotor's present speed, applied equal and opposite to rotor and
-    /// chassis about the joint axis.
+    /// One physics step with the current duties: each robot's motor
+    /// torques from its rotors' present speeds (`drivetrain.rs`).
     pub fn physics_step(&mut self) {
-        let chassis = self.robot.bodies[0];
-        for &h in &self.robot.bodies {
-            self.world.bodies[h].reset_torques(false);
+        self.drive
+            .apply(&mut self.world, &self.model, &self.robot, &self.duties);
+        if let Some(o) = &mut self.opponent {
+            o.drive
+                .apply(&mut self.world, &self.model, &o.robot, &OPPONENT_DUTIES);
         }
-        let v_batt = self.model.battery_v as f32;
-        let mut torques = Vec::new();
-        for wh in &self.model.wheels {
-            let duty = match side_of(wh) {
-                Side::Left => self.duties.left,
-                Side::Right => self.duties.right,
-            };
-            let s = forward_sign(wh);
-            let w = s * self.rotor_speed(wh);
-            torques.push((
-                wh.body,
-                s * rotor_torque(duty, w, wh, v_batt),
-                v(wh.axis_dir),
-            ));
-        }
-        for wp in &self.model.weapons {
-            let w = self.rotor_speed(wp);
-            torques.push((
-                wp.body,
-                rotor_torque(self.duties.weapon, w, wp, v_batt),
-                v(wp.axis_dir),
-            ));
-        }
-        let rot = *self.world.bodies[chassis].rotation();
-        for (k, (body, tau, axis)) in torques.into_iter().enumerate() {
-            let rotor = self.rotors().nth(k).expect("one torque per rotor");
-            let (alpha_r, alpha_c) = self.axis_alpha.get(k).copied().unwrap_or_default();
-            let (fix_r, fix_c) = gear_coupling(
-                rotor.motor.rotor_inertia_kg_m2 as f32,
-                rotor.ratio as f32,
-                alpha_r,
-                alpha_c,
-            );
-            let a = rot * axis.normalize();
-            let h = self.robot.bodies[body];
-            self.world.bodies[h].add_torque(a * (tau + fix_r), true);
-            self.world.bodies[chassis].add_torque(a * (fix_c - tau), true);
-        }
-        let before = if self.axis_w.is_empty() {
-            self.axis_speeds()
-        } else {
-            std::mem::take(&mut self.axis_w)
-        };
         self.world.step();
-        let after = self.axis_speeds();
-        let dt = self.world.integration_parameters.dt;
-        self.axis_alpha = before
-            .iter()
-            .zip(&after)
-            .map(|(b, a)| ((a.0 - b.0) / dt, (a.1 - b.1) / dt))
-            .collect();
-        self.axis_w = after;
+        self.drive.observe(&self.world, &self.model, &self.robot);
+        if let Some(o) = &mut self.opponent {
+            o.drive.observe(&self.world, &self.model, &o.robot);
+        }
     }
 
     /// Rotor speed relative to the chassis about its axis, rad/s.
     pub fn rotor_speed(&self, rotor: &Rotor) -> f32 {
-        let c = &self.world.bodies[self.robot.bodies[0]];
-        let b = &self.world.bodies[self.robot.bodies[rotor.body]];
-        let a = *c.rotation() * v(rotor.axis_dir).normalize();
-        (b.angvel() - c.angvel()).dot(a)
+        rotor_speed(&self.world, &self.robot, rotor)
     }
 
     pub fn chassis(&self) -> &RigidBody {
         &self.world.bodies[self.robot.bodies[0]]
+    }
+
+    /// The opponent's chassis, if there is one.
+    pub fn opponent_chassis(&self) -> Option<&RigidBody> {
+        self.opponent
+            .as_ref()
+            .map(|o| &self.world.bodies[o.robot.bodies[0]])
     }
 }

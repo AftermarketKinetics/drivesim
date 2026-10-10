@@ -26,6 +26,9 @@ the lowest point of the robot, usually one on each side with a horizontal axis. 
 turn with it (hub, tyre) belong to the same wheel.
    - The weapon is usually the rotor with the most mass far from its axis. A weapon that is \
 not itself round (a bar, an eggbeater) takes its axis from its hub or shaft: set axis_part.
+   - Ask which way the weapon spins unless it is a vertical disc or drum
+spinning the usual way (front edge up). It decides whether hits throw the opponent
+or the robot itself.
    - Everything else is the chassis. Motors' stators, electronics and fasteners stay chassis.
    - Materials: guess from part names and use, and ask when a heavy part's material is \
 unclear. Printed parts are not solid: if the user knows the real weight, use \
@@ -81,6 +84,10 @@ parts = ["Blade*", "Hub*"]   # everything that spins with it
 axis_part = "Hub*"           # optional: the part whose axis is the weapon's
 motor = "<id>"
 ratio = 1.0
+spin = "front-up"            # which way it spins. Cross axis (vertical disc, drum):
+                             # "front-up" (default; hits throw the opponent up) or
+                             # "front-down". Upright axis (horizontal spinner):
+                             # "ccw" (default) or "cw", seen from above.
 
 [control]            # how the radio drives the robot; channels are 1-based as on the radio
 kind = "mixer"

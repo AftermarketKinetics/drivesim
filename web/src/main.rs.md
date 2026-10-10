@@ -23,8 +23,9 @@ Gamepad API, and draws everything from the driver's box.
   arena entity is its child. Poses therefore copy across unchanged.
 - **Loading is async but the App is not.** `setup` starts `fetch_bundle`
   with `spawn_local`, which leaves its result in `LoadSlot`. `take_bundle`
-  polls the slot each frame; on success it builds `Sim::new`, the visuals
-  and the target, and inserts `SimRes`. On failure the HUD shows the
+  polls the slot each frame; on success it builds `Sim::new`, the robot's
+  visuals and the opponent's (all orange, `OPPONENT_ORANGE`), and inserts
+  `SimRes`. On failure the HUD shows the
   reason. Systems that need the sim take `Option<Res<SimRes>>` and do
   nothing until it exists.
 - **The order matters:** the radio is read before the step that uses it,

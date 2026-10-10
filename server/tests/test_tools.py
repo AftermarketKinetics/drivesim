@@ -35,7 +35,7 @@ async def test_parts_summary_lists_parts_with_axes(ctx):
 async def test_write_checks_and_marks_the_robot(ctx):
     text = (FIXTURE_BUNDLE / "robot.toml").read_text()
     out = await TOOLS["write_robot_toml"].run(ctx, {"robot_toml": text})
-    assert out["ok"] is True and abs(out["total_mass_kg"] - 5.038) < 0.01
+    assert out["ok"] is True and abs(out["total_mass_kg"] - 5.282) < 0.01
     assert ctx.store.robot(ctx.robot_id)["checked"] == 1
     assert ctx.events[-1]["type"] == "robot"
     bad = await TOOLS["write_robot_toml"].run(ctx, {"robot_toml": text.replace("mu = 1.4", "mu_typo = 1.4", 1)})

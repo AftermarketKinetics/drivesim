@@ -10,6 +10,7 @@ use crate::model::{Body, RobotModel, Rotor, Side};
 use crate::motors::{Library, parse_library};
 use crate::parts::{Part, PartsDoc, parse_parts};
 use crate::robot_file::{Control, RobotFile, RotorSection, parse_robot_file};
+use crate::spin::spin_axis;
 use std::fmt;
 
 #[derive(Debug)]
@@ -48,6 +49,10 @@ pub enum LoadError {
     },
     BadChannel(usize),
     BadMass(String),
+    BadSpin {
+        rotor: String,
+        why: String,
+    },
 }
 
 impl fmt::Display for LoadError {
@@ -81,6 +86,7 @@ impl fmt::Display for LoadError {
             }
             BadChannel(c) => write!(f, "channel {c} is not 1..=16"),
             BadMass(why) => write!(f, "{why}"),
+            BadSpin { rotor, why } => write!(f, "{rotor}: {why}"),
         }
     }
 }
@@ -294,11 +300,25 @@ fn make_rotor(
     } else {
         (None, None)
     };
+    let bad_spin = |why: String| LoadError::BadSpin {
+        rotor: sec.name.clone(),
+        why,
+    };
+    let axis_dir = if is_wheel {
+        if sec.spin.is_some() {
+            return Err(bad_spin(
+                "a wheel's direction comes from the drive, not spin".into(),
+            ));
+        }
+        mat_vec(r, axis_from.dir)
+    } else {
+        spin_axis(mat_vec(r, axis_from.dir), sec.spin.as_deref()).map_err(bad_spin)?
+    };
     Ok(Rotor {
         name: sec.name.clone(),
         body,
         axis_point: centre,
-        axis_dir: mat_vec(r, axis_from.dir),
+        axis_dir,
         radius_m: axis_from.radius_m,
         width_m: axis_from.width_m,
         motor,
