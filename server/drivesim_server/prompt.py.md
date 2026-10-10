@@ -13,7 +13,7 @@ imported parts into a checked `robot.toml` together with the user.
   wheel is a rotor reaching the floor; the weapon is the rotor with the most
   mass far from its axis; everything else is chassis), ask everything
   unsure in one message with the evidence, then write and check the file
-  until it's right.
+  until it's right, then list the tunable settings.
 - **Contents:** the whole `robot.toml` schema, the robot frame, and the
   EdgeTX Classic channel layout (ch1 turn, ch2 throttle, ch3 weapon, ch5
   arm).
@@ -39,6 +39,15 @@ imported parts into a checked `robot.toml` together with the user.
   every robot. Added 2026-10-10 at Lily's request, matching
   combat-robot-analyzer. Tested by
   `test_the_prompt_points_problems_to_discord_with_the_robot_id`.
+- **Ends with the tuning list:** once the robot is ready, the agent
+  lists every `robot.toml` setting that brings the sim closer to the real
+  robot (masses, materials, `mu`, motors and overrides with their
+  provisional figures, ratio/efficiency, `battery_v`, spin/axis/side,
+  axes, radio channels), each with its value and whether it was
+  measured, given or guessed, leading with the two or three that matter
+  most for that robot. Only fields the file exposes are listed, so the
+  agent never offers a tweak it cannot make. Added 2026-10-10 at Lily's
+  request. Tested by `test_the_prompt_ends_with_every_tunable_setting`.
 - **Tuned on the first live conversation (2026-10-09),** which named the
   robot "robot", blamed a normal tilt on wheel clearance, and left out
   the arm switch.
@@ -49,4 +58,4 @@ imported parts into a checked `robot.toml` together with the user.
 - [ ] `MATERIALS` ⊆ `crates/robot/src/materials.rs`, enforced by
   `test_prompt_materials_load`.
 - [ ] The schema shown matches `crates/robot/src/robot_file.rs`. A field
-  added there is added here.
+  added there is added here, and to the step-5 tuning list if it is tunable.

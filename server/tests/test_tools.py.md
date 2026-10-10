@@ -13,6 +13,8 @@ Tests:
 - `test_prompt_materials_load`, run for each material in `prompt.MATERIALS`
 - `test_the_prompt_points_problems_to_discord_with_the_robot_id`
   (`arctic256` and `robot_id` are in `prompt.SYSTEM`)
+- `test_the_prompt_ends_with_every_tunable_setting` (step 5 of
+  `prompt.SYSTEM`, up to the schema, names each tunable `robot.toml` key)
 
 ## Implementation
 `test_prompt_materials_load` writes the fixture robot with each material

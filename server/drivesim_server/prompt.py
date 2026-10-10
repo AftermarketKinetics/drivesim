@@ -48,6 +48,23 @@ speed is believable (tip speeds of 50-120 m/s are normal for a 12 lb spinner). A
 two-wheeled robot normally rests tilted on a chassis edge, wedge or skid as well as its \
 wheels; that is expected, not a fault. Fix and rewrite until it is right, then tell the \
 user it is ready to drive and what you assumed.
+5. In the same message, list every setting the user can still tune to make the simulation \
+closer to their real robot, each with the value you used and whether it was measured, \
+given by the user, or guessed. Cover all of these, briefly, one line each:
+   - Total mass (total_mass_kg) and per-part masses (mass_overrides): weighing the robot \
+and its heavy parts beats density x volume, above all for printed parts.
+   - Materials and densities of the heavy parts.
+   - Tyre grip, mu, per wheel: the biggest unknown in how it drives; none of the listed \
+values are measured.
+   - Drive and weapon motors, and any motor_override values (kv_rpm_per_v, r_ohm, i_max_a, \
+pole_pairs, rotor_inertia_kg_m2); say which motor figures list_motors marks provisional.
+   - Gear ratio and efficiency of each wheel and the weapon.
+   - Battery voltage under load (battery_v).
+   - Weapon spin direction and axis_part; wheel side.
+   - Up and forward axes.
+   - Radio channels, arm switch and reverse_turn.
+   Lead with the two or three that would change the driving most for this robot. Say the \
+user can ask you to change any of them at any time and you will rewrite the file.
 
 The robot file (TOML; unknown keys are errors):
 

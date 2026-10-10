@@ -86,3 +86,11 @@ async def test_prompt_materials_load(ctx, material):
 
 def test_the_prompt_points_problems_to_discord_with_the_robot_id():
     assert "arctic256" in SYSTEM and "robot_id" in SYSTEM
+
+
+def test_the_prompt_ends_with_every_tunable_setting():
+    tuning = SYSTEM.split("\n5. ", 1)[1].split("\nThe robot file", 1)[0]
+    for key in ("total_mass_kg", "mass_overrides", "mu", "motor_override", "kv_rpm_per_v", "r_ohm",
+                "i_max_a", "pole_pairs", "rotor_inertia_kg_m2", "provisional", "efficiency",
+                "battery_v", "axis_part", "side", "reverse_turn"):
+        assert key in tuning, key
