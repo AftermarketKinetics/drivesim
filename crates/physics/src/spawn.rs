@@ -7,6 +7,7 @@
 //! motor inertia reflected through its gearing; colliders carry no mass.
 
 use crate::shapes::body_shapes;
+use crate::weapon_reach::reaching_parts;
 use drivesim_robot::math::mat_vec;
 use drivesim_robot::stl::{Tri, parse_stl};
 use drivesim_robot::{RobotModel, Side};
@@ -144,7 +145,18 @@ pub fn spawn_robot(
                 &mut w.bodies,
             );
         } else {
-            for shape in body_shapes(&tris[i]) {
+            // A weapon collides only through the parts that reach near its
+            // outer radius (weapon_reach.rs); the rest stay in its mass.
+            let reaching;
+            let parts: &[Vec<Tri>] = match model.weapons.iter().find(|wp| wp.body == i) {
+                Some(wp) => {
+                    let (p, d) = (v(wp.axis_point), v(wp.axis_dir).normalize());
+                    reaching = reaching_parts(&tris[i], [p.x, p.y, p.z], [d.x, d.y, d.z]);
+                    &reaching
+                }
+                None => &tris[i],
+            };
+            for shape in body_shapes(parts) {
                 w.colliders.insert_with_parent(
                     ColliderBuilder::new(shape)
                         .density(0.0)

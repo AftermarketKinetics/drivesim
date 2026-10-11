@@ -44,3 +44,52 @@
 **Did:**
 - Read every change from this session, "slow on mint" (contact margin, hull cap) and "public opponents" (Rival, access/opponents/house.py, DB migration, robot.html publish card); they fit together. `make test` 61 passed + all crate suites green.
 - One combined commit, staged by name (files overlap across the three sessions).
+
+## 00:05 deploy
+**User:** deploy
+**Did:**
+- Pushed d36b411 to origin main; running `deploy/push.sh` (images to mint), then DB backup and `docker compose up -d drivesim-broker drivesim`.
+- push.sh exit 0; prod DB backed up to `~/drivesim/data/drivesim.sqlite3.pre-d36b411`; `docker compose up -d` recreated drivesim (broker unchanged), uvicorn started clean; public landing 200 with the new guide text. Checking the migrated DB from here was denied (production reads); left for the user.
+
+## 00:30 stale page after deploy
+**User:** (pasted console error: module './drivesim_web.js' does not provide an export named 'set_opponent_box') … its ok i just needed to hard refresh
+**Did:**
+- Local build and server caching (no-cache + content ETag) were correct; the browser kept an old index.html with the new JS. Fixed by a hard refresh; no code change.
+
+## 00:45 Obliterator vs AI at 0.7x
+**User:** the speed drops down to 0.7x when driving against the ai copy of obliterator, provide options on how to speed it up
+**Did:**
+- Scratch benches (deleted): AI round 1.31x native; cost is the spinning weapon's 11 CCD hulls, not contact. Merged weapon hull capped 32 verts → 2.8x; +no CCD 3.1x; 2 kHz 2.1x; default contacts 1.8x; solver iters 2 → 1.5x.
+- Lesson `spinning-weapon-hull-count-dominates-step-cost.md`; options put to the user.
+**Asked:** "Which speed-ups should I build?…" Merged weapon hull (Recommended) / Drop weapon CCD / 2 kHz physics / WASM SIMD → **Drop weapon CCD, 2 kHz physics**.
+
+## 01:10 2 kHz + no CCD breaks weapon tests
+**Did:**
+- Applied PHYSICS_HZ 2000 and removed weapon CCD (sim.rs, spawn.rs; sidecars not yet updated). Two drive.rs weapon tests fail: open floor hop 8 cm; hit throws opponent 5 cm vs robot 8 cm. Isolated: no-CCD alone reverses hits (robot 1.06 m); 2 kHz+CCD only marginal (0.56 vs 0.39 m).
+- Obliterator AI native: 2 kHz no CCD 3.6x, 2 kHz + CCD 2.4x (was 1.31x). Stopped to ask.
+**Asked:** "Dropping weapon CCD breaks weapon hits… Which way?" 2 kHz, keep CCD (Recommended) / 2 kHz + merged hull / Ship as picked / Revert, merged hull only → **2 kHz, keep CCD**.
+**Did:**
+- spawn.rs restored (CCD on); PHYSICS_HZ 2000; hit test relaxed to "opponent higher than robot" (0.56 vs 0.39 m); sidecars, README, docs §6, two lessons updated. Physics tests pass.
+
+## 01:30 would removing fasteners help?
+**User:** would removing elements from the uploaded model (like small fasteners etc) speed things up at all?
+**Did:**
+- Checked Obliterator's parts.json: weapon's 11 hulls are the bar + 6 bar solids, spindle, pulley, axle, spacer (no fasteners); 123 parts under 2 cm³ = 139k of 418k triangles. Answered: no physics gain from fasteners (only 12 biggest parts per body collide); hidden weapon internals are the real cost.
+
+## 01:50 automatic weapon collision parts
+**User:** do the automatic one
+**Did:**
+- New `crates/physics/src/weapon_reach.rs` (+ .md, 3 unit tests): weapon parts reaching < 0.5 of the outer radius get no hull; wired into `spawn.rs`. Obliterator 11 → 7 hulls (all bar pieces kept), other local robots unchanged.
+- Obliterator AI at 2 kHz: 2.4x → 2.86x native. Docs §6, lib/spawn sidecars, lesson updated; rebuilding web.
+
+## 00:05 web-dev url
+**User:** whats the localhost url for make web-dev's page?
+**Did:**
+- `tools/dev_server.py` serves the repo root on port 8417, so the sim page is http://localhost:8417/server/web/sim/.
+
+## 00:15 lossier collisions, inverted controls
+**User:** two feel changes id like to make. 1. make the energy transfer more lossy, there should be more energy lost to destruction/heat/sound on these collisions, make it more lossy, especially when hitting the walls or the opponents weapon. 2. do controls invert when upside down?
+**Asked:** "How should collisions lose energy?" — Absorb impact Δv (Recommended) / Softer contacts globally / Weaker weapon bite only → **Absorb impact Δv**. "Which collisions should be lossy, and how much velocity change should they keep?" — Walls & weapon-weapon 30%, rest 60% / Everything 50%, floor exempt / Walls & weapon-weapon only, 30% → **Everything 50%, floor exempt**. "Should controls invert when upside down?" — Leave as is (Recommended) / Auto-invert in the sim / robot.toml option → **Leave as is**.
+**Did:**
+- Answered: no auto-invert; the mixer ignores orientation, as a real robot without an invert switch (an EdgeTX mix works already). Restitution is already 0 everywhere; hits are violent because the weapon tooth's speed is fully transferred.
+- Built `crates/physics/src/impact_loss.rs` (+ .md): post-step velocity-change blend, KEEP 0.5, 5 g impact threshold, floor exempt, rotor spin unscaled; wired in `Sim::physics_step` via `Sim::floor`. New tests/impact.rs; the drive hit test now runs with the loss off. Fixture hit 6.7 → 3.7 m/s, wall recoil 5.8 → 0.5 m/s; Obliterator vs AI 3.1× → 3.6× native. `make test` green; docs §2/§6, sidecars and lesson `rapier-impact-loss-is-a-post-step-velocity-blend` added.

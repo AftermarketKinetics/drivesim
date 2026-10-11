@@ -4,16 +4,17 @@
 
 use crate::arena::add_arena;
 use crate::drivetrain::{Drivetrain, rotor_speed};
+use crate::impact_loss::{Group, absorb, snapshot};
 use crate::mixer::{Duties, MixerConfig, mix};
 use crate::opponent::{COUNTDOWN_S, Opponent};
-use crate::spawn::{RobotHandles, SpawnError, spawn_robot};
+use crate::spawn::{RobotHandles, SpawnError, spawn_robot, v};
 use crate::target::add_target;
 use drivesim_input::Frame;
 use drivesim_robot::robot_file::Control;
 use drivesim_robot::{RobotModel, Rotor};
 use rapier3d::prelude::*;
 
-pub const PHYSICS_HZ: u32 = 4000;
+pub const PHYSICS_HZ: u32 = 2000;
 pub const CONTROL_HZ: u32 = 1000;
 pub const STEPS_PER_TICK: u32 = PHYSICS_HZ / CONTROL_HZ;
 pub const GRAVITY: f32 = 9.81;
@@ -48,6 +49,9 @@ pub struct Sim {
     drive: Drivetrain,
     /// Simulated seconds since the round started.
     pub time_s: f32,
+    /// The arena floor, exempt from impact loss (`impact_loss.rs`); set
+    /// by `new`. `None` (a scene from `assemble`) turns the loss off.
+    pub floor: Option<ColliderHandle>,
 }
 
 impl Sim {
@@ -70,7 +74,7 @@ impl Sim {
         rival: Option<Rival>,
     ) -> Result<Sim, SpawnError> {
         let mut world = Self::empty_world(-GRAVITY);
-        let _floor = add_arena(&mut world);
+        let floor = add_arena(&mut world);
         let robot = spawn_robot(&mut world, &model, mesh, -1.0, 0.0, 0.0)?;
         Ok(match kind {
             OpponentKind::Copy | OpponentKind::Ai => {
@@ -81,12 +85,15 @@ impl Sim {
                 let handles =
                     spawn_robot(&mut world, &o_model, o_mesh, 1.0, 0.0, std::f32::consts::PI)?;
                 let opponent = Opponent::new(handles, o_model, kind == OpponentKind::Ai);
-                Self::assemble(world, robot, model, Some(opponent))
+                let mut s = Self::assemble(world, robot, model, Some(opponent));
+                s.floor = Some(floor);
+                s
             }
             OpponentKind::Box => {
                 let target = add_target(&mut world, 1.0, 0.0, model.total_mass() as f32);
                 let mut s = Self::assemble(world, robot, model, None);
                 s.target = Some(target);
+                s.floor = Some(floor);
                 s
             }
         })
@@ -111,8 +118,8 @@ impl Sim {
         p.static_contact_softness = SpringCoefficients::new(400.0, 1.0);
         p.num_solver_iterations = 4;
         p.warmstart_joints = true;
-        // Speculative contacts within 5 mm, not the default 20 mm: at 4 kHz
-        // a body at 20 m/s moves 5 mm a step, and the weapon has real CCD.
+        // Speculative contacts within 5 mm, not the default 20 mm: at 2 kHz
+        // a body at 10 m/s moves 5 mm a step.
         // 20 mm gave a low robot (Obliterator 6 v72) 83 solver contacts at
         // rest. 2 mm saved little more and flipped the hit test's outcome.
         p.normalized_prediction_distance = 0.005;
@@ -152,6 +159,7 @@ impl Sim {
             duties: Duties::default(),
             drive: Drivetrain::default(),
             time_s: 0.0,
+            floor: None,
         }
     }
 
@@ -189,11 +197,40 @@ impl Sim {
             o.drive
                 .apply(&mut self.world, &o.model, &o.robot, &o.duties);
         }
+        let groups = self.floor.map(|_| self.groups());
+        let before = groups.as_ref().map(|g| snapshot(&self.world, g));
         self.world.step();
+        if let (Some(floor), Some(g), Some(v)) = (self.floor, &groups, &before) {
+            absorb(&mut self.world, g, v, floor);
+        }
         self.drive.observe(&self.world, &self.model, &self.robot);
         if let Some(o) = &mut self.opponent {
             o.drive.observe(&self.world, &o.model, &o.robot);
         }
+    }
+
+    /// Each robot (and the box) as one group for `impact_loss.rs`.
+    fn groups(&self) -> Vec<Group> {
+        let robot = |h: &RobotHandles, m: &RobotModel| Group {
+            bodies: h.bodies.clone(),
+            rotors: m
+                .wheels
+                .iter()
+                .chain(&m.weapons)
+                .map(|r| (h.bodies[r.body], v(r.axis_dir).normalize()))
+                .collect(),
+        };
+        let mut g = vec![robot(&self.robot, &self.model)];
+        if let Some(o) = &self.opponent {
+            g.push(robot(&o.robot, &o.model));
+        }
+        if let Some(t) = self.target {
+            g.push(Group {
+                bodies: vec![t],
+                rotors: vec![],
+            });
+        }
+        g
     }
 
     /// Rotor speed relative to the chassis about its axis, rad/s.

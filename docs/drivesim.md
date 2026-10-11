@@ -86,6 +86,11 @@ hazards; a native desktop build.
   V1, which its owner ticks public. Any class can face any class; the
   arena stays the 12 lb cage. This brought "a second, different robot as
   opponent" into v1, for the AI only.
+- **Lossy impacts** (user, 2026-10-11): collisions lose energy, as real
+  ones do to deformation, heat and sound. Every impact except with the
+  floor keeps half its velocity change (§6). Controls do not invert
+  when a robot is upside down, as on a real robot without an invert
+  switch; a radio mix on a switch does it, as at an event.
 
 ## 3. Pipeline
 
@@ -228,14 +233,17 @@ its own fixed-tick loop.
   from the DC motor model carried over from Momentum's 2D sim:
   `I = clamp((d·V − ω·ratio/kv)/R, ±i_max)`, torque `I/kv · ratio · η`.
 - **Weapon:** a body on a revolute joint, same motor model, true RPM,
-  gyroscopic forces on, CCD on.
+  gyroscopic forces on, CCD on. It collides only through the parts
+  reaching at least half its outer radius (user, 2026-10-10,
+  `weapon_reach.rs`): spindles and pulleys inside the robot stay in its
+  mass but cost no collision time.
 - **Motors act as torques,** not rapier joint motors: each physics step
   the motor model's torque goes onto the rotor about its axis and the
   opposite onto the chassis, so reaction torque is real. (Rapier's
   velocity motors never moved the spike robot.) Each rotor body also
   carries its motor's rotor inertia reflected through the gearing
   (`J · ratio²`), which a real gearmotor has and which keeps the explicit
-  torque stable at 4 kHz. Wheels have rapier's gyroscopic term off,
+  torque stable at the physics step. Wheels have rapier's gyroscopic term off,
   because the lumped inertia overstates their angular momentum about
   `ratio` times. The lump would also put ~`ratio` times too much
   spin-up reaction on the chassis (the fixture flipped on every hard
@@ -248,6 +256,14 @@ its own fixed-tick loop.
   twist constraint per patch, recycled points, soft 30 Hz contacts
   tuned for piles) gave the same grip but more wander when spinning in
   place.
+- **Impact loss** (user, 2026-10-11, `impact_loss.rs`): restitution
+  is 0 everywhere, but a rigid contact still hands the struck body all
+  of a weapon tooth's speed. After each step, a robot (or the box) whose
+  contacts with anything but the floor exceed 5 g keeps half the velocity
+  change that step gave it. Rotor spin is the exception: the weapon
+  still loses all the speed the hit took. Measured on the fixture: a hit
+  throws the opponent at 3.7 m/s, not 6.7; a weapon striking the wall
+  recoils at 0.5 m/s, not 5.8.
 - **Arena:** NHRL's 12 lb cage: 16' × 16' usable, a floor of plywood
   painted with dead-flat paint (not steel), polycarbonate walls on a timber
   skirt, a roof (NHRL wiki, read 2026-10-09); the roof is simulated too, on
@@ -262,9 +278,12 @@ its own fixed-tick loop.
 control rate. Measured 2026-10-09 (timing spike, lesson
 `rapier-fast-weapon-needs-small-dt.md`): a 10,000 RPM weapon on a rapier
 revolute joint throws the robot at a 1 ms step whatever the substep
-count, and is stable from 2 kHz (30° per step) up. **Proposal: 4 kHz
-physics** (15° per step) with the control tick (1 kHz for Momentum's
-core) every fourth step. In WASM on one thread the whole spike scene ran
+count, and is stable from 2 kHz (30° per step) up. It ran at 4 kHz
+(15° per step) until **2 kHz physics** (user, 2026-10-10, for speed:
+Obliterator 6 v72 against its AI copy ran at 0.7× real time in the
+browser, 1.31× → 2.4× natively), with the control tick (1 kHz for
+Momentum's core) every second step. Weapon CCD stays on: without it
+hits stopped throwing the opponent. In WASM on one thread the whole spike scene ran
 at 6.6× real time at 4 kHz (Node 24 / V8) and 5.4–6.1× in the user's
 Chrome, so threads (and the cross-origin isolation they need) are not
 needed for v1.

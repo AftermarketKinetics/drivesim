@@ -27,7 +27,7 @@ measures how much faster than real time the physics could run.
 - **Headroom** is timed with `performance.now()` around the stepping loop
   and smoothed (`HEADROOM_EMA`, 0.02 per frame). Below 1, the sim can't
   keep up and runs slow. It is the in-browser check that a build or
-  profile change kept 4 kHz affordable.
+  profile change kept the physics rate (`PHYSICS_HZ`) affordable.
 
 ## Assertions
 

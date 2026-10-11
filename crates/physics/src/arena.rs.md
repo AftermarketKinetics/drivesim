@@ -24,8 +24,8 @@ The arena (docs/drivesim.md §6): floor, four walls and a roof.
 to launch themselves out of the box") is a 10 cm slab resting on the
 walls' tops at `WALL_H_M`, overhanging them like the floor's corners, so
 there is no seam to slip through. Before it, a hit could throw a robot
-over the 2.4 m walls and out of the world. At 4 kHz even 30 m/s moves
-7.5 mm a step, well under its 10 cm, so nothing tunnels through.
+over the 2.4 m walls and out of the world. At 2 kHz even 30 m/s moves
+15 mm a step, well under its 10 cm, so nothing tunnels through.
 
 The floor's friction is 1.0 and combines by multiplying, so each tyre
 grips with exactly its robot.toml `mu`. Rapier uses the stronger of two

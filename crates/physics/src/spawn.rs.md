@@ -27,9 +27,10 @@ Turns a `RobotModel` into rapier bodies, colliders and revolute joints
 - **Each rotor body also gets its motor's reflected inertia,**
   `rotor_inertia_kg_m2 · ratio²`, about its axis (added as `J a aᵀ`). It
   is real (the gearbox spins the motor's rotor ratio times faster), and
-  it is what keeps the explicit motor torque stable at 4 kHz. Without it,
+  it is what keeps the explicit motor torque stable at the physics step
+  (0.5 ms since 2 kHz, 2026-10-10; it was 0.25 ms). Without it,
   a 68 g wheel at 22.5:1 has a motor time constant of ~0.1 ms, under
-  the 0.25 ms step, and its speed rings between the current limits
+  the step, and its speed rings between the current limits
   (found 2026-10-10 when the fixture was regeared). The lump overstates
   the rotor's angular momentum about `ratio` times, so wheel bodies have
   rapier's gyroscopic term off. `gear_coupling.rs` corrects its reaction
@@ -38,7 +39,10 @@ Turns a `RobotModel` into rapier bodies, colliders and revolute joints
   rotated from rapier's y axis onto the wheel's axis. A tessellated rim
   would bump.
 - **Other bodies:** `body_shapes`, the convex hulls of the body's 12
-  biggest parts (`shapes.rs`). The weapon gets CCD.
+  biggest parts (`shapes.rs`). The weapon gets CCD, and collides only
+  through the parts that reach near its outer radius
+  (`weapon_reach::reaching_parts`, user 2026-10-10); its internals stay
+  in its mass.
 - **Joints:** revolute, with contacts off between the jointed pair.
 - **Placement:** rests the lowest mesh vertex or wheel rim on the floor,
   with 0.5 mm clearance. The rim calculation assumes a horizontal axle.

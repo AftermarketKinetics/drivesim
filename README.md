@@ -15,7 +15,7 @@ from [wiki.combat-robot.systems](https://wiki.combat-robot.systems/)).
    wheels and weapon, materials, motors and gear ratios, and writes the
    robot file (`robot.toml`). The checker validates every version.
 3. **Drive.** The browser app (Bevy + rapier3d, compiled to WebAssembly)
-   simulates the robot as 3D rigid bodies at 4 kHz: DC motors through their
+   simulates the robot as 3D rigid bodies at 2 kHz: DC motors through their
    gearboxes, tyre grip, and the weapon's gyroscopic effect. Your radio
    connects as a USB joystick. An orange copy of your robot is the target.
 

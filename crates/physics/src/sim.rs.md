@@ -9,7 +9,7 @@ The fixed-step loop (docs/drivesim.md §6):
 
 ## Interface
 
-- `PHYSICS_HZ` 4000, `CONTROL_HZ` 1000, `STEPS_PER_TICK` 4, `GRAVITY`.
+- `PHYSICS_HZ` 2000, `CONTROL_HZ` 1000, `STEPS_PER_TICK` 2, `GRAVITY`.
 - `OpponentKind { Copy (default), Box, Ai }`: what the robot faces.
 - `Rival<'a> { model, mesh }`: another robot to face in place of the
   copy.
@@ -27,6 +27,9 @@ The fixed-step loop (docs/drivesim.md §6):
     (with `None`, no opponent);
   - `control_tick(frame)`, `physics_step()`;
   - `time_s`: simulated seconds since the round started;
+  - `floor`: the arena floor collider, set by `new`/`versus`. While it
+    is set, every physics step runs `impact_loss.rs`. `None` (a scene
+    from `assemble`, or a test setting it) turns the loss off;
   - `countdown_left()`: seconds until the AI starts, `None` without an
     AI or once it has;
   - `rotor_speed(rotor)`, `chassis()`, `opponent_chassis()` (the
@@ -35,10 +38,17 @@ The fixed-step loop (docs/drivesim.md §6):
 
 ## Implementation
 
-- **Why 4 kHz:** a 10,000 RPM weapon on a rapier revolute joint throws
+- **Why 2 kHz:** a 10,000 RPM weapon on a rapier revolute joint throws
   the robot at a 1 ms step, whatever the substep count, and is stable
-  from 2 kHz up. 4 kHz turns it 15° per step (lesson
-  `rapier-fast-weapon-needs-small-dt.md`).
+  from 2 kHz up, 30° per step (lesson
+  `rapier-fast-weapon-needs-small-dt.md`). It ran at 4 kHz (15° per
+  step) until the user chose 2 kHz for speed (2026-10-10): Obliterator 6
+  v72 against its AI copy went from 1.31× to 2.4× real time natively
+  (0.7× in the browser before). Every drive and weapon test still
+  passes; the chaotic single-hit test's margin shrank (see
+  tests/drive.rs.md). **Weapon CCD stays on:** dropping it too reached
+  3.6×, but the spinning fixture then hopped on open floor and hits
+  stopped throwing the opponent.
 - **Contact as exact as rapier offers** (user, 2026-10-10, for about
   1.7× the physics cost):
   - Coulomb friction per contact point, not rapier's default single cone
@@ -53,8 +63,8 @@ The fixed-step loop (docs/drivesim.md §6):
   (`normalized_prediction_distance` 0.005; 2026-10-10). Every hull within
   the margin of another surface gets a speculative manifold in the
   solver. Obliterator 6 v72 (a low robot) had 19 hulls within 20 mm of
-  the floor: 83 solver contacts at rest instead of about 17. At 4 kHz a
-  body at 20 m/s moves 5 mm per step, and the weapon has real CCD. 2 mm
+  the floor: 83 solver contacts at rest instead of about 17. At 2 kHz a
+  body at 10 m/s moves 5 mm per step, and the weapon has real CCD. 2 mm
   saved little more, but it flipped the outcome of the chaotic
   `a_hit_throws_the_opponent_up_not_the_robot` test. Lesson
   `rapier-default-prediction-distance-is-20mm.md`.
@@ -86,6 +96,11 @@ The fixed-step loop (docs/drivesim.md §6):
   no drivetrain, so `physics_step` only touches it through the world.
   `assemble` never sets it: `new` adds it after, so tests that build
   their own scene are unchanged.
+- **Impacts are lossy** (user, 2026-10-11): `physics_step` snapshots
+  each robot's (and the box's) body velocities before `world.step()`,
+  then `impact_loss::absorb` scales back any group's impact. The groups
+  are rebuilt each step from the handles, which is cheap next to the
+  step itself.
 - **Duties update once per control tick** and are held across its four
   physics steps, the driven robot's and the opponent's alike.
 - **The AI opponent** (user, 2026-10-10) is the copy with an
@@ -108,6 +123,8 @@ The fixed-step loop (docs/drivesim.md §6):
   - turning the right way;
   - disarmed robots stay still;
   - the weapon reaches no-load speed and the robot stays upright;
+  - (tests/impact.rs) impacts lose energy: hits and wall recoils are
+    slower than without the loss;
   - driving shoves the opponent, copy or box; the box spawns at (1, 0)
     with the robot's mass;
   - (tests/ai.rs) a rival keeps its own model and mass and still
