@@ -8,6 +8,19 @@ use crate::robot_render::BodyLink;
 use crate::sim_step::SimRes;
 use bevy::prelude::*;
 use drivesim_physics::impacts::{Impact, MARK_DV};
+use std::sync::atomic::{AtomicBool, Ordering};
+use wasm_bindgen::prelude::wasm_bindgen;
+
+/// Whether marks are drawn (user, 2026-10-11: a toggle to turn them off).
+/// A static because the page's checkbox calls in from JS.
+static SHOWN: AtomicBool = AtomicBool::new(true);
+
+/// Called by the page's "Marks" checkbox. Hidden marks are still made,
+/// so turning them back on shows every hit of the round.
+#[wasm_bindgen]
+pub fn set_marks(on: bool) {
+    SHOWN.store(on, Ordering::Relaxed);
+}
 
 /// A hit this many times `MARK_DV` or harder is fully red and largest.
 const RED_AT: f32 = 5.0;
@@ -70,7 +83,8 @@ fn look(heat: f32) -> (Color, LinearRgba) {
 }
 
 /// Takes the sim's new impacts and adds or reheats marks on the bodies
-/// hit, keeping at most `MAX_MARKS`.
+/// hit, keeping at most `MAX_MARKS`, shown or hidden as `set_marks` says.
+#[allow(clippy::too_many_arguments)] // a Bevy system: one parameter per resource/query
 pub fn update_marks(
     mut commands: Commands,
     sim: Option<ResMut<SimRes>>,
@@ -81,9 +95,23 @@ pub fn update_marks(
         &mut Mark,
         &MeshMaterial3d<StandardMaterial>,
         &mut Transform,
+        &mut Visibility,
     )>,
     mut mats: ResMut<Assets<StandardMaterial>>,
+    mut applied: Local<Option<bool>>,
 ) {
+    let shown = SHOWN.load(Ordering::Relaxed);
+    let vis = if shown {
+        Visibility::Inherited
+    } else {
+        Visibility::Hidden
+    };
+    if *applied != Some(shown) {
+        for (.., mut v) in &mut marks {
+            *v = vis;
+        }
+        *applied = Some(shown);
+    }
     let Some(mut sim) = sim else { return };
     let now = sim.sim.time_s;
     let impacts = sim.sim.take_impacts();
@@ -105,12 +133,12 @@ pub fn update_marks(
         let point = Vec3::new(i.point.x, i.point.y, i.point.z);
         let h = heat(i.dv);
         let radius = (R_MIN_M + (R_MAX_M - R_MIN_M) * h) * scale(i);
-        let near = marks.iter_mut().find(|(_, m, _, _)| {
+        let near = marks.iter_mut().find(|(_, m, _, _, _)| {
             m.body == body
                 && now - m.born_s < MERGE_S
                 && m.point.distance(point) < MERGE_R * m.radius
         });
-        if let Some((_, mut m, mat, mut t)) = near {
+        if let Some((_, mut m, mat, mut t, _)) = near {
             m.heat = m.heat.max(h);
             m.radius = m.radius.max(radius);
             t.scale = Vec3::splat(m.radius);
@@ -150,11 +178,12 @@ pub fn update_marks(
                     ..default()
                 })),
                 Transform::from_translation(point).with_scale(Vec3::splat(radius)),
+                vis,
             ))
             .id();
         commands.entity(body).add_child(mark);
     }
-    let mut live: Vec<(f32, Entity)> = marks.iter().map(|(e, m, _, _)| (m.born_s, e)).collect();
+    let mut live: Vec<(f32, Entity)> = marks.iter().map(|(e, m, ..)| (m.born_s, e)).collect();
     if live.len() > MAX_MARKS {
         live.sort_by(|a, b| a.0.total_cmp(&b.0));
         for (_, e) in &live[..live.len() - MAX_MARKS] {

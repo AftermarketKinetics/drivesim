@@ -22,7 +22,7 @@ because that path is public.
   3-minute bout ending in TIME and Rematch) and AI vs AI (an AI drives
   the robot too, no radio needed). Also the opponent dropdown of public
   robots by weight class for both AI modes, each switch restarting the
-  round, and the impact marks. All of it must match `web/index.html`,
+  round, and the impact marks with their "Marks" checkbox. All of it must match `web/index.html`,
   `web/src/opponent_toggle.rs` and `crates/physics/src/sim.rs`.
 - [ ] Its "Share your robot" step matches `server/web/robot.html`'s
   publish card and what `access.py` shares (bundle only, never the

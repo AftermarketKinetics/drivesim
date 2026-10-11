@@ -28,6 +28,12 @@ and says plainly when the browser can't run it (docs/drivesim.md §8).
   With a static `?bundle=` the list is the house robots' fixtures,
   `/fixtures/simple_bot/` (12 lb) and its `_1lb`, `_3lb` and `_30lb`
   versions, for `make web-dev`.
+- `<input type="checkbox" id="marks">` "Marks" in the top-right bar
+  (user, 2026-10-11): impact marks on or off, through the wasm export
+  `set_marks` (`impact_marks.rs`). Remembered per browser in
+  `localStorage` (`drivesim.marks`, guarded: it may throw). It is
+  re-sent every 250 ms until the wasm accepts it, because exports
+  throw before `init` is done.
 - `<button id="rematch">`, centred, hidden until an AI bout runs out
   (user, 2026-10-11). Every 250 ms the page polls the wasm export
   `bout_over` (`bout.rs`) to show or hide it. A click calls `rematch`,

@@ -10,6 +10,8 @@ version's cooling to scorch).
 
 ## Interface
 
+- `set_marks(on)` (wasm export): the page's "Marks" checkbox (user,
+  2026-10-11: "a toggle setting for turning off the wear marks").
 - `Mark`: the component on each mark entity, a child of the hit body's
   `BodyLink` entity.
 - `MarkMesh`: a resource, the unit sphere every mark draws scaled.
@@ -41,6 +43,10 @@ version's cooling to scorch).
 - **Marks are children of the body entity,** so they ride with the
   robot. They are despawned with the round's visuals, which means a
   rematch or an opponent switch clears them.
+- **Off hides, it doesn't stop marking.** Marks are still made while
+  hidden (spawned `Visibility::Hidden`), so turning them back on shows
+  every hit of the round. The flag is a static, read each frame. Every
+  mark's visibility is rewritten only when it changes (`Local`).
 - **Each mark has its own material,** since a reheat changes one mark's
   colour.
 - Marks are spheres centred on the surface point, so half of each pokes

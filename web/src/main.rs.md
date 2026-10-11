@@ -24,7 +24,8 @@ Gamepad API, and draws everything from the driver's box.
 - The wasm module exports `set_opponent` (`opponent_toggle.rs`) for
   the page's opponent buttons and `set_rival` (`rival_load.rs`) for its
   AI robot dropdown, plus `bout_over` and `rematch` (`bout.rs`) for its
-  Rematch button.
+  Rematch button and `set_marks` (`impact_marks.rs`) for its Marks
+  checkbox.
 
 ## Implementation
 

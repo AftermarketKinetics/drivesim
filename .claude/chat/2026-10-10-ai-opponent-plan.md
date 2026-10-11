@@ -121,3 +121,14 @@
 **Did:**
 - Committed 7370ff3 and pushed; first push.sh failed building the server image (`fileFilter` given a file set), the live site untouched. Fixed with `fileset.intersection` (0b87338, pushed), checked the house set holds all four bundles, reran the deploy. Lesson `nix-fileset-filefilter-takes-a-path`.
 - Deploy came up crash-looping: house.py's copytree kept the Nix store's read-only modes, so re-seeding failed (`FileExistsError`). Restored service by `chmod -R u+w` on the four house bundle dirs on mint; fixed house.py (`_writable`), regression test with a read-only house root (fails before, passes after), lesson `copytree-from-nix-store-is-read-only`; redeploying.
+- Redeployed 7ff6b2f; startup clean, bundles writable, a manual restart re-seeded and came up (the crash loop is fixed).
+
+## 06:00 marks toggle
+**User:** add a toggle setting for turning off the wear marks
+**Did:**
+- "Marks" checkbox in the sim page's top-right bar → wasm `set_marks` (impact_marks.rs): hides marks (still recorded, so re-enabling shows them), remembered in localStorage; guide mentions it. Not committed or deployed.
+
+## 06:10 commit and deploy
+**User:** commit and deploy
+**Did:**
+- Committed and pushed the marks toggle; deploy waits for the running web build, then push.sh + compose up.
