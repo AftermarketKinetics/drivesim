@@ -28,9 +28,11 @@ let
   # House robots' bundles, without sidecar docs (house.py).
   house = lib.fileset.toSource {
     root = ../fixtures;
-    fileset = lib.fileset.fileFilter (f: !(lib.hasSuffix ".md" f.name)) (lib.fileset.unions [
-      ../fixtures/simple_bot ../fixtures/simple_bot_1lb ../fixtures/simple_bot_3lb ../fixtures/simple_bot_30lb
-    ]);
+    fileset = lib.fileset.intersection
+      (lib.fileset.fileFilter (f: !(lib.hasSuffix ".md" f.name)) ../fixtures)
+      (lib.fileset.unions [
+        ../fixtures/simple_bot ../fixtures/simple_bot_1lb ../fixtures/simple_bot_3lb ../fixtures/simple_bot_30lb
+      ]);
   };
   app = pkgs.runCommand "drivesim-app-files" { } ''
     test -f ${web}/sim/drivesim_web_bg.wasm \
