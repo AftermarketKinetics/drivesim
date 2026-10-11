@@ -132,3 +132,23 @@
 **User:** commit and deploy
 **Did:**
 - Committed and pushed the marks toggle; deploy waits for the running web build, then push.sh + compose up.
+
+## 06:40 live robot bouncing with no input
+**User:** https://drivesim.combat-robot.systems/sim/?robot=014268be16e8459eb51ed68456100fe4 pings around the arena without me pressing anything, something seems to be wrong. why is the weapon spinning by default? why isit bouncing around, is it hitting the ground?
+**Asked:** "How should I fix the drivetrain instability that blows up light robots?" — Cap the correction (Recommended) / Make the chassis term implicit / Drop the correction → **Cap the correction**.
+**Did:**
+- Peter Bar Kit (0.96 kg beetle) exploded unpowered: explicit gear-coupling chassis term ≈ chassis inertia. Added `gear_coupling::coupling_scale` (cap 0.5, swept 0.25–0.75), applied in drivetrain.rs; regression test in tests/drive.rs fails uncapped (150 m/s), passes capped; `make test` green; lesson added.
+- Second, robot-file issue: its wheel bodies' mass sits 10 cm off their axles (43° tilt driving with bar off; 3° with mass moved onto the axle). Bar at 10.7k rpm also near the small-rotor limit. Not committed/deployed; asked.
+
+## 06:40 live robot bouncing with no input
+**User:** https://drivesim.combat-robot.systems/sim/?robot=014268be16e8459eb51ed68456100fe4 pings around the arena without me pressing anything, something seems to be wrong. why is the weapon spinning by default? why isit bouncing around, is it hitting the ground?
+**Asked:** "How should I fix the drivetrain instability that blows up light robots?" — Cap the correction (Recommended) / Make the chassis term implicit / Drop the correction → **Cap the correction**.
+**Did:**
+- Peter Bar Kit (0.96 kg beetle) exploded unpowered: explicit gear-coupling chassis term ≈ chassis inertia. Added `gear_coupling::coupling_scale` (cap 0.5, swept 0.25–0.75), applied in drivetrain.rs; regression test in tests/drive.rs fails uncapped (150 m/s), passes capped; `make test` green; lesson added.
+- Second, robot-file issue: its wheel bodies' mass sits 10 cm off their axles (43° tilt driving with bar off; 3° with mass moved onto the axle). Bar at 10.7k rpm also near the small-rotor limit. Not committed/deployed; asked.
+- The queued Marks deploy never ran: its `pgrep -f` wait loop matched itself (killed; lesson `pgrep-f-matches-its-own-wait-loop`). Live server is still the 04:53 build.
+
+## 06:55 commit and deploy
+**User:** Commit and deploy
+**Did:**
+- Committed the gear-coupling cap with the Marks checkbox already committed; deploying both.

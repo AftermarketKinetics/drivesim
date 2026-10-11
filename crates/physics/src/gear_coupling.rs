@@ -14,6 +14,46 @@
 //! The difference, as torques about the axis, is what this returns. It
 //! is applied each physics step from the previous step's accelerations.
 
+/// The largest the chassis self-term `(r−1)²J`, summed over a robot's
+/// rotors, may be against the chassis's own inertia about a rotor axis.
+/// The term is explicit (last step's acceleration), and an explicit added
+/// inertia near the body's own can diverge: a 0.96 kg beetle on 27:1
+/// drive motors sat at 1:1 and blew up with every motor unpowered
+/// (2026-10-11); capped at 0.75 or 0.5 it was still. 0.25 left the 1 lb
+/// house robot tilting 11° on spin-up (4.6° at 0.5). The 12 lb fixture is
+/// at ~1:9 and unaffected.
+pub const MAX_SELF_FRACTION: f32 = 0.5;
+
+/// How much of the correction a robot can take stably: 1, or less when
+/// its rotors' summed chassis self-term would pass `MAX_SELF_FRACTION` of
+/// the chassis's inertia about any rotor's axis. `rotors` are (unit axis in
+/// the chassis frame, motor J, ratio); `chassis` is the chassis inertia
+/// about its CoM in the same frame.
+pub fn coupling_scale(rotors: &[([f32; 3], f32, f32)], chassis: [[f32; 3]; 3]) -> f32 {
+    let about = |d: [f32; 3]| -> f32 {
+        (0..3)
+            .map(|i| (0..3).map(|j| d[i] * chassis[i][j] * d[j]).sum::<f32>())
+            .sum()
+    };
+    rotors
+        .iter()
+        .map(|(d, _, _)| {
+            let added: f32 = rotors
+                .iter()
+                .map(|(e, j, r)| {
+                    let c = d[0] * e[0] + d[1] * e[1] + d[2] * e[2];
+                    (r - 1.0) * (r - 1.0) * j * c * c
+                })
+                .sum();
+            if added > 0.0 {
+                (MAX_SELF_FRACTION * about(*d) / added).min(1.0)
+            } else {
+                1.0
+            }
+        })
+        .fold(1.0, f32::min)
+}
+
 /// Torques (on the rotor body, on the chassis), N m, about the rotor's
 /// axis, that turn the lumped `J·r²` into a real gearmotor. `alpha_rotor`
 /// and `alpha_chassis` are the absolute angular accelerations of the two
@@ -49,6 +89,32 @@ mod tests {
         let (on_rotor, on_chassis) = gear_coupling(j, r, a, 0.0);
         assert_eq!(on_rotor, 0.0);
         assert!(((j * r * r * a - on_chassis) / (j * r * a) - 1.0).abs() < 1e-3);
+    }
+
+    const BOX: [[f32; 3]; 3] = [[2e-3, 0.0, 0.0], [0.0, 2e-3, 0.0], [0.0, 0.0, 4e-3]];
+    const Y: [f32; 3] = [0.0, 1.0, 0.0];
+
+    #[test]
+    fn a_heavy_chassis_keeps_the_whole_correction() {
+        // Two wheels on 27:1, J 1.6e-6: (26)² J ≈ 1.1e-3 each, against 0.02.
+        let heavy = [[0.02, 0.0, 0.0], [0.0, 0.02, 0.0], [0.0, 0.0, 0.04]];
+        assert_eq!(coupling_scale(&[(Y, 1.6e-6, 27.0); 2], heavy), 1.0);
+    }
+
+    #[test]
+    fn a_light_chassis_is_scaled_to_the_cap() {
+        // The same wheels on a 2e-3 chassis (the 2026-10-11 beetle).
+        let k = coupling_scale(&[(Y, 1.6e-6, 27.0); 2], BOX);
+        let added = 2.0 * 26.0 * 26.0 * 1.6e-6 * k;
+        assert!((added / 2e-3 - MAX_SELF_FRACTION).abs() < 1e-4, "scale {k}");
+    }
+
+    #[test]
+    fn a_rotor_across_the_wheels_adds_nothing_to_their_axis() {
+        let x = [1.0, 0.0, 0.0];
+        let wheels = coupling_scale(&[(Y, 1.6e-6, 27.0); 2], BOX);
+        let both = coupling_scale(&[(Y, 1.6e-6, 27.0), (Y, 1.6e-6, 27.0), (x, 1e-9, 2.0)], BOX);
+        assert!((wheels - both).abs() < 1e-6);
     }
 
     #[test]

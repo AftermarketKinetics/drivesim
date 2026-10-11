@@ -40,6 +40,10 @@ Tests:
 - `driving_into_the_opponent_shoves_it`: full throttle for 3 s moves
   the braked opponent back more than 0.3 m (measured 1.28 m). At half
   throttle it deflects sideways off the forks instead.
+- `a_light_chassis_on_geared_wheels_sits_still_unpowered`: the fixture
+  with chassis inertia ×0.1 and wheel motor inertia ×5 (a light beetle on
+  high-ratio gearmotors), no radio, 2 s: under 0.5 m/s and 5 cm. Without
+  the coupling cap it reached 150 m/s (2026-10-11).
 - `the_fixture_rests_on_its_wheels_and_fork_tips`: `rest::settle`:
   under 1° nose-down, on both wheels and the chassis (the fork tips),
   with the disc clear.

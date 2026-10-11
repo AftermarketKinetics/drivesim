@@ -258,7 +258,10 @@ its own fixed-tick loop.
   `ratio` times. The lump would also put ~`ratio` times too much
   spin-up reaction on the chassis (the fixture flipped on every hard
   reversal), so each step adds the gearbox coupling torques that turn it
-  into a real gearmotor (`gear_coupling.rs`).
+  into a real gearmotor (`gear_coupling.rs`). Those coupling torques
+  are explicit, so they are capped at half the chassis's inertia about
+  each rotor axis: a light beetle on 27:1 gearmotors blew itself up
+  unpowered without the cap (2026-10-11).
 - **Contact settings** (user, 2026-10-10): rapier's exact Coulomb
   friction per contact point, no contact recycling, stiff critically
   damped floor contacts (200/400 Hz) and 4 solver iterations, for about

@@ -12,7 +12,9 @@ robot's and the opponent copy's.
 
 - `Drivetrain` (`Default`): the motor state carried between steps.
   - `apply(world, model, robot, duties)`: before a world step, resets the
-    robot's torques and adds this step's motor and coupling torques.
+    robot's torques and adds this step's motor and coupling torques. The
+    coupling torques are scaled by `gear_coupling::coupling_scale`,
+    worked out from the model on the first call (2026-10-11).
   - `observe(world, model, robot)`: after a world step, records the
     accelerations over it for the next step's coupling.
 - `rotor_speed(world, robot, rotor) -> f32`: rotor speed relative to the

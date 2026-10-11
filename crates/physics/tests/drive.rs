@@ -274,3 +274,33 @@ fn the_fixture_rests_on_its_wheels_and_fork_tips() {
     assert!(!r.touching.contains(&"disc".to_string()));
     assert!(r.residual_speed < 0.01);
 }
+
+#[test]
+fn a_light_chassis_on_geared_wheels_sits_still_unpowered() {
+    // A chassis 10x lighter in inertia on wheel motors with 5x the rotor
+    // inertia, like a light beetle on high-ratio gearmotors: the explicit
+    // gearbox correction outweighed the chassis and the robot blew itself
+    // across the arena with no input (2026-10-11: a 0.96 kg beetle on
+    // 27:1; this variant reached 150 m/s uncapped). gear_coupling caps it.
+    let mut m = common::fixture_model();
+    for row in &mut m.bodies[0].mass.inertia {
+        for c in row {
+            *c *= 0.1;
+        }
+    }
+    for w in &mut m.wheels {
+        w.motor.rotor_inertia_kg_m2 *= 5.0;
+    }
+    let mut s = Sim::new(m, &common::fixture_mesh, OpponentKind::Box).unwrap();
+    let p0 = s.chassis().translation();
+    let mut fastest = 0.0f32;
+    for _ in 0..2000 {
+        s.control_tick(None);
+        fastest = fastest.max(s.chassis().linvel().length());
+    }
+    let moved = (s.chassis().translation() - p0).length();
+    assert!(
+        fastest < 0.5 && moved < 0.05,
+        "reached {fastest} m/s, moved {moved} m"
+    );
+}

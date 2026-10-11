@@ -3,7 +3,7 @@
 //! chassis, plus the gearbox coupling (`gear_coupling.rs`), which needs
 //! the accelerations over the previous step. `Sim` keeps one per robot.
 
-use crate::gear_coupling::gear_coupling;
+use crate::gear_coupling::{coupling_scale, gear_coupling};
 use crate::mixer::Duties;
 use crate::motor::rotor_torque;
 use crate::spawn::{RobotHandles, forward_sign, side_of, v};
@@ -17,6 +17,9 @@ use rapier3d::prelude::*;
 pub struct Drivetrain {
     axis_w: Vec<(f32, f32)>,
     axis_alpha: Vec<(f32, f32)>,
+    /// `gear_coupling::coupling_scale` for the robot, found on the first
+    /// `apply`.
+    scale: Option<f32>,
 }
 
 fn rotors(model: &RobotModel) -> impl Iterator<Item = &Rotor> {
@@ -56,6 +59,23 @@ impl Drivetrain {
         if self.axis_w.is_empty() {
             self.axis_w = axis_speeds(world, model, robot);
         }
+        let scale = *self.scale.get_or_insert_with(|| {
+            let r: Vec<_> = rotors(model)
+                .map(|r| {
+                    let d = v(r.axis_dir).normalize();
+                    (
+                        [d.x, d.y, d.z],
+                        r.motor.rotor_inertia_kg_m2 as f32,
+                        r.ratio as f32,
+                    )
+                })
+                .collect();
+            let i = model.bodies[0]
+                .mass
+                .inertia
+                .map(|row| row.map(|c| c as f32));
+            coupling_scale(&r, i)
+        });
         let chassis = robot.bodies[0];
         for &h in &robot.bodies {
             world.bodies[h].reset_torques(false);
@@ -82,6 +102,7 @@ impl Drivetrain {
                 alpha_c,
             );
             let a = rot * v(rotor.axis_dir).normalize();
+            let (fix_r, fix_c) = (fix_r * scale, fix_c * scale);
             world.bodies[robot.bodies[rotor.body]].add_torque(a * (tau + fix_r), true);
             world.bodies[chassis].add_torque(a * (fix_c - tau), true);
         }
