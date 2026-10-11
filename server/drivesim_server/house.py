@@ -11,7 +11,9 @@ only refreshes its bundle files from the image.
 from __future__ import annotations
 
 import hashlib
+import os
 import shutil
+from pathlib import Path
 
 from .config import Settings
 from .db import Store
@@ -36,6 +38,17 @@ def house_id(name: str) -> str:
     return hashlib.sha256(f"house:{name}".encode()).hexdigest()[:32]
 
 
+def _writable(tree: Path) -> None:
+    """Gives the owner write access throughout `tree`. Bundles come from
+    the Nix store read-only, and copytree copies modes, so without this the
+    next start's rmtree can't empty them and the copy fails (2026-10-11:
+    the server crash-looped on its first restart after a deploy)."""
+    for root, dirs, files in os.walk(tree):
+        os.chmod(root, 0o755)
+        for f in files:
+            os.chmod(os.path.join(root, f), 0o644)
+
+
 def seed_house(settings: Settings, store: Store) -> list[str]:
     """Copy each house bundle into robots_root and make sure its row
     exists; returns the ids seeded. A missing bundle is skipped."""
@@ -46,8 +59,11 @@ def seed_house(settings: Settings, store: Store) -> list[str]:
             continue
         rid = house_id(dirname)
         dst = settings.robots_root / rid / BUNDLE
-        shutil.rmtree(dst, ignore_errors=True)
+        if dst.exists():
+            _writable(dst)
+            shutil.rmtree(dst)
         shutil.copytree(src, dst, ignore=shutil.ignore_patterns("*.md"))
+        _writable(dst)
         store.seed_robot(rid, HOUSE_USER, name, weight_lb)
         seeded.append(rid)
     return seeded

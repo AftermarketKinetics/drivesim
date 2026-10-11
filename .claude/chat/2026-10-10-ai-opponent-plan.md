@@ -115,3 +115,9 @@
 **Asked:** ""Pause slightly or back off": when should the AI do that?" — Whenever weapon is slow (Recommended) / Start only, by weapon speed / Start only, fixed 1 s → **Whenever weapon is slow**.
 **Did:**
 - ai_driver.rs: waits below 70% weapon speed until 90% (backs off at −0.6 within 0.8 m, else holds and aims), 10 s cap; `opponent::weapon_fraction` feeds it for opponent and pilot. AI vs AI test now checks meeting (< 0.5 m, discs hold 0.43) and impacts.
+
+## 05:40 commit and deploy
+**User:** commit and deploy
+**Did:**
+- Committed 7370ff3 and pushed; first push.sh failed building the server image (`fileFilter` given a file set), the live site untouched. Fixed with `fileset.intersection` (0b87338, pushed), checked the house set holds all four bundles, reran the deploy. Lesson `nix-fileset-filefilter-takes-a-path`.
+- Deploy came up crash-looping: house.py's copytree kept the Nix store's read-only modes, so re-seeding failed (`FileExistsError`). Restored service by `chmod -R u+w` on the four house bundle dirs on mint; fixed house.py (`_writable`), regression test with a read-only house root (fails before, passes after), lesson `copytree-from-nix-store-is-read-only`; redeploying.

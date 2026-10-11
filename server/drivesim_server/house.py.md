@@ -28,6 +28,13 @@ robot rather than a separate code path).
   name or class in `HOUSE` needs the row updated by hand.
 - `drivesim-house` is not an authentik login, so no one can open, chat
   with or delete a house robot; admins see it on the dashboard.
+- **Seeded copies are made writable** (`_writable`: dirs 755, files
+  644), before the old copy is removed and after the new one is made.
+  The image's bundles are read-only Nix store files and copytree copies
+  modes; the old `rmtree(ignore_errors=True)` then silently left a
+  read-only tree, and the copy over it failed. The server crash-looped on
+  its first restart after the 2026-10-11 deploy, until the bundles on
+  mint were made writable by hand.
 - A missing bundle (e.g. a test with another `house_root`) is skipped,
   not an error.
 

@@ -21,6 +21,9 @@ Tests:
   that later fails its check drops out of the list.
 - `test_seeding_is_idempotent_and_refreshes_the_bundle`: one row per
   house robot after two seeds, stale files gone, no sidecar `.md` copied.
+- `test_seeding_twice_from_a_read_only_image_works`: a house root with
+  read-only files and dirs, as the Nix image ships, seeds twice in a
+  row (the 2026-10-11 crash loop).
 - `test_a_missing_house_root_seeds_nothing`.
 - `test_an_older_database_gains_the_new_columns`: a pre-2026-10-10
   `robots` table gets `public` and `weight_lb`, and a second start

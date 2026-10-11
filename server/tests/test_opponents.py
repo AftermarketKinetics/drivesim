@@ -102,6 +102,30 @@ def test_seeding_is_idempotent_and_refreshes_the_bundle(settings):
     assert not list((settings.robots_root / SIMPLE / "bundle").rglob("*.md"))
 
 
+def test_seeding_twice_from_a_read_only_image_works(settings, tmp_path):
+    """The image's bundles are read-only Nix store files, and copytree
+    copies modes: a second start used to fail to replace them."""
+    import os
+    import stat
+    from dataclasses import replace
+    root = tmp_path / "house"
+    shutil.copytree(settings.house_root / "simple_bot", root / "simple_bot",
+                    ignore=shutil.ignore_patterns("*.md"))
+    for d, _, files in os.walk(root, topdown=False):
+        for f in files:
+            os.chmod(os.path.join(d, f), stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+        os.chmod(d, stat.S_IRUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+    s = replace(settings, house_root=root)
+    store = Store(s.db_path)
+    try:
+        assert seed_house(s, store) == [SIMPLE]
+        assert seed_house(s, store) == [SIMPLE]
+        assert (s.robots_root / SIMPLE / "bundle" / "robot.toml").is_file()
+    finally:
+        for d, _, _ in os.walk(root):
+            os.chmod(d, 0o755)
+
+
 def test_a_missing_house_root_seeds_nothing(settings, tmp_path):
     from dataclasses import replace
     s = replace(settings, house_root=tmp_path / "nowhere")
