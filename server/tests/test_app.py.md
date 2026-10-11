@@ -28,8 +28,8 @@ first version of the test "fail" on an allowed file (2026-10-09).
 
 The import notice must name the fixture's 14 parts.
 
-The admin dashboard lists the seeded house robot (`house.py`) after
-alice's, being older.
+The admin dashboard lists the seeded house robots (`house.py`) after
+alice's, being older; among themselves their order isn't checked.
 
 ## Assertions
 - Checks what the model was sent (the import notice, the tool results) as

@@ -1,7 +1,7 @@
 # drivesim build and test entry points; run inside nix-shell.
 #   make test     importer tests + cargo test, clippy and fmt over the crates
 #   make web-dev  serve the repo on localhost:8417 (pad test, web builds)
-#   make fixtures re-import fixtures/simple_bot from the fixture STEP
+#   make fixtures re-import fixtures/simple_bot* from the fixture STEPs
 #   make server-dev  the server on localhost:8420 (dev user, local import)
 #   make web-build   the browser app into server/web/sim/
 #   make import-image  the STEP import sandbox image, loaded into Docker
@@ -24,12 +24,15 @@ test-import:
 web-dev:
 	python tools/dev_server.py
 
-# Rebuild the fixture bundle's geometry from the fixture STEP (robot.toml
-# is hand-written and kept).
+# Rebuild the fixture bundles' geometry from the fixture STEPs (robot.toml
+# is hand-written and kept): simple_bot and its weight-class versions,
+# whose STEPs make_fixture.py --scale writes.
 .PHONY: fixtures
 fixtures:
-	rm -rf fixtures/simple_bot/meshes fixtures/simple_bot/parts.json
-	python tools/import/step_import.py tools/import/tests/fixtures/simple_bot.step fixtures/simple_bot
+	for b in simple_bot simple_bot_1lb simple_bot_3lb simple_bot_30lb; do \
+	  rm -rf fixtures/$$b/meshes fixtures/$$b/parts.json && \
+	  python tools/import/step_import.py tools/import/tests/fixtures/$$b.step fixtures/$$b || exit 1; \
+	done
 
 # Server and broker (server/ is a uv project; uv comes from shell.nix).
 .PHONY: test-server test-broker server-dev

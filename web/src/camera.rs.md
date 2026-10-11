@@ -14,6 +14,10 @@ a driver stands at an event. It is the only view in v1 (user,
 
 ## Implementation
 
+- **Bloom** (`Bloom::NATURAL`, which brings an HDR target; user,
+  2026-10-11: "make the impact marks glow more"). Anything emissive
+  past 1 halos: the impact marks, and the arena's lamps too.
+
 - Placed in rapier coordinates under `root`, like everything else, so
   "up" is `Vec3::Z`.
 - The robot starts at (−1, 0) facing +x (physics `sim.rs`), which is

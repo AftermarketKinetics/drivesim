@@ -6,16 +6,20 @@
 //! visuals, again whenever `opponent_toggle` (the page's button) switches
 //! opponent, with `rival_load` fetching the AI's rival robot; `radio`
 //! reads the pad; `sim_step` runs the physics in real
-//! time; `robot_render`, `target_render` and `arena_render` draw;
+//! time; `robot_render`, `target_render` and `arena_render` draw, and
+//! `impact_marks` glows where the robots are hit;
 //! `floor_texture` paints the floor; `camera` is the driver's eye; `hud`
-//! is the text overlay, and `countdown` the AI round's 3-2-1.
+//! is the text overlay, `countdown` the AI round's 3-2-1 and TIME, and
+//! `bout` its 3-minute clock and rematch.
 
 mod arena_render;
+mod bout;
 mod bundle_load;
 mod camera;
 mod countdown;
 mod floor_texture;
 mod hud;
+mod impact_marks;
 mod opponent_toggle;
 mod radio;
 mod rival_load;
@@ -51,7 +55,7 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb(0.07, 0.07, 0.08)))
         .init_resource::<radio::Radio>()
         .init_resource::<LoadSlot>()
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (setup, impact_marks::setup_marks))
         .add_systems(
             Update,
             (
@@ -60,8 +64,10 @@ fn main() {
                 opponent_toggle::apply_opponent_toggle,
                 sim_step::step_sim,
                 robot_render::sync_bodies,
+                impact_marks::update_marks,
                 hud::update_hud,
                 countdown::update_countdown,
+                bout::update_bout_clock,
             )
                 .chain(),
         )
@@ -89,6 +95,7 @@ fn setup(
     camera::spawn_camera(&mut commands, root);
     hud::spawn_hud(&mut commands);
     countdown::spawn_countdown(&mut commands);
+    bout::spawn_bout_clock(&mut commands);
 
     let slot = slot.0.clone();
     match locate() {

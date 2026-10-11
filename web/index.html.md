@@ -12,11 +12,12 @@ and says plainly when the browser can't run it (docs/drivesim.md §8).
   these.
 - `<canvas id="drivesim">`, the canvas `main.rs` binds its window to.
 - `<div id="opponent">`, top right: "Opponent" and three buttons,
-  Copy / Box / AI, the chosen one highlighted (`aria-pressed`, filled
-  orange). Each button's `data-kind` (0, 1, 2) is what it passes to
+  Copy / Box / AI / AI vs AI, the chosen one highlighted (`aria-pressed`,
+  filled orange). Each button's `data-kind` (0, 1, 2, 3) is what it passes to
   the wasm export `set_opponent` (`opponent_toggle.rs`); choosing
   another restarts the round.
-- `<select id="rival">` beside them, shown only while AI is chosen (user,
+- `<select id="rival">` beside them, shown only while AI or AI vs AI is
+  chosen (user,
   2026-10-10): "Your robot (copy)" (value "") and then every public
   robot from `GET /api/opponents` (minus the robot being driven), in an
   `<optgroup>` per weight class. The driven robot's class (its
@@ -24,8 +25,13 @@ and says plainly when the browser can't run it (docs/drivesim.md §8).
   ascending. Option values are bundle base URLs
   (`/api/robots/<id>/bundle/`), passed to the wasm export `set_rival`
   (`rival_load.rs`). The caller's own robots are suffixed "(yours)".
-  With a static `?bundle=` the list is just the fixture,
-  `/fixtures/simple_bot/` (12 lb), for `make web-dev`.
+  With a static `?bundle=` the list is the house robots' fixtures,
+  `/fixtures/simple_bot/` (12 lb) and its `_1lb`, `_3lb` and `_30lb`
+  versions, for `make web-dev`.
+- `<button id="rematch">`, centred, hidden until an AI bout runs out
+  (user, 2026-10-11). Every 250 ms the page polls the wasm export
+  `bout_over` (`bout.rs`) to show or hide it. A click calls `rematch`,
+  which rebuilds the round as it is.
 - It imports `./drivesim_web.js`, the name `make web-build` gives
   wasm-bindgen's output. `make web-build` copies this file next to it in
   `server/web/sim/`.
@@ -62,6 +68,6 @@ and says plainly when the browser can't run it (docs/drivesim.md §8).
   Makefile's `--out-name`.
 - Copy starts highlighted, matching `opponent_toggle`'s default.
 - `data-kind` values match `opponent_toggle::wanted`: 0 copy, 1 box,
-  2 AI.
-- The dropdown is visible exactly when AI is highlighted, and its first
+  2 AI, 3 AI vs AI.
+- The dropdown is visible exactly when AI or AI vs AI is highlighted, and its first
   option, "" (the copy), matches `rival_load`'s default.

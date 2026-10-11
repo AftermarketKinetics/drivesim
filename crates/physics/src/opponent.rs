@@ -3,8 +3,9 @@
 //! `ai_driver` once the countdown ends (user, 2026-10-10).
 
 use crate::ai_driver::{AiDriver, Pose};
-use crate::drivetrain::Drivetrain;
+use crate::drivetrain::{Drivetrain, rotor_speed};
 use crate::mixer::Duties;
+use crate::motor::no_load_speed;
 use crate::spawn::RobotHandles;
 use drivesim_robot::RobotModel;
 use rapier3d::prelude::*;
@@ -22,6 +23,10 @@ pub const OPPONENT_DUTIES: Duties = Duties {
 /// Seconds of sim time before the AI opponent starts (user, 2026-10-10:
 /// a 3-2-1 countdown, then it fights).
 pub const COUNTDOWN_S: f32 = 3.0;
+
+/// How long an AI bout lasts from FIGHT, s (user, 2026-10-11: 3-minute
+/// bouts, as NHRL fights).
+pub const BOUT_S: f32 = 180.0;
 
 /// The opponent robot: its bodies and its own model (a clone of the
 /// driven robot's for the copy).
@@ -52,6 +57,19 @@ pub fn pose_of(body: &RigidBody) -> Pose {
     }
 }
 
+/// How far a robot's first weapon is up to speed: its speed over its
+/// no-load speed at full duty, 1 for a robot with no weapon. What the AI
+/// waits on before attacking.
+pub fn weapon_fraction(world: &PhysicsWorld, robot: &RobotHandles, model: &RobotModel) -> f32 {
+    match model.weapons.first() {
+        Some(wp) => {
+            let full = no_load_speed(1.0, wp, model.battery_v as f32);
+            rotor_speed(world, robot, wp).abs() / full
+        }
+        None => 1.0,
+    }
+}
+
 impl Opponent {
     pub fn new(robot: RobotHandles, model: RobotModel, ai: bool) -> Self {
         Opponent {
@@ -69,7 +87,8 @@ impl Opponent {
         self.duties = match &mut self.ai {
             Some(ai) if time_s >= COUNTDOWN_S => {
                 let me = pose_of(&world.bodies[self.robot.bodies[0]]);
-                ai.tick(&me, &pose_of(&world.bodies[target]), dt)
+                let weapon = weapon_fraction(world, &self.robot, &self.model);
+                ai.tick(&me, &pose_of(&world.bodies[target]), weapon, dt)
             }
             _ => OPPONENT_DUTIES,
         };

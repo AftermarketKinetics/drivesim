@@ -11,6 +11,8 @@ weapon off), or driven by `ai_driver` once a 3 s countdown ends (user,
 
 - `OPPONENT_DUTIES`: armed, sticks centred: wheels brake, weapon off.
 - `COUNTDOWN_S` 3.0: sim seconds before the AI starts.
+- `BOUT_S` 180.0: an AI bout's length from FIGHT (user, 2026-10-11).
+  `Sim::bout_left` counts it down.
 - `Opponent { robot, model, ai, duties }` (plus its `Drivetrain`,
   crate-only):
   - `Opponent::new(robot, model, ai: bool)`; `model` is the opponent's
@@ -18,6 +20,9 @@ weapon off), or driven by `ai_driver` once a 3 s countdown ends (user,
   - `control(&mut self, world, target, time_s, dt)`: sets `duties` for
     this control tick.
 - `pose_of(body) -> ai_driver::Pose`.
+- `weapon_fraction(world, robot, model) -> f32`: the first weapon's
+  speed over its full-duty no-load speed (1 with no weapon), which the
+  AI waits on. `Sim::pilot` uses it too.
 
 ## Implementation
 

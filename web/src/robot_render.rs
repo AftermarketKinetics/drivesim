@@ -25,68 +25,36 @@ pub struct BodyLink(pub RigidBodyHandle);
 
 const DEFAULT_COLOR: [f32; 3] = [0.55, 0.57, 0.6];
 
-/// Wheel markings: the tyre in this many sectors about its axis,
-/// alternating `TYRE` and `STRIPE`, so a wheel is seen to roll, spin or
-/// lock. Plain cylinders looked the same turning or not, and rolling read
-/// as sliding (user, 2026-10-10).
-const WHEEL_SECTORS: usize = 6;
+/// Wheels are plain dark tyres, never tinted. Their striped sectors went
+/// (user, 2026-10-11: they clashed with the impact marks).
 const TYRE: [f32; 3] = [0.07, 0.07, 0.08];
-const STRIPE: [f32; 3] = [0.95, 0.75, 0.15];
 
-/// A rotor's axis in the robot frame, for marking it.
-pub struct Axis {
-    pub point: Vec3,
-    pub dir: Vec3,
-}
-
-/// A flat-shaded mesh from STL bytes, vertices in the robot frame. With
-/// `marked`, each triangle is coloured by the sector its centroid lies in
-/// about that axis (as vertex colours, which multiply the material's).
-fn part_mesh(bytes: &[u8], r: &drivesim_robot::math::M3, marked: Option<&Axis>) -> Option<Mesh> {
+/// A flat-shaded mesh from STL bytes, vertices in the robot frame.
+fn part_mesh(bytes: &[u8], r: &drivesim_robot::math::M3) -> Option<Mesh> {
     let tris = parse_stl(bytes)?;
     let mut pos = Vec::with_capacity(tris.len() * 3);
     let mut nrm = Vec::with_capacity(tris.len() * 3);
-    let mut col: Vec<[f32; 4]> = Vec::new();
-    // Two directions across the axis, to measure each centroid's angle.
-    let across = marked.map(|a| {
-        let u = a.dir.any_orthonormal_vector();
-        (u, a.dir.cross(u))
-    });
     for t in &tris {
         let p = t.map(|v| mat_vec(r, v.map(f64::from)).map(|c| c as f32));
         let (a, b, c) = (Vec3::from(p[0]), Vec3::from(p[1]), Vec3::from(p[2]));
         let n = (b - a).cross(c - a).normalize_or_zero();
         pos.extend_from_slice(&p);
         nrm.extend([n.to_array(); 3]);
-        if let (Some(axis), Some((u, w))) = (marked, across) {
-            let d = (a + b + c) / 3.0 - axis.point;
-            let angle = d.dot(w).atan2(d.dot(u)).rem_euclid(std::f32::consts::TAU);
-            let sector = (angle / std::f32::consts::TAU * WHEEL_SECTORS as f32) as usize;
-            let [r, g, b] = if sector.is_multiple_of(2) {
-                TYRE
-            } else {
-                STRIPE
-            };
-            col.extend([[r, g, b, 1.0]; 3]);
-        }
     }
     let n = pos.len() as u32;
-    let mut mesh = Mesh::new(
+    let mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::RENDER_WORLD,
     )
     .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, pos)
     .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, nrm)
     .with_inserted_indices(Indices::U32((0..n).collect()));
-    if !col.is_empty() {
-        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, col);
-    }
     Some(mesh)
 }
 
 /// One robot's visuals: `robot` is either the driven robot or the
-/// opponent copy, both of `model`. With `tint`, every part but the marked
-/// wheels takes that colour instead of its CAD colour.
+/// opponent copy, both of `model`. Wheels are `TYRE`; with `tint`, every
+/// other part takes that colour instead of its CAD colour.
 #[allow(clippy::too_many_arguments)]
 pub fn spawn_robot_visuals(
     commands: &mut Commands,
@@ -107,21 +75,17 @@ pub fn spawn_robot_visuals(
             ))
             .id();
         commands.entity(root).add_child(e);
-        let wheel = model.wheels.iter().find(|w| w.body == i).map(|w| Axis {
-            point: Vec3::from(w.axis_point.map(|c| c as f32)),
-            dir: Vec3::from(w.axis_dir.map(|c| c as f32)).normalize(),
-        });
+        let wheel = model.wheels.iter().any(|w| w.body == i);
         for (part, path) in body.parts.iter().zip(&body.meshes) {
             let Some(mesh) = bundle
                 .meshes
                 .get(path)
-                .and_then(|b| part_mesh(b, &model.step_to_robot, wheel.as_ref()))
+                .and_then(|b| part_mesh(b, &model.step_to_robot))
             else {
                 continue;
             };
-            // A marked wheel takes its colours from the mesh alone.
-            let [r, g, b] = if wheel.is_some() {
-                [1.0; 3]
+            let [r, g, b] = if wheel {
+                TYRE
             } else if let Some(t) = tint {
                 t
             } else {

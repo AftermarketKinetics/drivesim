@@ -5,7 +5,7 @@
 mod common;
 
 use drivesim_physics::arena::ARENA_SIDE_M;
-use drivesim_physics::opponent::COUNTDOWN_S;
+use drivesim_physics::opponent::{BOUT_S, COUNTDOWN_S};
 use drivesim_physics::{OpponentKind, Rival, Sim};
 use rapier3d::prelude::{RigidBodyHandle, Vector};
 
@@ -159,4 +159,60 @@ fn a_rival_drives_with_its_own_model() {
         closest = closest.min(d.x.hypot(d.y));
     }
     assert!(closest < 0.45, "closest {closest} m");
+}
+
+#[test]
+fn the_bout_runs_three_minutes_from_fight_then_disarms_both() {
+    let mut s = sim_ai();
+    assert_eq!(s.bout_left(), Some(BOUT_S));
+    s.time_s = COUNTDOWN_S + 60.0;
+    assert_eq!(s.bout_left(), Some(BOUT_S - 60.0));
+    s.time_s = COUNTDOWN_S + BOUT_S - 0.0005;
+    s.control_tick(Some(&common::radio(0.0, 1.0, 1.0, true)));
+    assert!(s.duties.left.is_some(), "still armed before time");
+    s.control_tick(Some(&common::radio(0.0, 1.0, 1.0, true)));
+    assert_eq!(s.bout_left(), Some(0.0));
+    assert_eq!(s.duties, drivesim_physics::mixer::Duties::default());
+    assert_eq!(
+        s.opponent.as_ref().unwrap().duties,
+        drivesim_physics::mixer::Duties::default()
+    );
+}
+
+#[test]
+fn the_copy_and_the_box_are_untimed() {
+    for kind in [OpponentKind::Copy, OpponentKind::Box] {
+        let s = Sim::new(common::fixture_model(), &common::fixture_mesh, kind).unwrap();
+        assert_eq!(s.bout_left(), None, "{kind:?}");
+    }
+}
+
+#[test]
+fn ai_vs_ai_drives_the_robot_without_a_radio() {
+    let mut s = Sim::new(
+        common::fixture_model(),
+        &common::fixture_mesh,
+        OpponentKind::AiVsAi,
+    )
+    .unwrap();
+    let r0 = s.chassis().translation();
+    for _ in 0..ticks(COUNTDOWN_S) - 10 {
+        s.control_tick(None);
+    }
+    let moved = (s.chassis().translation() - r0).length();
+    assert!(moved < 0.01, "moved {moved} m during the countdown");
+    assert!(s.bout_left().is_some());
+    let (mut closest, mut hits) = (f32::MAX, 0);
+    s.take_impacts();
+    // 5 s: both first wait ~1 s for their discs, and back off after hits.
+    // Front to front, the two discs keep the centres ~0.43 m apart.
+    for _ in 0..ticks(5.0) {
+        s.control_tick(None);
+        let gap = s.chassis().translation() - s.opponent_chassis().unwrap().translation();
+        closest = closest.min(gap.length());
+        hits += s.take_impacts().len();
+    }
+    assert!(s.duties.weapon == Some(1.0), "duties {:?}", s.duties);
+    assert!(closest < 0.5, "came within {closest} m");
+    assert!(hits > 0, "no impacts");
 }

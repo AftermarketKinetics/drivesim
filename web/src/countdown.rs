@@ -1,5 +1,6 @@
 //! The AI round's countdown, big in the middle of the screen: 3, 2, 1,
-//! then FIGHT (user, 2026-10-10). Empty for the copy and the box.
+//! then FIGHT (user, 2026-10-10), and TIME when the bout ends (user,
+//! 2026-10-11). Empty for the copy and the box.
 
 use crate::sim_step::SimRes;
 use bevy::prelude::*;
@@ -31,9 +32,13 @@ pub fn spawn_countdown(commands: &mut Commands) {
     ));
 }
 
-/// What the banner says for `s`: whole seconds left, "FIGHT", or nothing.
+/// What the banner says for `s`: whole seconds left, "FIGHT", "TIME" once
+/// the bout is over, or nothing.
 pub fn banner(s: &Sim) -> String {
     let ai = s.opponent.as_ref().is_some_and(|o| o.ai.is_some());
+    if s.bout_left() == Some(0.0) {
+        return "TIME".into();
+    }
     match s.countdown_left() {
         Some(left) => format!("{}", left.ceil() as u32),
         None if ai && s.time_s < COUNTDOWN_S + FIGHT_SHOWN_S => "FIGHT".into(),

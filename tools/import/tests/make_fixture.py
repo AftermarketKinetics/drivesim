@@ -38,13 +38,20 @@ corners sweep r 91.2 mm, 3.8 mm above the floor. The axle is 30 mm behind centre
 it, so the robot rests on its wheels and fork tips. Re-run only to change
 the fixture; the .step is checked in so tests never depend on this
 script's output being stable.
+
+    make_fixture.py --scale S --name NAME OUT.step
+
+writes the same robot scaled by S about the origin, as assembly NAME:
+the house robot's other weight classes (user, 2026-10-11: "scale
+simple-bot to each weight class"). Their bundles are fixtures/<NAME>/.
 """
 
 import os
 import sys
 
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
-from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakePolygon
+from OCC.Core.BRepBuilderAPI import (BRepBuilderAPI_MakeFace, BRepBuilderAPI_MakePolygon,
+                                     BRepBuilderAPI_Transform)
 from OCC.Core.BRepGProp import brepgprop
 from OCC.Core.GProp import GProp_GProps
 from OCC.Core.BRepPrimAPI import (BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder,
@@ -144,17 +151,27 @@ INSTANCES = (
 )
 
 
-def main(out):
+def scaled(shape, s):
+    """`shape` scaled by `s` about the origin, as real geometry (not a
+    scaled placement, which STEP readers handle unevenly)."""
+    if s == 1.0:
+        return shape
+    t = gp_Trsf()
+    t.SetScale(gp_Pnt(0, 0, 0), s)
+    return BRepBuilderAPI_Transform(shape, t, True).Shape()
+
+
+def main(out, s=1.0, asm_name="simple_bot"):
     doc = TDocStd_Document("fixture")
     tool = XCAFDoc_DocumentTool.ShapeTool(doc.Main())
     asm = tool.NewShape()
-    name(asm, "simple_bot")
+    name(asm, asm_name)
     products = {}
     for label, make in PRODUCTS.items():
-        products[label] = tool.AddShape(make(), False)
+        products[label] = tool.AddShape(scaled(make(), s), False)
         name(products[label], label)
     for inst, ref, (x, y, z) in INSTANCES:
-        comp = tool.AddComponent(asm, products[ref], located(x, y, z))
+        comp = tool.AddComponent(asm, products[ref], located(x * s, y * s, z * s))
         name(comp, inst)
     tool.UpdateAssemblies()
 
@@ -166,5 +183,11 @@ def main(out):
 
 
 if __name__ == "__main__":
-    here = os.path.dirname(os.path.abspath(__file__))
-    main(os.path.join(here, "fixtures", "simple_bot.step"))
+    args = sys.argv[1:]
+    if args and args[0] == "--scale":
+        if len(args) != 5 or args[2] != "--name":
+            sys.exit("usage: make_fixture.py [--scale S --name NAME OUT.step]")
+        main(args[4], float(args[1]), args[3])
+    else:
+        here = os.path.dirname(os.path.abspath(__file__))
+        main(os.path.join(here, "fixtures", "simple_bot.step"))

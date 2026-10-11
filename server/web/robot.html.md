@@ -27,7 +27,7 @@ check result.
   both anyway.
 - **Publicly accessible** (user, 2026-10-10): the `#share` card, shown
   only to the owner of a ready, checked robot. A checkbox plus a weight
-  class select (3/12/30 lb, the owner's choice) call
+  class select (1/3/12/30 lb, the owner's choice) call
   `PUT /api/robots/{id}/public` with `{public, weight_lb}`. Ticking it
   with no class chosen asks for one and sends nothing. Changing the class
   of a public robot saves immediately. A public robot is listed as an AI

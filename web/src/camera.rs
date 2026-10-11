@@ -2,6 +2,7 @@
 //! view in v1 by the user's choice 2026-10-09): fixed outside the cage at
 //! standing eye height, as at an event.
 
+use bevy::post_process::bloom::Bloom;
 use bevy::prelude::*;
 use drivesim_physics::arena::ARENA_SIDE_M;
 
@@ -21,6 +22,9 @@ pub fn spawn_camera(commands: &mut Commands, root: Entity) {
     let cam = commands
         .spawn((
             Camera3d::default(),
+            // Bloom, so the impact marks glow (user, 2026-10-11: "make the
+            // impact marks glow more"). It needs (and adds) an HDR target.
+            Bloom::NATURAL,
             Projection::Perspective(PerspectiveProjection {
                 fov: FOV_DEG.to_radians(),
                 ..default()

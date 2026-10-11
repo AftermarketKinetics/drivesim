@@ -4,6 +4,7 @@
 mod common;
 
 use common::radio;
+use drivesim_physics::impacts::MARK_DV;
 use drivesim_physics::{OpponentKind, Sim};
 
 /// The fixture against its copy, weapon spun up; `alone` moves the copy
@@ -74,4 +75,34 @@ fn the_weapon_barely_bounces_the_robot_off_a_wall() {
         with < 0.3 * without,
         "{with} m/s with the loss, {without} without"
     );
+}
+
+#[test]
+fn a_weapon_hit_is_reported_on_the_opponent_and_a_shove_is_not() {
+    // Measured per step (2026-10-11): weapon hits 3-12 m/s, a 4.5 m/s ram
+    // with the weapon off at most 1.6, under MARK_DV.
+    let mut s = spun_up(true, false);
+    s.take_impacts();
+    let opponent = s.opponent.as_ref().unwrap().robot.bodies.clone();
+    let mut hits = Vec::new();
+    for _ in 0..1500 {
+        s.control_tick(Some(&radio(0.0, 1.0, 1.0, true)));
+        hits.extend(s.take_impacts());
+    }
+    let on_it: Vec<_> = hits.iter().filter(|i| opponent.contains(&i.body)).collect();
+    assert!(!on_it.is_empty(), "no impact on the opponent");
+    for i in &hits {
+        assert!(i.dv >= MARK_DV && i.point.length() < 0.5, "{i:?}");
+    }
+
+    let mut s = Sim::new(
+        common::fixture_model(),
+        &common::fixture_mesh,
+        OpponentKind::Copy,
+    )
+    .unwrap();
+    for _ in 0..3000 {
+        s.control_tick(Some(&radio(0.0, 1.0, -1.0, true)));
+    }
+    assert!(s.take_impacts().is_empty(), "a shove left marks");
 }

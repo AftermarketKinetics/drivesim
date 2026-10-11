@@ -8,10 +8,13 @@ import sqlite3
 
 from conftest import FIXTURE_BUNDLE
 from drivesim_server.db import Store
-from drivesim_server.house import HOUSE_USER, house_id, seed_house
+from drivesim_server.house import HOUSE, HOUSE_USER, house_id, seed_house
 
 BOB = {"X-authentik-username": "bob"}
 SIMPLE = house_id("simple_bot")
+#: Every house robot, in class order (1, 3, 12, 30 lb).
+HOUSE_IDS = [house_id(d) for d in HOUSE]
+HOUSE_ROWS = [(name, lb, False) for name, lb in HOUSE.values()]
 
 
 def ready_robot(client, user="alice", name="Seraphs V1"):
@@ -24,10 +27,15 @@ def ready_robot(client, user="alice", name="Seraphs V1"):
     return rid
 
 
-def test_the_house_robot_is_a_public_12_lb_opponent(client):
+def test_the_house_robots_are_public_opponents_one_per_class(client):
     for headers in ({}, BOB):
         opps = client.get("/api/opponents", headers=headers).json()
-        assert opps == [{"id": SIMPLE, "name": "simple_bot", "weight_lb": 12, "mine": False}]
+        assert [(o["id"], o["name"], o["weight_lb"], o["mine"]) for o in opps] == [
+            (house_id("simple_bot_1lb"), "simple_bot 1 lb", 1, False),
+            (house_id("simple_bot_3lb"), "simple_bot 3 lb", 3, False),
+            (SIMPLE, "simple_bot", 12, False),
+            (house_id("simple_bot_30lb"), "simple_bot 30 lb", 30, False),
+        ]
         assert client.get(f"/api/robots/{SIMPLE}/bundle/parts.json", headers=headers).status_code == 200
         assert client.get(f"/api/robots/{SIMPLE}/bundle/meshes/000.stl", headers=headers).status_code == 200
     # Drivable, but not anyone's to read or change.
@@ -45,8 +53,8 @@ def test_an_owner_publishes_and_unpublishes_their_robot(client):
     assert r.status_code == 200
     assert client.get(f"/api/robots/{rid}").json()["public"] == 1
     names = [(o["name"], o["weight_lb"], o["mine"]) for o in client.get("/api/opponents", headers=BOB).json()]
-    assert names == [("Seraphs V1", 12, False), ("simple_bot", 12, False)]
-    assert [o["mine"] for o in client.get("/api/opponents").json()] == [True, False]
+    assert names == HOUSE_ROWS[:2] + [("Seraphs V1", 12, False)] + HOUSE_ROWS[2:]
+    assert [o["mine"] for o in client.get("/api/opponents").json()] == [False, False, True, False, False]
     # Bob may drive against it: the bundle, nothing else.
     assert client.get(bundle, headers=BOB).status_code == 200
     assert client.get(f"/api/robots/{rid}", headers=BOB).status_code == 404
@@ -55,7 +63,7 @@ def test_an_owner_publishes_and_unpublishes_their_robot(client):
                       json={"public": False}).status_code == 404
     # Private again: gone from the list, its class remembered.
     assert client.put(f"/api/robots/{rid}/public", json={"public": False, "weight_lb": 12}).status_code == 200
-    assert [o["id"] for o in client.get("/api/opponents").json()] == [SIMPLE]
+    assert [o["id"] for o in client.get("/api/opponents").json()] == HOUSE_IDS
     assert client.get(bundle, headers=BOB).status_code == 404
     assert client.get(f"/api/robots/{rid}").json()["weight_lb"] == 12
 
@@ -64,7 +72,7 @@ def test_opponents_are_ordered_by_weight_class(client):
     for name, lb in (("heavy", 30), ("ant", 3)):
         rid = ready_robot(client, name=name)
         client.put(f"/api/robots/{rid}/public", json={"public": True, "weight_lb": lb})
-    assert [o["weight_lb"] for o in client.get("/api/opponents").json()] == [3, 12, 30]
+    assert [o["weight_lb"] for o in client.get("/api/opponents").json()] == [1, 3, 3, 12, 30, 30]
 
 
 def test_publishing_needs_a_weight_class_and_a_drivable_robot(client):
@@ -79,18 +87,18 @@ def test_publishing_needs_a_weight_class_and_a_drivable_robot(client):
     s["store"].set_checked(rid, True)
     client.put(f"/api/robots/{rid}/public", json={"public": True, "weight_lb": 12})
     s["store"].set_checked(rid, False)
-    assert [o["id"] for o in client.get("/api/opponents").json()] == [SIMPLE]
+    assert [o["id"] for o in client.get("/api/opponents").json()] == HOUSE_IDS
 
 
 def test_seeding_is_idempotent_and_refreshes_the_bundle(settings):
     store = Store(settings.db_path)
-    assert seed_house(settings, store) == [SIMPLE]
+    assert seed_house(settings, store) == HOUSE_IDS
     stale = settings.robots_root / SIMPLE / "bundle" / "meshes" / "999.stl"
     stale.write_bytes(b"old")
     store.set_public(SIMPLE, True, 12)
-    assert seed_house(settings, store) == [SIMPLE]
+    assert seed_house(settings, store) == HOUSE_IDS
     rows = [r for r in store.all_robots() if r["username"] == HOUSE_USER]
-    assert len(rows) == 1 and not stale.exists()
+    assert len(rows) == len(HOUSE) and not stale.exists()
     assert not list((settings.robots_root / SIMPLE / "bundle").rglob("*.md"))
 
 

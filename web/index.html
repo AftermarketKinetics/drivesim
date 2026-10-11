@@ -23,6 +23,10 @@
   #rival { padding: 5px 8px; border: 1px solid #f27314; border-radius: 6px; max-width: 14em;
            background: rgba(30, 30, 34, 0.85); color: #eee; font: inherit; }
   #rival[hidden] { display: none; }
+  #rematch { position: absolute; top: 45%; left: 50%; transform: translateX(-50%);
+             padding: 10px 28px; border: 0; border-radius: 6px; background: #f27314;
+             color: #121214; font: 600 20px system-ui, sans-serif; cursor: pointer; }
+  #rematch[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -34,13 +38,15 @@
     <button type="button" data-kind="0" aria-pressed="true">Copy</button>
     <button type="button" data-kind="1" aria-pressed="false">Box</button>
     <button type="button" data-kind="2" aria-pressed="false">AI</button>
+    <button type="button" data-kind="3" aria-pressed="false" title="An AI drives your robot too: no radio needed">AI vs AI</button>
   </div>
   <select id="rival" hidden aria-label="Robot the AI drives" title="Robot the AI drives; restarts the round">
     <option value="">Your robot (copy)</option>
   </select>
 </div>
+<button type="button" id="rematch" hidden>Rematch</button>
 <script type="module">
-  import init, { set_opponent, set_rival } from "./drivesim_web.js";
+  import init, { set_opponent, set_rival, bout_over, rematch } from "./drivesim_web.js";
   const msg = document.getElementById("msg");
   if (!navigator.gpu) {
     msg.textContent = "This browser has no WebGPU. drivesim needs Chrome or Edge.";
@@ -60,13 +66,18 @@
     for (const b of buttons) b.addEventListener("click", () => {
       set_opponent(Number(b.dataset.kind));
       for (const o of buttons) o.setAttribute("aria-pressed", String(o === b));
-      rival.hidden = b.dataset.kind !== "2";
+      rival.hidden = b.dataset.kind !== "2" && b.dataset.kind !== "3";
       canvas.focus();
     });
     // The AI's robot (user, 2026-10-10): its own copy, or any public robot,
     // grouped by weight class with the driven robot's class first. The
     // value is the rival's bundle base URL, what set_rival takes.
     rival.addEventListener("change", () => { set_rival(rival.value); canvas.focus(); });
+    // An AI bout ends at 3:00 with TIME (user, 2026-10-11); Rematch
+    // rebuilds the round. bout_over is polled: the wasm may not be ready.
+    const again = document.getElementById("rematch");
+    again.addEventListener("click", () => { rematch(); again.hidden = true; canvas.focus(); });
+    setInterval(() => { try { again.hidden = !bout_over(); } catch { again.hidden = true; } }, 250);
     fillRivals().catch(e => console.warn("no public robots:", e));
     async function fillRivals() {
       const params = new URLSearchParams(location.search), id = params.get("robot");
@@ -78,7 +89,8 @@
         mine = (await get(`/api/robots/${id}`).catch(() => ({}))).weight_lb || 0;
       } else {
         // A static bundle (make web-dev): the fixture is the one rival there.
-        list = [{ name: "simple_bot", lb: 12, base: "/fixtures/simple_bot/" }];
+        list = [["simple_bot 1 lb", 1, "_1lb"], ["simple_bot 3 lb", 3, "_3lb"], ["simple_bot", 12, ""],
+                ["simple_bot 30 lb", 30, "_30lb"]].map(([name, lb, s]) => ({ name, lb, base: `/fixtures/simple_bot${s}/` }));
       }
       const classes = [...new Set(list.map(o => o.lb))].sort((a, b) => (b === mine) - (a === mine) || a - b);
       for (const lb of classes) {

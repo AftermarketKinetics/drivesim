@@ -9,7 +9,7 @@ still or AI-driven, or a box), stepped at a fixed rate.
 
 ## Interface
 
-Modules `ai_driver`, `arena`, `drivetrain`, `gear_coupling`, `impact_loss`, `mixer`, `motor`, `opponent`, `rest`, `shapes`, `sim`, `spawn`, `target`, `weapon_reach`; re-exports
+Modules `ai_driver`, `arena`, `drivetrain`, `gear_coupling`, `impact_loss`, `impacts`, `mixer`, `motor`, `opponent`, `rest`, `shapes`, `sim`, `spawn`, `target`, `weapon_reach`; re-exports
 `Sim`, `OpponentKind`, `Rival`, `PHYSICS_HZ`, `CONTROL_HZ`.
 
 ## Implementation

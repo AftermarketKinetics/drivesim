@@ -22,11 +22,25 @@ The script's docstring holds the part table.
 `python tools/import/tests/make_fixture.py` rewrites the fixture. The
 `.step` is checked in; tests read it and never run this script.
 
+`make_fixture.py --scale S --name NAME OUT.step` writes the same robot
+scaled by S about the origin, with assembly name NAME. That is how the
+house robot's weight-class versions were made (user, 2026-10-11):
+`simple_bot_1lb.step` ×0.43, `simple_bot_3lb.step` ×0.628 and
+`simple_bot_30lb.step` ×1.375, all beside `simple_bot.step`. `make
+fixtures` imports them into `fixtures/simple_bot_*`.
+
 It replaced a 200 × 160 × 40 mm box with a horizontal disc. That robot
 was too easy to spin, a compact brick with its CoM on the axle; it also
 rocked between chassis edges and rested 5.7° tilted.
 
 ## Implementation
+
+- **Scaling is real geometry** (`BRepBuilderAPI_Transform` on each
+  product, instance offsets ×S), not a scaled placement, which STEP
+  readers handle unevenly. Part and product names are unchanged, so a
+  scaled robot's robot.toml rules match the same parts. The scale factors
+  are chosen so each version, with its class's battery, ESC and motor
+  masses, comes to ~97% of its class limit, as the 12 lb original does.
 
 - Built with OCC's XCAF document so instance names and the shared
   product are real STEP structure (`NEXT_ASSEMBLY_USAGE_OCCURRENCE`), the

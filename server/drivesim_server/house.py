@@ -1,6 +1,7 @@
 """House robots: bundles shipped with the server, seeded into the store as
 public robots so the AI opponent has choices before any owner publishes
-one (user, 2026-10-10: start with simple_bot, as a database robot).
+one (user, 2026-10-10: start with simple_bot, as a database robot;
+2026-10-11: plus its 1, 3 and 30 lb versions).
 
 Each entry in HOUSE is a bundle directory under ``settings.house_root``.
 Its robot gets a fixed id, so the row is created once and every start
@@ -20,8 +21,14 @@ from .importer import BUNDLE
 #: on accelerate, so no one can open or delete them as owner.
 HOUSE_USER = "drivesim-house"
 
-#: Bundle directory name -> (display name, weight class lb).
-HOUSE = {"simple_bot": ("simple_bot", 12)}
+#: Bundle directory name -> (display name, weight class lb): simple_bot
+#: and its versions scaled to the other classes (user, 2026-10-11).
+HOUSE = {
+    "simple_bot_1lb": ("simple_bot 1 lb", 1),
+    "simple_bot_3lb": ("simple_bot 3 lb", 3),
+    "simple_bot": ("simple_bot", 12),
+    "simple_bot_30lb": ("simple_bot 30 lb", 30),
+}
 
 
 def house_id(name: str) -> str:

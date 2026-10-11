@@ -13,7 +13,8 @@ physics headroom.
 - `spawn_hud(commands)`: the top-left text, "loading robot…" at first.
 - `update_hud`: a system that, once the sim exists, shows:
   - the robot's name;
-  - "radio connected" or "NO RADIO (move a stick…)";
+  - "AI driving (AI vs AI)" when `Sim::pilot` drives the robot, else
+    "radio connected" or "NO RADIO (move a stick…)";
   - "ARMED" or "disarmed";
   - ground speed (m/s), the first weapon's speed (rpm) and chassis tilt
     (°);

@@ -8,7 +8,7 @@
 //! control; `sim` steps the robot and its opponent (a copy of it or a
 //! `Rival` robot, held still or driven by `ai_driver` through `opponent`,
 //! or the `target` box) at a fixed rate, with `impact_loss` taking energy
-//! out of each impact; `rest` reports how a robot sits on the
+//! out of each impact and `impacts` reporting the large ones; `rest` reports how a robot sits on the
 //! floor, for checking a robot file. Bevy-free and file-free: meshes
 //! arrive through a fetch closure, so it runs in tests and in WASM.
 
@@ -17,6 +17,7 @@ pub mod arena;
 pub mod drivetrain;
 pub mod gear_coupling;
 pub mod impact_loss;
+pub mod impacts;
 pub mod mixer;
 pub mod motor;
 pub mod opponent;

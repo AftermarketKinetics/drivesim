@@ -2,7 +2,8 @@
 
 ## Function
 
-Tests impact loss (`impact_loss.rs`) on the fixture. Each run is
+Tests impact loss (`impact_loss.rs`) and impact reporting (`impacts.rs`)
+on the fixture. Each run is
 measured against the same run with the loss off (`Sim::floor = None`).
 
 ## Interface
@@ -14,6 +15,11 @@ Tests:
 - `the_weapon_barely_bounces_the_robot_off_a_wall`: copy moved away,
   full throttle into the +x wall for 4 s. The fastest recoil with the loss
   is below 0.3× its recoil without (measured 0.5 vs 5.8 m/s).
+
+- `a_weapon_hit_is_reported_on_the_opponent_and_a_shove_is_not`: the hit
+  reports impacts on the opponent's bodies, each at least `MARK_DV`
+  with a body-local point within 0.5 m; 3 s of weapon-off full throttle
+  into the copy reports none.
 
 ## Implementation
 

@@ -12,16 +12,27 @@
     ratios you use. It asks in one message; answer what you know, and it writes and checks the
     robot file.</li>
   <li><b>When the page says "Ready to drive", click "Drive it".</b> The sim runs in Chrome or Edge
-    (it needs WebGPU). Your robot starts facing an orange copy of itself, which sits armed with
-    its sticks centred. The "Opponent" buttons (top right) pick the copy, an orange box as heavy
-    as your robot, or an AI that drives the copy: after a 3-2-1 countdown it comes at you with its
-    weapon at full. With AI chosen, the dropdown next to the buttons lets the AI drive another
-    robot instead: any public robot, listed by weight class. Each switch restarts the round.</li>
+    (it needs WebGPU). Your robot starts facing an orange opponent. The buttons at the top right
+    pick the mode, and each switch restarts the round:
+    <ul>
+      <li><b>Copy</b> (the default): an orange copy of your robot that sits still, armed but with
+        its sticks centred. Good for practising your driving and lining up hits.</li>
+      <li><b>Box</b>: an orange box as heavy as your robot, to push around and hit.</li>
+      <li><b>AI</b>: the AI drives the copy. After a 3-2-1 countdown it comes at you with its
+        weapon at full, for a 3-minute bout. At 0:00 both robots are disarmed, "TIME" shows, and
+        Rematch starts again.</li>
+      <li><b>AI vs AI</b>: an AI drives your robot too, so you can watch it fight with no radio
+        set up. Use it to see how a robot handles, hits and takes hits before you drive it.</li>
+    </ul>
+    In AI and AI vs AI, the dropdown next to the buttons picks the opponent: your own copy or any
+    public robot, listed by weight class (the house simple_bot comes in 1, 3, 12 and 30 lb).
+    Hard hits leave glowing marks where they land.</li>
   <li><b>Share your robot as an opponent</b> (optional). On your robot's page, tick "Publicly
     accessible" and choose its weight class. Everyone can then pick it for their AI to drive.
     They get its 3D model and robot file, never your conversation with Claude. Untick it to stop
     sharing.</li>
-  <li><b>Plug in your radio</b> (below) and move a stick so the browser sees it. Arm with SA.</li>
+  <li><b>Plug in your radio</b> (below) and move a stick so the browser sees it. Arm with SA. AI vs
+    AI needs no radio.</li>
 </ol>
 <p class="muted">The top-left readout shows the radio, arming, speed, weapon rpm, tilt and
 "physics N× real time": below 1× the sim can't keep up and runs slow.</p>

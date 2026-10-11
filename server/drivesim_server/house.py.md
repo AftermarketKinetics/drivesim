@@ -8,8 +8,10 @@ robot rather than a separate code path).
 
 ## Interface
 - `HOUSE_USER` `"drivesim-house"`: their owner.
-- `HOUSE`: bundle directory name → (display name, weight class lb);
-  `{"simple_bot": ("simple_bot", 12)}`.
+- `HOUSE`: bundle directory name → (display name, weight class lb):
+  `simple_bot_1lb` ("simple_bot 1 lb", 1), `simple_bot_3lb` (3),
+  `simple_bot` ("simple_bot", 12) and `simple_bot_30lb` (30), in class
+  order (user, 2026-10-11: simple_bot scaled to each weight class).
 - `house_id(name) -> str`: the fixed 32-hex-character robot id.
 - `seed_house(settings, store) -> [id]`: for each bundle present under
   `settings.house_root`, replaces `robots_root/<id>/bundle/` with a copy

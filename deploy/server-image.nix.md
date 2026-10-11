@@ -27,9 +27,11 @@ the browser sim, and the house robots' bundles.
 - **The sim is the local build** (user, 2026-10-10). `server/web/sim/`
   comes from `make web-build`, which `push.sh` runs first. The build fails
   if the wasm is missing. Sidecar `.md` files stay out of `/app/web`.
-- **House robots** (user, 2026-10-10): `fixtures/simple_bot`, minus
-  sidecars, is linked in as `/app/house/simple_bot`. `house.py` copies it
-  into `/robots` at every start and seeds it as a public 12 lb robot.
+- **House robots** (user, 2026-10-10; scaled versions 2026-10-11):
+  `fixtures/simple_bot`, `simple_bot_1lb`, `simple_bot_3lb` and
+  `simple_bot_30lb`, minus sidecars, are linked in under `/app/house/`.
+  `house.py` copies them into `/robots` at every start and seeds them as
+  public robots of their classes.
 - **1000:100 owns the files it writes** in mint's `~/drivesim` bind mounts,
   as the operator. Sandbox-written files are world-writable (the broker's
   `umask 0`).

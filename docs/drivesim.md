@@ -72,8 +72,16 @@ hazards; a native desktop build.
   buttons on the sim page, each switch restarting the round. The AI
   drives the orange copy: it waits a 3-2-1 countdown, then chases the
   robot with its weapon always at full, backs out when wedged, and
-  drives inverted when flipped. No difficulty setting, no pathfinding,
+  drives inverted when flipped. Whenever its weapon is under 70% of
+  speed (the start, or after a hit) it backs off and waits for 90%
+  (user, 2026-10-11). No difficulty setting, no pathfinding,
   no aiming of the weapon side. This brought an AI opponent into v1.
+  AI rounds are **3-minute bouts** (user, 2026-10-11): the clock starts
+  at FIGHT, and at 0:00 both robots are disarmed, "TIME" shows and a
+  Rematch button rebuilds the round. The copy and the box stay untimed.
+  **AI vs AI** (user, 2026-10-11) is a fourth button: an AI drives the
+  robot too, in place of the radio, so a robot can be tried with no
+  radio set up. The home page's "How it works" lists the four modes.
 - **Public robots as AI opponents** (user, 2026-10-10). An owner can tag
   a drivable robot "publicly accessible" with its weight class (3, 12 or
   30 lb, the owner's pick, not derived from mass). Every signed-in user's
@@ -81,7 +89,9 @@ hazards; a native desktop build.
   chosen, grouped by class with the driven robot's class first. The
   first entry is the robot's own copy. Publishing shares the robot's
   bundle (3D model and robot file), never its conversation. The first
-  public set is simple_bot (12 lb), seeded at every start from
+  public set is simple_bot (12 lb) with its 1, 3 and 30 lb versions
+  (user, 2026-10-11: scaled geometry with each class's own motors;
+  1 lb joined the classes for them), seeded at every start from
   `fixtures/` as a database robot owned by `drivesim-house`, and Seraphs
   V1, which its owner ticks public. Any class can face any class; the
   arena stays the 12 lb cage. This brought "a second, different robot as
@@ -264,6 +274,12 @@ its own fixed-tick loop.
   still loses all the speed the hit took. Measured on the fixture: a hit
   throws the opponent at 3.7 m/s, not 6.7; a weapon striking the wall
   recoils at 0.5 m/s, not 5.8.
+- **Impact marks** (user, 2026-10-11, `impacts.rs`, web
+  `impact_marks.rs`): a hit that changes a robot's speed by 2 m/s or more
+  in one step (weapon hits, not shoves) leaves a mark where it landed. It
+  glows orange to red and grows with the hit's strength, and keeps
+  glowing for the round (user, 2026-10-11: no fading; camera bloom so it
+  halos). Wheels lost their stripes so they don't clash with the marks.
 - **Arena:** NHRL's 12 lb cage: 16' × 16' usable, a floor of plywood
   painted with dead-flat paint (not steel), polycarbonate walls on a timber
   skirt, a roof (NHRL wiki, read 2026-10-09); the roof is simulated too, on

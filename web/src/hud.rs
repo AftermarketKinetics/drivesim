@@ -38,6 +38,7 @@ pub fn update_hud(
     let c = s.chassis();
     let up = *c.rotation() * rapier3d::prelude::Vector::Z;
     let link = match (&radio.name, radio.frame.is_some()) {
+        _ if s.pilot.is_some() => "AI driving (AI vs AI)",
         (Some(_), true) => "radio connected",
         _ => "NO RADIO (move a stick so the browser sees it)",
     };

@@ -11,6 +11,17 @@ Tests:
 - `it_waits_out_the_countdown`: no movement (< 1 cm) until just before
   `COUNTDOWN_S`; `countdown_left()` is `None` after it.
 - `the_copy_and_the_box_have_no_countdown`.
+- `the_bout_runs_three_minutes_from_fight_then_disarms_both`:
+  `bout_left()` is `BOUT_S` at the start and counts from FIGHT; at 0 both
+  robots' duties are no pulses, even with the sticks at full. `time_s`
+  is set directly rather than run for 3 minutes.
+- `the_copy_and_the_box_are_untimed`: `bout_left()` is `None`.
+- `ai_vs_ai_drives_the_robot_without_a_radio`: `OpponentKind::AiVsAi`,
+  no radio frame. The robot doesn't move (< 1 cm) through the
+  countdown; within 5 s after it (both wait ~1 s for their discs, and
+  back off after hits), the chassis centres come within 0.5 m (front
+  to front the discs hold them ~0.43 m apart), they land at least one
+  large impact, and the robot's weapon duty is full.
 - `it_reaches_an_idle_robot`: from the start spots, chassis centres come
   within 0.4 m in 3 s (measured 0.34 m: touching).
 - `it_does_not_stay_pinned_on_a_wall`: driving at a robot parked outside

@@ -20,9 +20,10 @@ from typing import Any, Iterator
 #: robot.toml passes the check (``checked``).
 STATUSES = ("importing", "ready", "failed")
 
-#: NHRL weight classes, lb, an owner tags a public robot with (user,
-#: 2026-10-10: the owner picks; 0 = untagged).
-WEIGHT_CLASSES = (3, 12, 30)
+#: Weight classes, lb, an owner tags a public robot with (user,
+#: 2026-10-10: the owner picks; 0 = untagged). NHRL's 3, 12 and 30, plus
+#: 1 lb ants (user, 2026-10-11, with simple_bot's 1 lb version).
+WEIGHT_CLASSES = (1, 3, 12, 30)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS robots (

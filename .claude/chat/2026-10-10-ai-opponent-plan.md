@@ -93,3 +93,25 @@
 **Did:**
 - Answered: no auto-invert; the mixer ignores orientation, as a real robot without an invert switch (an EdgeTX mix works already). Restitution is already 0 everywhere; hits are violent because the weapon tooth's speed is fully transferred.
 - Built `crates/physics/src/impact_loss.rs` (+ .md): post-step velocity-change blend, KEEP 0.5, 5 g impact threshold, floor exempt, rotor spin unscaled; wired in `Sim::physics_step` via `Sim::floor`. New tests/impact.rs; the drive hit test now runs with the loss off. Fixture hit 6.7 → 3.7 m/s, wall recoil 5.8 → 0.5 m/s; Obliterator vs AI 3.1× → 3.6× native. `make test` green; docs §2/§6, sidecars and lesson `rapier-impact-loss-is-a-post-step-velocity-blend` added.
+
+## 01:35 commit; impact marks, 3-minute bouts, scaled simple_bot
+**User:** commit. heres anotherwave of changes 1. make the bots highlight glowing orange-to-red marks where they take large impacts, scaling based on the strength of hte impact. 2. run the vs ai in 3 minute bouts. 3. scale simple-bot to each weight class (1,3,30lb versions)
+**Asked:** "Impact marks: how long should a mark last?" — Glow, then cool to scorch (Recommended) / Glow and vanish / Permanent glow → **Glow, then cool to scorch**. "3-minute bouts against the AI: what happens when the clock runs out?" — Freeze + TIME + Rematch (Recommended) / Auto-restart after 5 s / Clock only, keep fighting → **Freeze + TIME + Rematch**. "Scaled simple_bot: which classes?" — 1, 3, 12 (existing), 30 / 3, 12 (existing), 30 → **1, 3, 12 (existing), 30**. "How should simple_bot be scaled to each class?" — Scale geometry + class parts (Recommended) / Scale geometry, same parts / Scale bundle numbers only → **Scale geometry + class parts**.
+**Did:**
+- Committed decf5a1 (2 kHz, weapon_reach, impact_loss); not pushed or deployed.
+- Bouts: `BOUT_S` 180 (opponent.rs), `Sim::bout_left()`, both robots disarmed at 0; web `bout.rs` (m:ss clock, `bout_over`/`rematch` exports), TIME in countdown banner, HTML Rematch button in index.html.
+- Impact marks: physics `impacts.rs` (`MARK_DV` 2 m/s, body-local point, `Sim::take_impacts`), web `impact_marks.rs` (orange→red by log heat, glow 2 s, cool 1.5 s to scorch, max 200, merged per hit). Classes: `make_fixture.py --scale`; fixtures simple_bot_1lb/3lb/30lb (×0.43/0.628/1.375, class motors, 97% of limit); small discs slowed (1 lb 5,900 rpm, 3 lb 7,600) after hopping/flipping near 10k at 2 kHz; 1 lb added to WEIGHT_CLASSES, house.py seeds all four, image ships them. `make test` green.
+
+## 04:30 brighter permanent marks, no tyre stripes; AI vs AI
+**User:** make the impact marks glow more and make them not fade at all. also remove the tyre tread display, it conflicts with the wear markes
+**User (mid-turn):** also add an ai vs ai mode, where it takes over control of the bot from you, allowing you to test the bot without an elrs set up. document the different modes on the homepage "how it works" section
+**Did:**
+- impact_marks.rs: no cooling, emissive GLOW 6 → 40, camera `Bloom::NATURAL` (also halos arena lamps); robot_render.rs: wheel sector stripes removed, wheels plain untinted `TYRE`.
+- `OpponentKind::AiVsAi` + `Sim::pilot` (AI drives the robot from FIGHT, radio ignored), 4th page button "AI vs AI" (rival dropdown too), HUD "AI driving"; test in tests/ai.rs; guide.html "How it works" lists Copy/Box/AI/AI vs AI.
+
+## 05:00 AI waits for its weapon
+**User:** edit the ai to pause slightly to allow for weapon spinup before driving towards the opponent
+**User (mid-turn):** pause slightly or back off
+**Asked:** ""Pause slightly or back off": when should the AI do that?" — Whenever weapon is slow (Recommended) / Start only, by weapon speed / Start only, fixed 1 s → **Whenever weapon is slow**.
+**Did:**
+- ai_driver.rs: waits below 70% weapon speed until 90% (backs off at −0.6 within 0.8 m, else holds and aims), 10 s cap; `opponent::weapon_fraction` feeds it for opponent and pilot. AI vs AI test now checks meeting (< 0.5 m, discs hold 0.43) and impacts.

@@ -10,7 +10,8 @@ The fixed-step loop (docs/drivesim.md §6):
 ## Interface
 
 - `PHYSICS_HZ` 2000, `CONTROL_HZ` 1000, `STEPS_PER_TICK` 2, `GRAVITY`.
-- `OpponentKind { Copy (default), Box, Ai }`: what the robot faces.
+- `OpponentKind { Copy (default), Box, Ai, AiVsAi }`: what the robot
+  faces. `AiVsAi` is `Ai` with an AI driving the robot as well.
 - `Rival<'a> { model, mesh }`: another robot to face in place of the
   copy.
 - `Sim { world, robot, model, opponent, target, duties, time_s }`:
@@ -32,6 +33,18 @@ The fixed-step loop (docs/drivesim.md §6):
     from `assemble`, or a test setting it) turns the loss off;
   - `countdown_left()`: seconds until the AI starts, `None` without an
     AI or once it has;
+  - `impacts` (at most `MAX_IMPACTS` 256, oldest dropped) and
+    `take_impacts()`: the large impacts since the last take
+    (`impacts.rs`), for the page's glowing marks;
+  - `pilot`: `Some(AiDriver)` in AI vs AI. Each control tick it drives
+    the robot in place of the radio: `OPPONENT_DUTIES` (braked) until
+    the countdown ends, then it chases the opponent's chassis, weapon at
+    full;
+  - `bout_left()`: seconds left in the AI bout (`BOUT_S` through the
+    countdown, then down to 0 from FIGHT), `None` without an AI. At 0
+    every control tick gives both robots no pulses, so they coast down
+    and stay disarmed until the round is rebuilt (user, 2026-10-11: "run
+    the vs ai in 3 minute bouts", ending with TIME and a rematch);
   - `rotor_speed(rotor)`, `chassis()`, `opponent_chassis()` (the
     copy's chassis or the box's body).
 - `Opponent` and `OPPONENT_DUTIES` live in `opponent.rs`.
@@ -98,11 +111,17 @@ The fixed-step loop (docs/drivesim.md §6):
   their own scene are unchanged.
 - **Impacts are lossy** (user, 2026-10-11): `physics_step` snapshots
   each robot's (and the box's) body velocities before `world.step()`,
-  then `impact_loss::absorb` scales back any group's impact. The groups
+  then `impacts::find_impacts` records the large ones and
+  `impact_loss::absorb` scales back any group's impact. The groups
   are rebuilt each step from the handles, which is cheap next to the
   step itself.
 - **Duties update once per control tick** and are held across its four
   physics steps, the driven robot's and the opponent's alike.
+- **AI vs AI** (user, 2026-10-11: "takes over control of the bot from
+  you, allowing you to test the bot without an elrs set up") reuses the
+  opponent's `AiDriver` and `pose_of` for the robot. Its frame is
+  ignored, and so is the mixer's arm switch. The bout clock and the
+  countdown key off the opponent's AI, so they behave as in AI.
 - **The AI opponent** (user, 2026-10-10) is the copy with an
   `AiDriver`; it waits `COUNTDOWN_S` of sim time, then chases with its
   weapon at full. `time_s` counts from `new`/`assemble`, so a rebuilt

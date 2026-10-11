@@ -1,0 +1,75 @@
+# simple_bot scaled to the 1 lb class (user, 2026-10-11: "scale
+# simple-bot to each weight class"): fixtures/simple_bot's geometry ×0.43
+# about the origin (tools/import/tests/make_fixture.py --scale), with
+# 1 lb-class parts on 3S. The scale puts the total at ~97% of
+# the class limit, as the 12 lb original is. Materials and tyre grip are
+# the original's; see fixtures/simple_bot/robot.toml for why.
+#
+# Parts (data/motors.toml "Use:" notes): Repeat Mini 1106 3500kv drive at
+# its 28.5:1, "the default NHRL ant drive"; Repeat's ant belt drive 2305
+# 2400kv for the disc. 3S. Masses: a 3S 300 mAh pack ~30 g, a dual ant
+# ESC ~10 g, each Mini gearmotor 23 g (vendor page).
+#
+# The disc runs at 5,900 rpm (ratio 4.5), not the ~25,000 a real ant belt
+# drive gives: at the sim's 2 kHz step this small disc hopped from 7,600
+# rpm and flipped the robot at 9,900 (2026-10-11; lesson
+# rapier-fast-weapon-needs-small-dt), so it can't spin as fast as a real
+# 1 lb disc might.
+
+[robot]
+name = "simple_bot 1 lb"
+up = "+z"
+forward = "+x"
+battery_v = 11.1
+
+[materials]
+default = "al6061"
+
+# Tyres: VytaFlex 40, a Shore 40A cast polyurethane (user, 2026-10-10);
+# specific gravity 1.0 (Smooth-On's data sheet).
+[[materials.rule]]
+parts = ["Wheel"]
+density_kg_m3 = 1000
+
+[[materials.rule]]
+parts = ["Fork", "rear_bar", "weapon"]
+material = "ar500"
+
+[[materials.rule]]
+parts = ["top_plate"]
+material = "uhmw"
+
+[mass_overrides]
+"battery" = 0.03
+"esc" = 0.01
+"DriveMotor" = 0.023
+
+[[wheel]]
+name = "wheel_left"
+parts = ["wheel_L"]
+motor = "repeat-mini-1106-3500kv"
+ratio = 28.5
+mu = 1.4
+
+[[wheel]]
+name = "wheel_right"
+parts = ["wheel_R"]
+motor = "repeat-mini-1106-3500kv"
+ratio = 28.5
+mu = 1.4
+
+[[weapon]]
+name = "disc"
+parts = ["weapon"]
+motor = "repeat-ant-belt-drive-2305-2400kv"
+ratio = 6.0
+# Front edge up, as a vertical spinner runs: hits throw the opponent up.
+# The other way threw this robot into the air on every hit (2026-10-10).
+spin = "front-up"
+
+[control]
+kind = "mixer"
+throttle = 2
+turn = 1
+weapon = 3
+arm = 5

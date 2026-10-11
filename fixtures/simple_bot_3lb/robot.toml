@@ -1,0 +1,74 @@
+# simple_bot scaled to the 3 lb class (user, 2026-10-11: "scale
+# simple-bot to each weight class"): fixtures/simple_bot's geometry ×0.628
+# about the origin (tools/import/tests/make_fixture.py --scale), with
+# 3 lb-class parts on 4S. The scale puts the total at ~97% of
+# the class limit, as the 12 lb original is. Materials and tyre grip are
+# the original's; see fixtures/simple_bot/robot.toml for why.
+#
+# Parts (data/motors.toml "Use:" notes): Repeat Drive Max 2006 at its
+# 27:1 for the beetle drive; Repeat 2836 1800kv, "the standard NHRL beetle
+# weapon motor", for the disc. 4S. Masses: a 4S 450 mAh pack ~60 g, a
+# dual AM32 ESC ~20 g, each Max gearmotor 66 g (vendor page).
+#
+# The disc runs at 7,600 rpm (ratio 3.5): at 9,900 rpm (ratio 2.7) this
+# disc hopped and tipped the robot 50 degrees at the sim's 2 kHz step
+# (2026-10-11; lesson rapier-fast-weapon-needs-small-dt), so it can't spin
+# as fast as a real 3 lb disc might.
+
+[robot]
+name = "simple_bot 3 lb"
+up = "+z"
+forward = "+x"
+battery_v = 14.8
+
+[materials]
+default = "al6061"
+
+# Tyres: VytaFlex 40, a Shore 40A cast polyurethane (user, 2026-10-10);
+# specific gravity 1.0 (Smooth-On's data sheet).
+[[materials.rule]]
+parts = ["Wheel"]
+density_kg_m3 = 1000
+
+[[materials.rule]]
+parts = ["Fork", "rear_bar", "weapon"]
+material = "ar500"
+
+[[materials.rule]]
+parts = ["top_plate"]
+material = "uhmw"
+
+[mass_overrides]
+"battery" = 0.06
+"esc" = 0.02
+"DriveMotor" = 0.066
+
+[[wheel]]
+name = "wheel_left"
+parts = ["wheel_L"]
+motor = "repeat-max-2006-mk2-2100kv"
+ratio = 27.0
+mu = 1.4
+
+[[wheel]]
+name = "wheel_right"
+parts = ["wheel_R"]
+motor = "repeat-max-2006-mk2-2100kv"
+ratio = 27.0
+mu = 1.4
+
+[[weapon]]
+name = "disc"
+parts = ["weapon"]
+motor = "repeat-2836-1800kv"
+ratio = 3.5
+# Front edge up, as a vertical spinner runs: hits throw the opponent up.
+# The other way threw this robot into the air on every hit (2026-10-10).
+spin = "front-up"
+
+[control]
+kind = "mixer"
+throttle = 2
+turn = 1
+weapon = 3
+arm = 5

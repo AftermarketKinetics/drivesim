@@ -5,6 +5,7 @@
 //! the choice differs from what is built.
 
 use crate::Root;
+use crate::bout::take_rematch;
 use crate::hud::HudText;
 use crate::rival_load::{Rivals, wanted_rival};
 use crate::round::{BuiltWith, Loaded, RoundVisuals, build_round};
@@ -17,7 +18,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 /// outside any Bevy system.
 static WANT: AtomicU8 = AtomicU8::new(0);
 
-/// Called by index.html's button: 0 the copy, 1 the box, 2 the AI.
+/// Called by index.html's button: 0 the copy, 1 the box, 2 the AI, 3 AI
+/// vs AI (an AI drives the robot too).
 #[wasm_bindgen]
 pub fn set_opponent(kind: u8) {
     WANT.store(kind, Ordering::Relaxed);
@@ -37,10 +39,11 @@ pub fn wanted() -> Choice {
     let kind = match WANT.load(Ordering::Relaxed) {
         1 => OpponentKind::Box,
         2 => OpponentKind::Ai,
+        3 => OpponentKind::AiVsAi,
         _ => OpponentKind::Copy,
     };
     let rival = match kind {
-        OpponentKind::Ai => wanted_rival(),
+        OpponentKind::Ai | OpponentKind::AiVsAi => wanted_rival(),
         _ => String::new(),
     };
     Choice { kind, rival }
@@ -62,7 +65,8 @@ pub fn apply_opponent_toggle(
         return;
     };
     let want = wanted();
-    if built.0 == want {
+    // A rematch (bout.rs) rebuilds the round as it is.
+    if built.0 == want && !take_rematch() {
         return;
     }
     let rival = match (want.rival.as_str(), rivals.as_mut()) {

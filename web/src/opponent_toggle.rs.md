@@ -5,22 +5,24 @@
 The sim page's opponent switch (user, 2026-10-10): the robot faces an
 orange copy of itself by default, an orange box, or the AI driving its
 copy or a public rival robot picked from the page's dropdown
-(`rival_load.rs`). The page's controls call in from JS; a Bevy system
+(`rival_load.rs`), or AI vs AI, where a second AI drives the robot too
+(user, 2026-10-11). The page's controls call in from JS; a Bevy system
 rebuilds the round to match.
 
 ## Interface
 
 - `set_opponent(kind: u8)`: wasm-bindgen export, called by
-  `web/index.html`'s buttons: 0 the copy, 1 the box, 2 the AI; any
-  other value means the copy.
+  `web/index.html`'s buttons: 0 the copy, 1 the box, 2 the AI, 3 AI vs
+  AI; any other value means the copy.
 - `Choice { kind, rival }`: an opponent as the page chooses it; `rival`
   is the rival's bundle base URL, "" for the copy, and always "" unless
-  `kind` is `Ai`.
+  `kind` is `Ai` or `AiVsAi`.
 - `wanted() -> Choice`: the latest choice (the copy until the page asks
   otherwise). `take_bundle` builds the first round with its kind.
 - `apply_opponent_toggle`: Update system; once a bundle is `Loaded`,
   rebuilds the round (`round::build_round`) whenever `wanted()` differs
-  from `BuiltWith`. For a rival it asks `Rivals::get`, which starts the
+  from `BuiltWith`, or as it is when `bout::take_rematch()` says the
+  page's Rematch button was pressed (2026-10-11). For a rival it asks `Rivals::get`, which starts the
   fetch; it rebuilds once that returns the bundle.
 
 ## Implementation
