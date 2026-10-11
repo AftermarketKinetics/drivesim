@@ -6,3 +6,4 @@ server/var/
 .pytest_cache/
 server/web/sim/
 web/target/
+.claude/chat/

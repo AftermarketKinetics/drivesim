@@ -393,6 +393,8 @@ Host tests, run before any driving is trusted:
 - **Wheel friction feel.** Rapier's contact friction is Coulomb, with no
   slip curve; driving may feel too grippy. A contact-modification hook
   could shape friction by slip if needed.
+  Planned 2026-10-11: `docs/traction.md` (cleat and tread grip from the
+  floor's material, set per step by such a hook; not built).
 - **Small fast wheels on contacts** may jitter at the substep count the
   weapon needs.
 - **Weapon hits are approximate.** CCD handles linear motion well and
