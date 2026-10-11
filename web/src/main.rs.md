@@ -16,7 +16,8 @@ Gamepad API, and draws everything from the driver's box.
   `rival_load::Rivals` with the page's motor library URL, when the URL
   locates a bundle.
 - Update systems run chained, in this order: `poll_radio`, `take_bundle`,
-  `apply_opponent_toggle`, `step_sim`, `sync_bodies`, `update_marks`, `update_hud`,
+  `apply_opponent_toggle`, `apply_physics_rate`, `step_sim`, `sync_bodies`,
+  `update_marks`, `update_hud`,
   `update_countdown`, `update_bout_clock`.
 - Startup runs `impact_marks::setup_marks` beside `setup`, which
   spawns the HUD, the countdown banner (`countdown.rs`) and
@@ -24,8 +25,9 @@ Gamepad API, and draws everything from the driver's box.
 - The wasm module exports `set_opponent` (`opponent_toggle.rs`) for
   the page's opponent buttons and `set_rival` (`rival_load.rs`) for its
   AI robot dropdown, plus `bout_over` and `rematch` (`bout.rs`) for its
-  Rematch button and `set_marks` (`impact_marks.rs`) for its Marks
-  checkbox.
+  Rematch button, `set_marks` (`impact_marks.rs`) for its Marks
+  checkbox and `set_physics_khz` (`physics_rate.rs`) for its Physics
+  slider.
 
 ## Implementation
 

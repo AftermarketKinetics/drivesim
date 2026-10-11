@@ -34,6 +34,13 @@ and says plainly when the browser can't run it (docs/drivesim.md §8).
   `localStorage` (`drivesim.marks`, guarded: it may throw). It is
   re-sent every 250 ms until the wasm accepts it, because exports
   throw before `init` is done.
+- `<input type="range" id="rate">` "Physics", 2–4 (kHz, step 1), with
+  an `<output id="rate-out">` "N kHz" (user, 2026-10-11: a slider from 2
+  to 4 kHz, 2 by default). Every `input` event sends it through the wasm
+  export `set_physics_khz` (`physics_rate.rs`) and updates the readout.
+  On `change` it is saved to `localStorage` (`drivesim.physics_khz`,
+  guarded; a stored value outside 2–4 is ignored). Like Marks, it is
+  re-sent every 250 ms until the wasm accepts it.
 - `<button id="rematch">`, centred, hidden until an AI bout runs out
   (user, 2026-10-11). Every 250 ms the page polls the wasm export
   `bout_over` (`bout.rs`) to show or hide it. A click calls `rematch`,

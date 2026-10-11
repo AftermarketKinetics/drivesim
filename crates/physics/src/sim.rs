@@ -1,6 +1,7 @@
-//! The fixed-step loop: physics at `PHYSICS_HZ`, control at `CONTROL_HZ`
-//! (docs/drivesim.md §6: sized from the fastest rotor; a 10,000 rpm
-//! weapon is unstable on a rapier joint at 1 ms and stable from 2 kHz).
+//! The fixed-step loop: physics at `PHYSICS_HZ` (or another of
+//! `PHYSICS_RATES_HZ`), control at `CONTROL_HZ` (docs/drivesim.md §6:
+//! sized from the fastest rotor; a 10,000 rpm weapon is unstable on a
+//! rapier joint at 1 ms and stable from 2 kHz).
 
 use crate::ai_driver::AiDriver;
 use crate::arena::add_arena;
@@ -16,9 +17,15 @@ use drivesim_robot::robot_file::Control;
 use drivesim_robot::{RobotModel, Rotor};
 use rapier3d::prelude::*;
 
+/// The physics rate a `Sim` starts at.
 pub const PHYSICS_HZ: u32 = 2000;
+/// The rates `Sim::set_physics_hz` takes (user, 2026-10-11: a 2–4 kHz
+/// slider on the sim page, 2 kHz by default): whole steps per control
+/// tick. A light robot's small, fast weapon needs 4 kHz: a 0.96 kg beetle's
+/// 45 mm bar at 10.6k rpm made energy from nothing in its hits at 2 and
+/// 3 kHz, and stayed physical at 4.
+pub const PHYSICS_RATES_HZ: [u32; 3] = [2000, 3000, 4000];
 pub const CONTROL_HZ: u32 = 1000;
-pub const STEPS_PER_TICK: u32 = PHYSICS_HZ / CONTROL_HZ;
 pub const GRAVITY: f32 = 9.81;
 
 /// What the robot faces: an undriven copy of itself (the default), a
@@ -185,8 +192,8 @@ impl Sim {
     }
 
     /// One control tick: decide duties from the radio frame (`None` = no
-    /// radio) and the opponent's, then run `STEPS_PER_TICK` physics steps
-    /// with them held.
+    /// radio) and the opponent's, then run `physics_hz() / CONTROL_HZ`
+    /// physics steps with them held.
     pub fn control_tick(&mut self, frame: Option<&Frame>) {
         let dt = 1.0 / CONTROL_HZ as f32;
         let target = self.opponent_chassis_handle();
@@ -214,10 +221,26 @@ impl Sim {
                 o.duties = Duties::default();
             }
         }
-        for _ in 0..STEPS_PER_TICK {
+        for _ in 0..self.physics_hz() / CONTROL_HZ {
             self.physics_step();
         }
         self.time_s += dt;
+    }
+
+    /// The physics rate, Hz.
+    pub fn physics_hz(&self) -> u32 {
+        (1.0 / self.world.integration_parameters.dt).round() as u32
+    }
+
+    /// Steps the physics at `hz` from the next control tick on, taken to
+    /// the nearest of `PHYSICS_RATES_HZ`. Safe mid-round: the motors and
+    /// the impact loss read the step from the world each step.
+    pub fn set_physics_hz(&mut self, hz: u32) {
+        let hz = *PHYSICS_RATES_HZ
+            .iter()
+            .min_by_key(|r| r.abs_diff(hz))
+            .unwrap();
+        self.world.integration_parameters.dt = 1.0 / hz as f32;
     }
 
     /// Seconds left before the AI opponent starts; `None` when there is

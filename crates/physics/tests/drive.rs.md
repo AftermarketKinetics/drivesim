@@ -26,14 +26,17 @@ Tests:
 - `a_spinning_weapon_does_not_launch_the_robot_on_open_floor`: disc at
   speed, full throttle for 0.7 s with nothing ahead: rises under 2 cm,
   yaws under 1 rad/s.
-- `a_hit_throws_the_opponent_up_not_the_robot`: disc at speed into the
-  opponent: it rises more than 0.5 m, and higher than the robot does
-  (measured 1.88 m against 0.32 m at 4 kHz; 0.56 m against 0.39 m at
-  2 kHz). It was "more than twice"; relaxed when physics moved to 2 kHz
-  (user, 2026-10-10), since the single hit is chaotic and the test's
-  point is which robot flies, not by how much. It runs with impact loss
-  off (`floor = None`, 2026-10-11): it checks the spin direction, and
-  with the loss neither robot rises 0.1 m (tests/impact.rs).
+- `a_hit_throws_the_opponent_up`: disc at speed into the opponent from
+  five spots 4 mm apart sideways; the opponent's rises sum to more than
+  1 m. It replaced `a_hit_throws_the_opponent_up_not_the_robot` (one
+  hit; the opponent higher than the robot) on 2026-10-11. That single
+  hit flipped on rounding-level changes: with the gearbox smoothing,
+  a sweep of β, or 2/3/4 kHz, it passed in 2 of 5 offsets. Over nine
+  spots, front edge up threw the opponent 0.09–0.85 m each; front edge
+  down kept it on the floor (0.00 in eight, 0.15 m in one). The robot
+  rose 0.07–1.23 m either way, so it isn't compared. Impact loss is off
+  (`floor = None`): the test checks the spin direction, and with the
+  loss neither robot rises 0.1 m (tests/impact.rs).
 - `disarmed_does_not_move`.
 - `weapon_spins_up_to_no_load_and_the_robot_stays_upright`: within 5%
   after 3 s.
@@ -42,8 +45,17 @@ Tests:
   throttle it deflects sideways off the forks instead.
 - `a_light_chassis_on_geared_wheels_sits_still_unpowered`: the fixture
   with chassis inertia ×0.1 and wheel motor inertia ×5 (a light beetle on
-  high-ratio gearmotors), no radio, 2 s: under 0.5 m/s and 5 cm. Without
-  the coupling cap it reached 150 m/s (2026-10-11).
+  high-ratio gearmotors), no radio, 2 s: under 0.5 m/s and 5 cm.
+  Without smoothing the coupling it reached 150 m/s (2026-10-11).
+- `a_light_chassis_on_geared_wheels_stays_upright_at_full_throttle`: the
+  same variant, full throttle, full reverse, full throttle (0.5 s each),
+  weapon off: up.z stays above 0.9. With the coupling capped instead of
+  smoothed it flipped upside down (up.z −1.0). A 0.96 kg beetle did the
+  same at half throttle (2026-10-11).
+- `the_physics_rate_snaps_to_an_offered_one_and_keeps_real_time`:
+  `set_physics_hz` takes 3400 to 3000 and 9000 to 4000. At each of
+  `PHYSICS_RATES_HZ`, 1 s of full throttle is 1 s of `time_s`, and the
+  distances agree within 10%.
 - `the_fixture_rests_on_its_wheels_and_fork_tips`: `rest::settle`:
   under 1° nose-down, on both wheels and the chassis (the fork tips),
   with the disc clear.

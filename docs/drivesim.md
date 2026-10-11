@@ -259,9 +259,13 @@ its own fixed-tick loop.
   spin-up reaction on the chassis (the fixture flipped on every hard
   reversal), so each step adds the gearbox coupling torques that turn it
   into a real gearmotor (`gear_coupling.rs`). Those coupling torques
-  are explicit, so they are capped at half the chassis's inertia about
-  each rotor axis: a light beetle on 27:1 gearmotors blew itself up
-  unpowered without the cap (2026-10-11).
+  are explicit (last step's accelerations). A light beetle on 27:1
+  gearmotors blew itself up unpowered with them (2026-10-11). Capping
+  them then left most of the fake reaction in, and the beetle backflipped
+  at half throttle. So the accelerations are low-passed instead, at
+  `β = 1/(1+g)` per robot (user, 2026-10-11), where g is the gear
+  self-term against the chassis inertia. That settles on the implicit
+  answer in one step for any g.
 - **Contact settings** (user, 2026-10-10): rapier's exact Coulomb
   friction per contact point, no contact recycling, stiff critically
   damped floor contacts (200/400 Hz) and 4 solver iterations, for about
@@ -306,6 +310,14 @@ hits stopped throwing the opponent. In WASM on one thread the whole spike scene 
 at 6.6× real time at 4 kHz (Node 24 / V8) and 5.4–6.1× in the user's
 Chrome, so threads (and the cross-origin isolation they need) are not
 needed for v1.
+
+**Physics-rate slider** (user, 2026-10-11): the sim page offers 2, 3
+or 4 kHz (whole steps per control tick), 2 by default and remembered per
+browser; `Sim::set_physics_hz` applies it live. A light robot's small,
+fast weapon needs 4: the 0.96 kg Peter Bar Kit's 45 mm, 284 g bar at
+10.6k rpm (32° per step at 2 kHz) made energy from nothing in its hits
+at 2 and 3 kHz (bodies at 110–190 m/s in AI vs AI) and stayed physical
+at 4 (14 m/s worst). The 1, 3, 12 and 30 lb simple_bots are fine at 2.
 
 **Sensors.** A simulated IMU reads the chassis body's real angular
 velocity and specific force.

@@ -1,4 +1,4 @@
-<!-- The two guides (how drivesim works; setting up an EdgeTX + ELRS radio),
+<!-- The guides (how drivesim works; setting up an EdgeTX + ELRS radio; its physics),
      shared by the signed-in front page and the public landing page, which
      both insert this file. Public: Caddy serves /welcome/* without login. -->
 <details class="card">
@@ -26,7 +26,9 @@
     </ul>
     In AI and AI vs AI, the dropdown next to the buttons picks the opponent: your own copy or any
     public robot, listed by weight class (the house simple_bot comes in 1, 3, 12 and 30 lb).
-    Hard hits leave glowing marks where they land; untick "Marks" (top right) to hide them.</li>
+    Hard hits leave glowing marks where they land; untick "Marks" (top right) to hide them.
+    The "Physics" slider beside it sets 2–4 kHz; light robots with fast weapons need 4
+    (see "drivesim physics/compensations" below).</li>
   <li><b>Share your robot as an opponent</b> (optional). On your robot's page, tick "Publicly
     accessible" and choose its weight class. Everyone can then pick it for their AI to drive.
     They get its 3D model and robot file, never your conversation with Claude. Untick it to stop
@@ -68,4 +70,91 @@ in the sim, and are there for robots that use them.</p>
 <p class="muted">Another EdgeTX radio works too: give it a model with the four channels above
 (CH1 aileron, CH2 elevator, CH3 throttle, CH5 a two-position switch), no expo or rates, and
 Classic USB joystick mode.</p>
+</details>
+
+<details class="card">
+<summary><b>drivesim physics/compensations</b></summary>
+<p class="muted">What the simulation does, and where it corrects the physics engine
+(rapier3d 0.36) so a robot behaves like the real one. The full reasoning is in
+<code>docs/drivesim.md</code> §6.</p>
+
+<h3>Stepping</h3>
+<ul>
+  <li><b>Physics at 2, 3 or 4 kHz</b>, picked with the <i>Physics</i> slider at the top right of the
+    drive page (2 by default, remembered per browser). The radio, the AI and the motors' duties
+    update at 1 kHz whatever the rate.</li>
+  <li>The rate is set by the fastest weapon, not the controls: a 10,000 rpm weapon on a 1 ms step
+    throws the robot. Small, heavy, fast weapons on light robots (a beetle's 45 mm bar at
+    10,600 rpm) need <b>4 kHz</b> to stay physical in hits. At 2 kHz they can fling robots
+    unrealistically. 4 kHz costs about 1.7× the CPU; watch "physics N× real time".</li>
+  <li>Contacts as exact as the engine offers: one friction cone per contact point, fresh contact
+    points every step (so spinning wheels don't reuse stale ones), stiff critically damped
+    contacts, 4 solver iterations.</li>
+</ul>
+
+<h3>Robot bodies</h3>
+<ul>
+  <li><b>Chassis:</b> one rigid body with the exact mass, centre of mass and inertia of every part
+    in your CAD. It collides through the convex hulls of its 12 biggest parts; small parts
+    (fasteners, magnets, electronics) keep their mass but don't collide.</li>
+  <li><b>Wheels:</b> a body each on a hinge, colliding as a cylinder at the measured radius and
+    width. Grip is the tyre's μ from the robot file on a μ = 1 floor; the chassis and weapon
+    slide at μ 0.3.</li>
+  <li><b>Weapon:</b> a body on a hinge at its true rpm, with gyroscopic precession and continuous
+    collision detection on. Only the parts reaching at least half its radius collide;
+    spindles and pulleys inside the robot keep their mass.</li>
+  <li>Nothing bounces (restitution 0); energy is lost in hits instead (below).</li>
+</ul>
+
+<h3>Motors and gearboxes</h3>
+<ul>
+  <li><b>DC motor model</b> per wheel and weapon: current from duty, battery voltage, back-EMF and
+    resistance, clamped to the ESC's current limit, times kv, gear ratio and efficiency.</li>
+  <li>Applied as a torque on the rotor and an equal, opposite one on the chassis, so the
+    reaction torque is real: spin-up tips the robot, and drive torque pitches it.</li>
+  <li><b>Compensation: reflected motor inertia.</b> Each wheel and weapon carries its motor's
+    rotor inertia × ratio², as a real gearmotor's output does. On a 27:1 beetle drive that is
+    most of what the wheel feels when accelerating. It also keeps the motor model stable at
+    the physics step.</li>
+  <li><b>Compensation: no gyroscopic term on wheels,</b> because that lumped inertia would
+    overstate their spin's angular momentum about ratio times.</li>
+  <li><b>Compensation: gearbox coupling.</b> The lump would push ratio times too much spin-up
+    reaction into the chassis, enough to flip a robot on every throttle slam. Each step adds the
+    torques that turn it back into a real gearbox (worked out from the gearbox's true energy).</li>
+  <li><b>Compensation: smoothed coupling.</b> Those torques use the previous step's accelerations,
+    which on a light robot with high-ratio gearmotors can feed on themselves (a 1 kg beetle on 27:1
+    once blew itself across the arena unpowered). They are low-pass filtered per robot, at a
+    strength set by how big the gearboxes are against the chassis. That lands on the exact answer
+    in one step for any robot.</li>
+</ul>
+
+<h3>Hits</h3>
+<ul>
+  <li><b>Compensation: impact loss.</b> A rigid engine hands a struck robot all of a weapon tooth's
+    speed. Real hits lose energy into deformation. After any step where a robot's non-floor
+    contacts exceed 5 g, it keeps half the velocity change that step gave it. All its parts are
+    scaled together, and the weapon still loses all the spin the hit took.</li>
+  <li><b>Impact marks:</b> a contact that would change a robot's speed by 2 m/s or more in one step
+    glows where it landed, orange to red by strength ("Marks" hides them).</li>
+</ul>
+
+<h3>Arena and opponents</h3>
+<ul>
+  <li>NHRL's 16 ft cage: dead-flat painted plywood floor, polycarbonate walls on a timber skirt,
+    and a roof so a hit can't throw a robot out.</li>
+  <li>Opponents: a braked copy, a box as heavy as your robot, or an AI driving the copy or any
+    public robot with its own masses, motors and gearing. The AI turns with damped steering,
+    waits for its weapon (until 90% speed, backing off if close) and reverses when stuck.</li>
+</ul>
+
+<h3>Known limits</h3>
+<ul>
+  <li>At 2 kHz, a small heavy weapon can still make energy in a hit; use 4 kHz for beetles.</li>
+  <li>A bar or disc sitting a couple of millimetres off the floor touches down when the nose dips
+    under hard braking or reversing, and can flip the robot. That is likely what the real robot
+    would do too.</li>
+  <li>Turning hard with a vertical weapon at speed can roll the robot over through gyroscopic
+    torque. That is real physics.</li>
+  <li>Parts don't break or deform.</li>
+</ul>
 </details>

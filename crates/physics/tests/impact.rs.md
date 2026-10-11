@@ -18,8 +18,11 @@ Tests:
 
 - `a_weapon_hit_is_reported_on_the_opponent_and_a_shove_is_not`: the hit
   reports impacts on the opponent's bodies, each at least `MARK_DV`
-  with a body-local point within 0.5 m; 3 s of weapon-off full throttle
-  into the copy reports none.
+  with a body-local point within 0.5 m. 3 s of weapon-off full throttle
+  into the copy reports nothing at 2.5 m/s or more: at most a faint mark.
+  It reported none until the gearbox coupling was smoothed (2026-10-11).
+  Then the ram's hardest step went from 1.6 to 2.26 m/s, over
+  `MARK_DV` (2) but below the weakest weapon hit (3).
 
 ## Implementation
 

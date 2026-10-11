@@ -7,7 +7,9 @@ The server's front page:
   plug in a radio);
 - a radio setup guide for EdgeTX + ELRS, with the download of
   `radio/accelerate-elrs-pocket.yml` and its channel table (user,
-  2026-10-10).
+  2026-10-10);
+- a "drivesim physics/compensations" card: what the sim simulates and
+  corrects (user, 2026-10-11).
 
 ## Interface
 Lists `GET /api/robots` with a state for each robot:
@@ -31,7 +33,7 @@ The guides are `welcome/guide.html`, inserted into `#guide`; every API
 call goes through `session.js`'s `apiFetch`.
 
 ## Implementation
-The two guides are collapsed `<details>` cards above the list, so a
+The three guides are collapsed `<details>` cards above the list, so a
 returning user sees their robots first. Robot names are HTML-escaped and
 ids URL-encoded before going into the list. A file name is user input.
 

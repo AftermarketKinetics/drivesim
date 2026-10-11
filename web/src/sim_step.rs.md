@@ -3,7 +3,8 @@
 ## Function
 
 Runs the simulation in real time: control ticks at `CONTROL_HZ`, each
-running `STEPS_PER_TICK` physics steps (docs/drivesim.md §6). It also
+running `Sim::physics_hz() / CONTROL_HZ` physics steps
+(docs/drivesim.md §6). It also
 measures how much faster than real time the physics could run.
 
 ## Interface
@@ -27,7 +28,8 @@ measures how much faster than real time the physics could run.
 - **Headroom** is timed with `performance.now()` around the stepping loop
   and smoothed (`HEADROOM_EMA`, 0.02 per frame). Below 1, the sim can't
   keep up and runs slow. It is the in-browser check that a build or
-  profile change kept the physics rate (`PHYSICS_HZ`) affordable.
+  profile change kept the physics rate affordable, and it shows what the
+  page's Physics slider (`physics_rate.rs`) costs.
 
 ## Assertions
 

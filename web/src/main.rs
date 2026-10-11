@@ -7,7 +7,8 @@
 //! opponent, with `rival_load` fetching the AI's rival robot; `radio`
 //! reads the pad; `sim_step` runs the physics in real
 //! time; `robot_render`, `target_render` and `arena_render` draw, and
-//! `impact_marks` glows where the robots are hit;
+//! `physics_rate` holds it at the page slider's rate; `impact_marks`
+//! glows where the robots are hit;
 //! `floor_texture` paints the floor; `camera` is the driver's eye; `hud`
 //! is the text overlay, `countdown` the AI round's 3-2-1 and TIME, and
 //! `bout` its 3-minute clock and rematch.
@@ -21,6 +22,7 @@ mod floor_texture;
 mod hud;
 mod impact_marks;
 mod opponent_toggle;
+mod physics_rate;
 mod radio;
 mod rival_load;
 mod robot_render;
@@ -62,6 +64,7 @@ fn main() {
                 radio::poll_radio,
                 take_bundle,
                 opponent_toggle::apply_opponent_toggle,
+                physics_rate::apply_physics_rate,
                 sim_step::step_sim,
                 robot_render::sync_bodies,
                 impact_marks::update_marks,

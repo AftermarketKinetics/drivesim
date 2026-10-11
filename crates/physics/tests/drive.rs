@@ -202,27 +202,35 @@ fn a_spinning_weapon_does_not_launch_the_robot_on_open_floor() {
 }
 
 #[test]
-fn a_hit_throws_the_opponent_up_not_the_robot() {
-    // Front edge up: the hit throws the opponent higher than the robot
-    // (measured 1.88 m against 0.32 m at 4 kHz; 0.56 m against 0.39 m at
-    // 2 kHz, 2026-10-10). Front edge down it was the other way round: the
-    // opponent stayed down and the robot flew. The single hit is chaotic,
-    // so the check is only which one goes higher, not by how much. Impact
-    // loss is off: it checks the spin's direction, and with the loss
-    // (tests/impact.rs) neither rises 0.1 m.
-    let mut s = sim();
-    s.floor = None;
-    let mut s = spun_up(s);
-    let (mut robot_top, mut opponent_top) = (0.0f32, 0.0f32);
-    for _ in 0..1500 {
-        s.control_tick(Some(&radio(0.0, 1.0, 1.0, true)));
-        robot_top = robot_top.max(s.chassis().translation().z);
-        opponent_top = opponent_top.max(s.opponent_chassis().unwrap().translation().z);
+fn a_hit_throws_the_opponent_up() {
+    // Front edge up, the disc throws the opponent up; front edge down it
+    // stays on the floor. One hit is chaotic: whether the opponent rises
+    // 0.1 m or 0.9 m, and whether the robot flies too, turns on millimetres
+    // and on rounding. So it runs from five spots 4 mm apart and sums the
+    // opponent's rise (measured 2026-10-11 over nine spots: front up
+    // 0.09-0.85 m each, front down 0.00 in eight and 0.15 m in one; the
+    // robot rose 0.07-1.23 m either way). Impact loss is off: it checks the
+    // spin's direction, and with the loss (tests/impact.rs) neither rises
+    // 0.1 m.
+    let mut total = 0.0f32;
+    for i in -2..=2 {
+        let mut s = sim();
+        s.floor = None;
+        for h in s.robot.bodies.clone() {
+            let p = s.world.bodies[h].translation();
+            let dy = 0.004 * i as f32;
+            s.world.bodies[h]
+                .set_translation(rapier3d::prelude::Vector::new(p.x, p.y + dy, p.z), true);
+        }
+        let mut s = spun_up(s);
+        let mut top = 0.0f32;
+        for _ in 0..1500 {
+            s.control_tick(Some(&radio(0.0, 1.0, 1.0, true)));
+            top = top.max(s.opponent_chassis().unwrap().translation().z);
+        }
+        total += top;
     }
-    assert!(
-        opponent_top > 0.5 && opponent_top > robot_top,
-        "opponent rose {opponent_top} m, robot {robot_top} m"
-    );
+    assert!(total > 1.0, "the opponent rose {total} m over five hits");
 }
 
 #[test]
@@ -275,13 +283,9 @@ fn the_fixture_rests_on_its_wheels_and_fork_tips() {
     assert!(r.residual_speed < 0.01);
 }
 
-#[test]
-fn a_light_chassis_on_geared_wheels_sits_still_unpowered() {
-    // A chassis 10x lighter in inertia on wheel motors with 5x the rotor
-    // inertia, like a light beetle on high-ratio gearmotors: the explicit
-    // gearbox correction outweighed the chassis and the robot blew itself
-    // across the arena with no input (2026-10-11: a 0.96 kg beetle on
-    // 27:1; this variant reached 150 m/s uncapped). gear_coupling caps it.
+/// The fixture as a light beetle on high-ratio gearmotors: chassis
+/// inertia cut 10x, wheel motors' rotor inertia raised 5x.
+fn light_geared_model() -> drivesim_robot::RobotModel {
     let mut m = common::fixture_model();
     for row in &mut m.bodies[0].mass.inertia {
         for c in row {
@@ -291,7 +295,46 @@ fn a_light_chassis_on_geared_wheels_sits_still_unpowered() {
     for w in &mut m.wheels {
         w.motor.rotor_inertia_kg_m2 *= 5.0;
     }
-    let mut s = Sim::new(m, &common::fixture_mesh, OpponentKind::Box).unwrap();
+    m
+}
+
+#[test]
+fn a_light_chassis_on_geared_wheels_stays_upright_at_full_throttle() {
+    // The lump's fake reaction on the chassis is r-1 times the real one;
+    // capping the whole correction to keep it stable left most of it in,
+    // and a 0.96 kg beetle on 27:1 backflipped at half throttle with its
+    // weapon off (2026-10-11, AI vs AI flipped both robots on launch).
+    let mut s = Sim::new(
+        light_geared_model(),
+        &common::fixture_mesh,
+        OpponentKind::Box,
+    )
+    .unwrap();
+    let mut lowest_up = 1.0f32;
+    for throttle in [1.0, -1.0, 1.0] {
+        for _ in 0..500 {
+            s.control_tick(Some(&radio(0.0, throttle, -1.0, true)));
+            let up = *s.chassis().rotation() * rapier3d::prelude::Vector::Z;
+            lowest_up = lowest_up.min(up.z);
+        }
+    }
+    assert!(lowest_up > 0.9, "tipped to up.z = {lowest_up}");
+}
+
+#[test]
+fn a_light_chassis_on_geared_wheels_sits_still_unpowered() {
+    // A chassis 10x lighter in inertia on wheel motors with 5x the rotor
+    // inertia, like a light beetle on high-ratio gearmotors: the explicit
+    // gearbox correction outweighed the chassis and the robot blew itself
+    // across the arena with no input (2026-10-11: a 0.96 kg beetle on
+    // 27:1; this variant reached 150 m/s unfiltered). gear_coupling's
+    // smoothing of the accelerations keeps it still.
+    let mut s = Sim::new(
+        light_geared_model(),
+        &common::fixture_mesh,
+        OpponentKind::Box,
+    )
+    .unwrap();
     let p0 = s.chassis().translation();
     let mut fastest = 0.0f32;
     for _ in 0..2000 {
@@ -303,4 +346,28 @@ fn a_light_chassis_on_geared_wheels_sits_still_unpowered() {
         fastest < 0.5 && moved < 0.05,
         "reached {fastest} m/s, moved {moved} m"
     );
+}
+
+#[test]
+fn the_physics_rate_snaps_to_an_offered_one_and_keeps_real_time() {
+    // The page's slider (user, 2026-10-11): 2-4 kHz. A tick is still 1 ms
+    // of simulated time at any rate, so the robot drives as far.
+    let mut s = sim_alone();
+    s.set_physics_hz(3400);
+    assert_eq!(s.physics_hz(), 3000);
+    s.set_physics_hz(9000);
+    assert_eq!(s.physics_hz(), 4000);
+    let mut far = Vec::new();
+    for hz in drivesim_physics::PHYSICS_RATES_HZ {
+        let mut s = sim_alone();
+        s.set_physics_hz(hz);
+        let x0 = s.chassis().translation().x;
+        run(&mut s, radio(0.0, 1.0, -1.0, true), 1.0);
+        assert!((s.time_s - 1.0).abs() < 1e-3, "{hz}: {} s", s.time_s);
+        far.push(s.chassis().translation().x - x0);
+    }
+    let (lo, hi) = far
+        .iter()
+        .fold((f32::MAX, 0.0f32), |(a, b), x| (a.min(*x), b.max(*x)));
+    assert!(lo > 0.5 && hi / lo < 1.1, "drove {far:?} m");
 }

@@ -28,4 +28,4 @@ pub mod spawn;
 pub mod target;
 pub mod weapon_reach;
 
-pub use sim::{CONTROL_HZ, OpponentKind, PHYSICS_HZ, Rival, Sim};
+pub use sim::{CONTROL_HZ, OpponentKind, PHYSICS_HZ, PHYSICS_RATES_HZ, Rival, Sim};

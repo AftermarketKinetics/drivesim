@@ -3,7 +3,7 @@
 ## Function
 drivesim's public landing page: what anonymous visitors to
 drivesim.combat-robot.systems see (user, 2026-10-10). It says what
-drivesim is, has a Sign in button, and shows the two guides.
+drivesim is, has a Sign in button, and shows the guides.
 
 ## Interface
 - Served at `/welcome/`. Caddy rewrites `/` to it when there's no

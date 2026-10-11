@@ -3,7 +3,7 @@
 //! chassis, plus the gearbox coupling (`gear_coupling.rs`), which needs
 //! the accelerations over the previous step. `Sim` keeps one per robot.
 
-use crate::gear_coupling::{coupling_scale, gear_coupling};
+use crate::gear_coupling::{gear_coupling, self_ratio, smoothed, smoothing};
 use crate::mixer::Duties;
 use crate::motor::rotor_torque;
 use crate::spawn::{RobotHandles, forward_sign, side_of, v};
@@ -12,14 +12,14 @@ use rapier3d::prelude::*;
 
 /// The motor state carried between steps. Per rotor (wheels, then
 /// weapons): (rotor, chassis) absolute angular velocity about the rotor's
-/// axis after the last step, and the accelerations over it.
+/// axis after the last step, and the accelerations over the recent steps
+/// (`gear_coupling::smoothed`).
 #[derive(Default)]
 pub struct Drivetrain {
     axis_w: Vec<(f32, f32)>,
     axis_alpha: Vec<(f32, f32)>,
-    /// `gear_coupling::coupling_scale` for the robot, found on the first
-    /// `apply`.
-    scale: Option<f32>,
+    /// `gear_coupling::smoothing` for the robot, found on the first `apply`.
+    beta: Option<f32>,
 }
 
 fn rotors(model: &RobotModel) -> impl Iterator<Item = &Rotor> {
@@ -59,7 +59,7 @@ impl Drivetrain {
         if self.axis_w.is_empty() {
             self.axis_w = axis_speeds(world, model, robot);
         }
-        let scale = *self.scale.get_or_insert_with(|| {
+        self.beta.get_or_insert_with(|| {
             let r: Vec<_> = rotors(model)
                 .map(|r| {
                     let d = v(r.axis_dir).normalize();
@@ -74,7 +74,7 @@ impl Drivetrain {
                 .mass
                 .inertia
                 .map(|row| row.map(|c| c as f32));
-            coupling_scale(&r, i)
+            smoothing(self_ratio(&r, i))
         });
         let chassis = robot.bodies[0];
         for &h in &robot.bodies {
@@ -102,7 +102,6 @@ impl Drivetrain {
                 alpha_c,
             );
             let a = rot * v(rotor.axis_dir).normalize();
-            let (fix_r, fix_c) = (fix_r * scale, fix_c * scale);
             world.bodies[robot.bodies[rotor.body]].add_torque(a * (tau + fix_r), true);
             world.bodies[chassis].add_torque(a * (fix_c - tau), true);
         }
@@ -113,11 +112,19 @@ impl Drivetrain {
     pub fn observe(&mut self, world: &PhysicsWorld, model: &RobotModel, robot: &RobotHandles) {
         let after = axis_speeds(world, model, robot);
         let dt = world.integration_parameters.dt;
+        let beta = self.beta.unwrap_or(1.0);
         self.axis_alpha = self
             .axis_w
             .iter()
             .zip(&after)
-            .map(|(b, a)| ((a.0 - b.0) / dt, (a.1 - b.1) / dt))
+            .enumerate()
+            .map(|(k, (b, a))| {
+                let prev = self.axis_alpha.get(k).copied().unwrap_or_default();
+                (
+                    smoothed(prev.0, (a.0 - b.0) / dt, beta),
+                    smoothed(prev.1, (a.1 - b.1) / dt, beta),
+                )
+            })
             .collect();
         self.axis_w = after;
     }

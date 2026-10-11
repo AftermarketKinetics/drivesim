@@ -3,13 +3,15 @@
 ## Function
 
 The fixed-step loop (docs/drivesim.md §6):
-- physics at `PHYSICS_HZ`;
+- physics at `PHYSICS_HZ`, or another of `PHYSICS_RATES_HZ` set at run
+  time;
 - control at `CONTROL_HZ`;
 - motor torques applied every physics step.
 
 ## Interface
 
-- `PHYSICS_HZ` 2000, `CONTROL_HZ` 1000, `STEPS_PER_TICK` 2, `GRAVITY`.
+- `PHYSICS_HZ` 2000 (the rate a `Sim` starts at), `PHYSICS_RATES_HZ`
+  [2000, 3000, 4000], `CONTROL_HZ` 1000, `GRAVITY`.
 - `OpponentKind { Copy (default), Box, Ai, AiVsAi }`: what the robot
   faces. `AiVsAi` is `Ai` with an AI driving the robot as well.
 - `Rival<'a> { model, mesh }`: another robot to face in place of the
@@ -26,7 +28,12 @@ The fixed-step loop (docs/drivesim.md §6):
   - `empty_world(gravity_z)` and `assemble(world, robot, model,
     opponent: Option<Opponent>)`, for tests that build their own scene
     (with `None`, no opponent);
-  - `control_tick(frame)`, `physics_step()`;
+  - `control_tick(frame)`, `physics_step()`. A tick runs
+    `physics_hz() / CONTROL_HZ` steps;
+  - `physics_hz()` and `set_physics_hz(hz)`: the step rate, read from the
+    world's `dt`. `set_physics_hz` takes `hz` to the nearest of
+    `PHYSICS_RATES_HZ` and applies from the next tick (user, 2026-10-11:
+    the sim page's 2–4 kHz slider);
   - `time_s`: simulated seconds since the round started;
   - `floor`: the arena floor collider, set by `new`/`versus`. While it
     is set, every physics step runs `impact_loss.rs`. `None` (a scene
@@ -59,7 +66,10 @@ The fixed-step loop (docs/drivesim.md §6):
   v72 against its AI copy went from 1.31× to 2.4× real time natively
   (0.7× in the browser before). Every drive and weapon test still
   passes; the chaotic single-hit test's margin shrank (see
-  tests/drive.rs.md). **Weapon CCD stays on:** dropping it too reached
+  tests/drive.rs.md). **2 kHz isn't enough for every robot:** a 0.96 kg
+  beetle's 45 mm bar at 10.6k rpm blew up in its hits at 2 and 3 kHz,
+  and held at 4 (2026-10-11). The user chose a 2–4 kHz slider, defaulting
+  to 2, over raising the rate for everyone. **Weapon CCD stays on:** dropping it too reached
   3.6×, but the spinning fixture then hopped on open floor and hits
   stopped throwing the opponent.
 - **Contact as exact as rapier offers** (user, 2026-10-10, for about
@@ -136,7 +146,8 @@ The fixed-step loop (docs/drivesim.md §6):
 
 ## Assertions
 
-- `PHYSICS_HZ` is a multiple of `CONTROL_HZ`.
+- `PHYSICS_HZ` and every rate in `PHYSICS_RATES_HZ` are multiples of
+  `CONTROL_HZ`, so a tick is always 1 ms of simulated time.
 - Tested (tests/drive.rs):
   - full speed within 5% of no-load;
   - turning the right way;

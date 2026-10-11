@@ -1,5 +1,5 @@
 //! Runs the simulation in real time: control ticks at `CONTROL_HZ`, each
-//! running `STEPS_PER_TICK` physics steps (docs/drivesim.md §6).
+//! running `Sim::physics_hz() / CONTROL_HZ` physics steps (docs/drivesim.md §6).
 
 use crate::radio::Radio;
 use bevy::prelude::*;

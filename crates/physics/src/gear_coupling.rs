@@ -14,22 +14,12 @@
 //! The difference, as torques about the axis, is what this returns. It
 //! is applied each physics step from the previous step's accelerations.
 
-/// The largest the chassis self-term `(r−1)²J`, summed over a robot's
-/// rotors, may be against the chassis's own inertia about a rotor axis.
-/// The term is explicit (last step's acceleration), and an explicit added
-/// inertia near the body's own can diverge: a 0.96 kg beetle on 27:1
-/// drive motors sat at 1:1 and blew up with every motor unpowered
-/// (2026-10-11); capped at 0.75 or 0.5 it was still. 0.25 left the 1 lb
-/// house robot tilting 11° on spin-up (4.6° at 0.5). The 12 lb fixture is
-/// at ~1:9 and unaffected.
-pub const MAX_SELF_FRACTION: f32 = 0.5;
-
-/// How much of the correction a robot can take stably: 1, or less when
-/// its rotors' summed chassis self-term would pass `MAX_SELF_FRACTION` of
-/// the chassis's inertia about any rotor's axis. `rotors` are (unit axis in
-/// the chassis frame, motor J, ratio); `chassis` is the chassis inertia
-/// about its CoM in the same frame.
-pub fn coupling_scale(rotors: &[([f32; 3], f32, f32)], chassis: [[f32; 3]; 3]) -> f32 {
+/// The rotors' summed chassis self-term `(r−1)²J`, projected on each
+/// rotor's axis, against the chassis's own inertia about that axis; the
+/// largest over the axes. `rotors` are (unit axis in the chassis frame,
+/// motor J, ratio); `chassis` is the chassis inertia about its CoM in the
+/// same frame. 0 when no rotor has a gearbox.
+pub fn self_ratio(rotors: &[([f32; 3], f32, f32)], chassis: [[f32; 3]; 3]) -> f32 {
     let about = |d: [f32; 3]| -> f32 {
         (0..3)
             .map(|i| (0..3).map(|j| d[i] * chassis[i][j] * d[j]).sum::<f32>())
@@ -45,13 +35,28 @@ pub fn coupling_scale(rotors: &[([f32; 3], f32, f32)], chassis: [[f32; 3]; 3]) -
                     (r - 1.0) * (r - 1.0) * j * c * c
                 })
                 .sum();
-            if added > 0.0 {
-                (MAX_SELF_FRACTION * about(*d) / added).min(1.0)
-            } else {
-                1.0
-            }
+            added / about(*d)
         })
-        .fold(1.0, f32::min)
+        .fold(0.0, f32::max)
+}
+
+/// How far each step moves the accelerations the correction uses toward
+/// the step's measured ones (`smoothed`), for a robot at `self_ratio` g.
+///
+/// The correction is explicit: the chassis self-term `K = g·I` is an
+/// added inertia fed back a step late, and unfiltered it diverges once g
+/// nears 1. With a one-pole filter `α_f += β (α − α_f)`, the loop
+/// `α = (τ − K α_f)/I` gives `α_f ← (1 − β(1+g)) α_f + β τ/I`. At
+/// `β = 1/(1+g)` that settles on the implicit answer `τ/(I+K)` in one
+/// step, and it is stable for any g. A heavy robot (g ≈ 0.1) is barely
+/// filtered; the 0.96 kg beetle on 27:1 (g = 1.8, 2026-10-11) gets 0.35.
+pub fn smoothing(self_ratio: f32) -> f32 {
+    1.0 / (1.0 + self_ratio)
+}
+
+/// `prev` moved `beta` of the way toward `measured`.
+pub fn smoothed(prev: f32, measured: f32, beta: f32) -> f32 {
+    prev + beta * (measured - prev)
 }
 
 /// Torques (on the rotor body, on the chassis), N m, about the rotor's
@@ -91,30 +96,46 @@ mod tests {
         assert!(((j * r * r * a - on_chassis) / (j * r * a) - 1.0).abs() < 1e-3);
     }
 
+    #[test]
+    fn smoothing_settles_on_the_implicit_answer_in_one_step() {
+        // A chassis self-term K = g I fed back a step late through the
+        // filter: α = (τ − K α_f)/I lands on τ/(I + K) at once.
+        for g in [0.1f32, 1.0, 1.8, 10.0] {
+            let (i, tau) = (2e-3f32, 0.5f32);
+            let beta = smoothing(g);
+            let mut f = 0.0;
+            for _ in 0..3 {
+                let a = (tau - g * i * f) / i;
+                f = smoothed(f, a, beta);
+                assert!(
+                    (f / (tau / (i * (1.0 + g))) - 1.0).abs() < 1e-4,
+                    "g {g}: {f}"
+                );
+            }
+        }
+    }
+
     const BOX: [[f32; 3]; 3] = [[2e-3, 0.0, 0.0], [0.0, 2e-3, 0.0], [0.0, 0.0, 4e-3]];
     const Y: [f32; 3] = [0.0, 1.0, 0.0];
 
     #[test]
-    fn a_heavy_chassis_keeps_the_whole_correction() {
-        // Two wheels on 27:1, J 1.6e-6: (26)² J ≈ 1.1e-3 each, against 0.02.
-        let heavy = [[0.02, 0.0, 0.0], [0.0, 0.02, 0.0], [0.0, 0.0, 0.04]];
-        assert_eq!(coupling_scale(&[(Y, 1.6e-6, 27.0); 2], heavy), 1.0);
-    }
-
-    #[test]
-    fn a_light_chassis_is_scaled_to_the_cap() {
-        // The same wheels on a 2e-3 chassis (the 2026-10-11 beetle).
-        let k = coupling_scale(&[(Y, 1.6e-6, 27.0); 2], BOX);
-        let added = 2.0 * 26.0 * 26.0 * 1.6e-6 * k;
-        assert!((added / 2e-3 - MAX_SELF_FRACTION).abs() < 1e-4, "scale {k}");
+    fn self_ratio_sums_the_wheels_on_their_axis() {
+        // Two wheels on 27:1, J 1.6e-6, on a 2e-3 chassis: 2·26²·J / I.
+        let g = self_ratio(&[(Y, 1.6e-6, 27.0); 2], BOX);
+        assert!((g - 2.0 * 26.0 * 26.0 * 1.6e-6 / 2e-3).abs() < 1e-4, "{g}");
     }
 
     #[test]
     fn a_rotor_across_the_wheels_adds_nothing_to_their_axis() {
         let x = [1.0, 0.0, 0.0];
-        let wheels = coupling_scale(&[(Y, 1.6e-6, 27.0); 2], BOX);
-        let both = coupling_scale(&[(Y, 1.6e-6, 27.0), (Y, 1.6e-6, 27.0), (x, 1e-9, 2.0)], BOX);
+        let wheels = self_ratio(&[(Y, 1.6e-6, 27.0); 2], BOX);
+        let both = self_ratio(&[(Y, 1.6e-6, 27.0), (Y, 1.6e-6, 27.0), (x, 1e-9, 2.0)], BOX);
         assert!((wheels - both).abs() < 1e-6);
+    }
+
+    #[test]
+    fn no_gearbox_is_not_filtered() {
+        assert_eq!(smoothing(self_ratio(&[(Y, 1.6e-6, 1.0); 2], BOX)), 1.0);
     }
 
     #[test]
