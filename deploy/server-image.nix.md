@@ -24,9 +24,12 @@ the browser sim, and the house robots' bundles.
 - **Adapted from the analyzer's `deploy/analyzer-image.nix`** (2026-10-10):
   a uv2nix env (`nix/server-env.nix`), `fakeNss`, `cacert`, and uvicorn
   with `--proxy-headers`.
-- **The sim is the local build** (user, 2026-10-10). `server/web/sim/`
-  comes from `make web-build`, which `push.sh` runs first. The build fails
-  if the wasm is missing. Sidecar `.md` files stay out of `/app/web`.
+- **The sim is `nix/sim.nix`'s build** (2026-10-19; it was the local
+  `make web-build` output from 2026-10-10). Accelerate's clover deploy
+  takes this repo as a flake input, so the image must build from a clean
+  checkout. The pages come from `server/web/` minus sidecars and minus any
+  local `server/web/sim/`; the sim is copied (not symlinked) in at
+  `/app/web/sim/`.
 - **House robots** (user, 2026-10-10; scaled versions 2026-10-11):
   `fixtures/simple_bot`, `simple_bot_1lb`, `simple_bot_3lb` and
   `simple_bot_30lb`, minus sidecars, are linked in under `/app/house/`.
@@ -44,3 +47,5 @@ the browser sim, and the house robots' bundles.
 - [ ] No port is published in compose; only Caddy reaches the service.
 - [ ] `DRIVESIM_DEV_USER` is never set in this image.
 - [ ] Paths match accelerate's compose volumes and `push.sh`'s dirs.
+- [ ] Builds from a clean checkout: nothing gitignored (e.g. the local
+  `server/web/sim/`) reaches the image.

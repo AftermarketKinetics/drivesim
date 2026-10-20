@@ -3,10 +3,9 @@
 #
 #   deploy/push.sh [--dry-run]        # from the repo root, inside nix-shell
 #
-# Rebuilds the browser sim first (make web-build, ~13 min: the server image
-# ships the local build, user 2026-10-10), so the image can never carry a
-# stale sim. Only builds, copies and `docker load`s: it does not start or
-# restart anything. Bringing the services up is accelerate's job:
+# The server image builds the sim itself (nix/sim.nix), so no
+# `make web-build` step is needed first. Only builds, copies and
+# `docker load`s: it does not start or restart anything. Bringing the services up is accelerate's job:
 #   ssh mint 'cd ~/accelerate && docker compose up -d drivesim-broker drivesim'
 # Adapted from the analyzer's deploy/push.sh (2026-10-10).
 set -euo pipefail
@@ -16,8 +15,6 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 DRY=0
 [ "${1:-}" = "--dry-run" ] && DRY=1
 cd "$ROOT"
-
-make web-build
 
 declare -A IMAGES=(
   [drivesim-import]="deploy/import-image.nix"

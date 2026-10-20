@@ -1,8 +1,8 @@
 # push.sh
 
 ## Function
-Ships drivesim's images to mint: rebuilds the browser sim, builds the
-import, broker and server images with nix, and streams each into
+Ships drivesim's images to mint: builds the import, broker and server
+images with nix, and streams each into
 `docker load` on mint.
 
 ## Interface
@@ -11,16 +11,17 @@ import, broker and server images with nix, and streams each into
 - Effects on mint:
   - `drivesim-import`, `drivesim-broker` and `drivesim` images loaded;
   - `~/drivesim/robots` (0777) and `~/drivesim/data` (0700) exist.
-- `--dry-run` builds and prints sizes only (and still runs
-  `make web-build`).
+- `--dry-run` builds and prints sizes only.
 
 ## Implementation
 - **Copied from the analyzer's `deploy/push.sh`:** streams
   `ssh mint docker load < tarball`, so mint never stores the tarball, and
   starts nothing. Services are brought up from accelerate's compose
   (`drivesim-broker`, `drivesim`).
-- **Runs `make web-build` first** (about 13 min), because the server image
-  ships the local sim build (user, 2026-10-10).
+- **No `make web-build` step** (since 2026-10-19): the server image builds
+  the sim in nix (`nix/sim.nix`), so a stale local build can't ship.
+- **Being retired:** on clover, accelerate takes this repo as a flake input
+  and arion loads the images; this script only serves mint until cutover.
 - `~/drivesim/robots` is world-writable because each import sandbox runs as
   uid 65534; `~/drivesim/data`, the database, is private.
 

@@ -7,10 +7,11 @@
 # versions; user 2026-10-10, 2026-10-11) ship in
 # /app/house and are seeded into the store as public AI opponents at start.
 #
-# The sim (server/web/sim/) is the local `make web-build` output (user,
-# 2026-10-10: ship the local build); deploy/push.sh rebuilds it before every
-# push, and this build fails if it is missing. Runs as 1000:100, so robot dirs
-# and the database on the mint bind mounts are the operator's. Compose
+# The sim is nix/sim.nix's build (2026-10-19, for accelerate's clover move:
+# the image must build from a clean checkout), copied in at /app/web/sim/;
+# any local `make web-build` output in server/web/sim/ is ignored. Runs as
+# 1000:100, so robot dirs and the database on the bind mounts are the
+# operator's. Compose
 # publishes no port: only Caddy reaches it, which is what makes the
 # X-authentik-* identity headers trustworthy. Adapted from the analyzer's
 # deploy/analyzer-image.nix (2026-10-10).
@@ -20,11 +21,20 @@ let
   inherit (pkgs) lib;
   env = import ../nix/server-env.nix { inherit pkgs; };
   check = import ../nix/drivesim-check.nix { inherit pkgs; };
-  # Pages and the sim, without sidecar docs.
-  web = lib.fileset.toSource {
+  sim = import ../nix/sim.nix { inherit pkgs; };
+  # Pages without sidecar docs or any local `make web-build` output, plus
+  # nix/sim.nix's sim. Copied, not symlinked, so no static-file handler can
+  # see sim/ resolve outside /app/web.
+  pages = lib.fileset.toSource {
     root = ../server/web;
-    fileset = lib.fileset.fileFilter (f: !(lib.hasSuffix ".md" f.name)) ../server/web;
+    fileset = lib.fileset.difference
+      (lib.fileset.fileFilter (f: !(lib.hasSuffix ".md" f.name)) ../server/web)
+      (lib.fileset.maybeMissing ../server/web/sim);
   };
+  web = pkgs.runCommand "drivesim-web" { } ''
+    cp -r ${pages} $out && chmod u+w $out
+    cp -r ${sim} $out/sim
+  '';
   # House robots' bundles, without sidecar docs (house.py).
   house = lib.fileset.toSource {
     root = ../fixtures;
@@ -35,8 +45,6 @@ let
       ]);
   };
   app = pkgs.runCommand "drivesim-app-files" { } ''
-    test -f ${web}/sim/drivesim_web_bg.wasm \
-      || { echo "server/web/sim is missing: run make web-build first" >&2; exit 1; }
     mkdir -p $out/app
     ln -s ${web} $out/app/web
     cp ${../data/motors.toml} $out/app/motors.toml
