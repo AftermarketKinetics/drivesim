@@ -7,7 +7,7 @@
 # it safe is the broker's single fixed command (broker/broker.py.md) and that
 # compose exposes it only on the internal network the server shares. Adapted
 # from the analyzer's deploy/broker-image.nix (2026-10-10).
-{ pkgs ? import ../nix/pkgs.nix }:
+{ pkgs ? import ../nix/pkgs.nix { } }:
 
 pkgs.dockerTools.buildLayeredImage {
   name = "drivesim-broker";

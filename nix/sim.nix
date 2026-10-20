@@ -3,7 +3,7 @@
 # checkout (accelerate's clover migration takes this repo as a flake input).
 # Same three steps as the Makefile: cargo for wasm32, wasm-bindgen (the CLI in
 # this pin matches web/Cargo.toml's `=0.2.127`), wasm-opt; plus index.html.
-{ pkgs ? import ./pkgs.nix }:
+{ pkgs ? import ./pkgs.nix { } }:
 
 let
   inherit (pkgs) lib;

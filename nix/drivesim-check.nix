@@ -2,7 +2,7 @@
 # robot.toml the role conversation writes. Built from the Cargo workspace at
 # the repo root with its Cargo.lock. Only the crates and the workspace
 # manifests reach the store; target/, web/ and the rest do not.
-{ pkgs ? import ./pkgs.nix }:
+{ pkgs ? import ./pkgs.nix { } }:
 
 let
   inherit (pkgs) lib;

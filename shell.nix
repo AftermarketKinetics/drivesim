@@ -1,4 +1,4 @@
-{ pkgs ? import ./nix/pkgs.nix }:
+{ pkgs ? import ./nix/pkgs.nix { } }:
 
 # The whole toolchain: Rust for the sim crates and the browser (WASM) app,
 # Python with OpenCASCADE for the STEP importer (tools/import). Rust *crate*

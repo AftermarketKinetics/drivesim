@@ -7,7 +7,7 @@
 # manager. The broker starts one container per upload (runsc, --network=none,
 # --read-only) and it exits when the import does. Adapted from the Combat
 # Robot Analyzer's sandbox/image.nix (2026-10-10).
-{ pkgs ? import ../nix/pkgs.nix }:
+{ pkgs ? import ../nix/pkgs.nix { } }:
 
 let
   python = import ../nix/import-python.nix { inherit pkgs; };

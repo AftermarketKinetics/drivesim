@@ -15,7 +15,7 @@
 # publishes no port: only Caddy reaches it, which is what makes the
 # X-authentik-* identity headers trustworthy. Adapted from the analyzer's
 # deploy/analyzer-image.nix (2026-10-10).
-{ pkgs ? import ../nix/pkgs.nix }:
+{ pkgs ? import ../nix/pkgs.nix { } }:
 
 let
   inherit (pkgs) lib;

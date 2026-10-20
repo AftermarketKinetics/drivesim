@@ -4,7 +4,7 @@
 # Analyzer's nix/analyzer-env.nix (2026-10-10), with the same pyproject-nix
 # revisions; bump the three together and re-run
 #   nix-prefetch-url --unpack https://github.com/pyproject-nix/<repo>/archive/<rev>.tar.gz
-{ pkgs ? import ./pkgs.nix }:
+{ pkgs ? import ./pkgs.nix { } }:
 
 let
   inherit (pkgs) lib;
